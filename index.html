@@ -1212,12 +1212,11 @@ async function loadLeague(){
     draftOrder.forEach((r,i)=>{ rosterSlot[r.rid]=pickSlot(i,draftOrder.length); });
 
     // Now rescore picks using slot-aware DATA lookup and attach slot to each pick object
-    // Only count picks the team actually owns (isOwn:true) — not incorrectly assigned ones
+    // r.picks already reflects correct ownership — own picks that were never traded,
+    // plus picks received via trade. Show and score all of them.
     scored.forEach(r=>{
       let pickVal=0;
-      const ownedPicks=(r.picks||[]).filter(pk=>pk.isOwn);
-      r.picks=ownedPicks; // remove acquired picks from display entirely
-      ownedPicks.forEach(pk=>{
+      (r.picks||[]).forEach(pk=>{
         const origRid=pk._orig||r.rid;
         const slot=rosterSlot[origRid]||rosterSlot[r.rid]||'Mid';
         pk.slot=slot;
@@ -1380,9 +1379,10 @@ function showRoster(idx){
       const totalVal=g.totalVal.toFixed(1);
       const pickLabel=`${g.season} Round ${g.round} · ${g.slot}`;
       const countBadge=count>1?`<span style="font-family:Oswald,sans-serif;font-size:10px;background:rgba(155,138,191,0.2);color:var(--pick);padding:1px 6px;border-radius:3px;margin-left:6px;">${count} picks</span>`:'';
+      const acquired=g.items.some(pk=>!pk.isOwn)?`<span style="font-size:9px;color:var(--accent2);font-family:Oswald,sans-serif;margin-left:4px;">acquired</span>`:'';
       html+=`<div class="modal-player-row">
         <div style="width:36px;height:36px;border-radius:50%;background:rgba(155,138,191,0.12);border:1px solid var(--pick);display:flex;align-items:center;justify-content:center;font-family:Oswald,sans-serif;font-size:9px;font-weight:600;color:var(--pick);flex-shrink:0;">R${g.round}</div>
-        <div style="flex:1;"><div class="modal-player-name" style="color:var(--pick);">${pickLabel}${countBadge}</div><div class="modal-player-meta">${g.season} Dynasty Pick · ${val} pts each</div></div>
+        <div style="flex:1;"><div class="modal-player-name" style="color:var(--pick);">${pickLabel}${countBadge}${acquired}</div><div class="modal-player-meta">${g.season} Dynasty Pick · ${val} pts each</div></div>
         <div class="modal-player-score" style="color:var(--pick);">${count>1?totalVal:val}</div>
       </div>`;
     });
