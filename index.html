@@ -957,20 +957,25 @@ async function loadLeague(){
     let sp={};
     try{const pr=await fetch('https://api.sleeper.app/v1/players/nfl');sp=await pr.json();}catch(e){}
 
-    // Draft capital
+    // Draft capital — collect traded_picks across ALL historical seasons
+    // Picks traded in previous league years won't appear in current league's traded_picks
     document.getElementById('llod').textContent='Fetching draft capital...';
     let tradedPicks=[];
-    try{const tp=await fetch(`https://api.sleeper.app/v1/league/${id}/traded_picks`);tradedPicks=await tp.json();}catch(e){}
+    try{
+      // Walk the previous_league_id chain to collect all historical traded picks
+      let scanId=id;
+      for(let s=0;s<8;s++){
+        const tp=await fetch(`https://api.sleeper.app/v1/league/${scanId}/traded_picks`).then(r=>r.json()).catch(()=>[]);
+        if(Array.isArray(tp)) tradedPicks=tradedPicks.concat(tp);
+        // Get the previous league id
+        const lr=await fetch(`https://api.sleeper.app/v1/league/${scanId}`).then(r=>r.json()).catch(()=>null);
+        if(!lr||!lr.previous_league_id) break;
+        scanId=lr.previous_league_id;
+      }
+    }catch(e){}
 
-    // DEBUG — open browser console to see this
-    console.log('=== PICK DEBUG ===');
-    console.log('Total traded_picks:', tradedPicks.length);
-    console.log('Future picks (>2026):', JSON.stringify(tradedPicks.filter(p=>parseInt(p.season)>2026), null, 2));
-    console.log('Roster IDs in league:', rosters.map(r=>r.roster_id));
-    console.log('User->Roster map:', JSON.stringify(Object.fromEntries(rosters.map(r=>[r.owner_id, r.roster_id]))));
-    console.log('=================');
-
-    // Build user_id -> roster_id map (original_owner_id is a user_id, not roster_id)
+    // Build user_id -> roster_id map for current league
+    // (original_owner_id in traded_picks can be either a user_id or roster_id)
     const userToRoster={};
     rosters.forEach(r=>{ if(r.owner_id) userToRoster[r.owner_id]=r.roster_id; });
 
@@ -988,21 +993,32 @@ async function loadLeague(){
       });
     });
 
-    // traded_picks: original_owner_id may be user_id OR roster_id depending on league age
-    // Try both mappings
+    // Process all traded picks across all seasons
+    // For future picks (>2026): remove from original owner, give to current owner
     const tradedAwayKeys=new Set();
     tradedPicks.forEach(pk=>{
       const yr=parseInt(pk.season)||0;
       const rd=pk.round;
-      const cur=pk.roster_id; // current owner is always roster_id
-      if(yr<=2026||!rd||!cur) return;
+      if(yr<=2026||!rd) return;
 
-      // original_owner_id: try as roster_id first, then as user_id
+      // current owner is always roster_id (integer 1-12)
+      const cur=pk.roster_id;
+
+      // original owner: try as roster_id first, then convert from user_id
       let origRid=pk.original_owner_id;
-      if(origRid&&!rosterPicks[origRid]&&userToRoster[origRid]){
-        origRid=userToRoster[origRid];
+      if(origRid!==null&&origRid!==undefined){
+        origRid=parseInt(origRid)||origRid;
+        // If it's not a valid roster_id (1-12 range), try user->roster map
+        if(!rosterPicks[origRid]&&userToRoster[origRid]){
+          origRid=userToRoster[origRid];
+        }
+        // Also try string version
+        if(!rosterPicks[origRid]&&userToRoster[String(pk.original_owner_id)]){
+          origRid=userToRoster[String(pk.original_owner_id)];
+        }
       }
-      if(!origRid) return;
+
+      if(!origRid||!cur) return;
 
       tradedAwayKeys.add(`${yr}_${rd}_${origRid}`);
 
