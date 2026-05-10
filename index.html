@@ -1122,12 +1122,24 @@ async function loadLeague(){
     Object.entries(pickCurrentOwner).forEach(([key,cur])=>{
       const parts=key.split('_');
       const yr=Number(parts[0]),rd=Number(parts[1]),orig=Number(parts[2]);
+
       // Remove from original owner's seed
+      const before=rosterPicks[orig]?.length;
       if(rosterPicks[orig])
         rosterPicks[orig]=rosterPicks[orig].filter(p=>!(p.season===yr&&p.round===rd&&p._orig===orig&&p.isOwn));
+      const after=rosterPicks[orig]?.length;
+      console.log(`APPLY key=${key} cur=${cur}: orig ${orig} picks ${before}→${after}, adding to ${cur}`);
+
       // Add to current owner if not already there
       if(rosterPicks[cur]&&!rosterPicks[cur].find(p=>p.season===yr&&p.round===rd&&p._orig===orig))
-        rosterPicks[cur].push({season:yr,round:rd,isOwn:false,_orig:orig});
+        rosterPicks[cur].push({season:yr,round:rd,isOwn:cur!==orig,_orig:orig});
+    });
+
+    // Final state
+    Object.entries(rosterPicks).forEach(([rid,picks])=>{
+      const r=rosters.find(ro=>ro.roster_id==rid);
+      const name=umap[r?.owner_id]?.name||rid;
+      console.log(`FINAL roster ${rid} (${name}): ${picks.filter(p=>p.season>2026).map(p=>`${p.season}R${p.round}(own:${p.isOwn})`).join(', ')||'NO PICKS'}`);
     });
 
     // Cache Sleeper player IDs for photo lookups — normalized name → sleeper_id
