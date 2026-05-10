@@ -368,9 +368,17 @@ footer{background:var(--bg2);border-top:2px solid var(--border);padding:12px 20p
   <div class="sw2">
     <div class="stop">
       <div class="stitle">LEAGUE <span>Analyzer</span></div>
-      <div class="lid-row">
-        <input type="text" id="lid" placeholder="Sleeper League ID...">
-        <button class="sbtn" onclick="loadLeague()" id="lbtn">Load League</button>
+      <div style="display:flex;flex-direction:column;gap:8px;align-items:flex-end;">
+        <div class="lid-row">
+          <input type="text" id="lid" placeholder="Sleeper League ID...">
+          <button class="sbtn" onclick="loadLeague()" id="lbtn">Load League</button>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <input type="password" id="ak-input" placeholder="Anthropic API key (for team breakdowns)..." style="background:var(--bg2);border:1px solid var(--border);color:var(--text);font-family:'Barlow Condensed',sans-serif;font-size:13px;padding:6px 10px;outline:none;width:300px;">
+          <button onclick="saveKey()" style="background:var(--bg2);border:1px solid var(--border);color:var(--text3);font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;padding:6px 12px;cursor:pointer;white-space:nowrap;">Save Key</button>
+          <span id="ak-status" style="font-family:'Oswald',sans-serif;font-size:10px;color:var(--text3);"></span>
+        </div>
+        <div style="font-size:11px;color:var(--text3);text-align:right;">Key is kept in memory only — never stored. Get yours at console.anthropic.com</div>
       </div>
     </div>
     <div id="lerr" class="errb" style="display:none;"></div>
@@ -804,8 +812,30 @@ function renderLeague(league,rosters,lid){
         </div>
       </div>`).join('')}
     </div>
-    <div style="margin-top:14px;font-size:11px;color:var(--text3);line-height:1.6;">Tap any team name to see their full roster with individual player values. Championship odds reflect relative roster strength. Contention window is based on your core players' age and output.</div>`;
+    <div style="margin-top:14px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+      <div style="font-size:11px;color:var(--text3);line-height:1.6;">Tap any team name to see their full roster with individual player values. Championship odds reflect relative roster strength. Contention window is based on your core players' age and output.</div>
+      <button onclick="rerunBreakdowns()" style="background:var(--bg2);border:1px solid var(--border);color:var(--text3);font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;padding:6px 14px;cursor:pointer;white-space:nowrap;flex-shrink:0;">↻ Run Breakdowns</button>
+    </div>`;
   rosters.forEach((r,i)=>setTimeout(()=>genAI(r,i),i*800));
+}
+
+// ── API KEY (memory only, never persisted) ─────────────────────────────
+let ANTHROPIC_KEY = '';
+function saveKey(){
+  const v = (document.getElementById('ak-input').value||'').trim();
+  if(!v){ document.getElementById('ak-status').textContent='Enter a key first.'; return; }
+  ANTHROPIC_KEY = v;
+  document.getElementById('ak-input').value = '••••••••••••••••';
+  document.getElementById('ak-status').textContent = '✓ Key saved';
+  document.getElementById('ak-status').style.color = 'var(--gt)';
+}
+function rerunBreakdowns(){
+  if(!ANTHROPIC_KEY){ alert('Paste your Anthropic API key above first, then click Save Key.'); return; }
+  MODAL_DATA.forEach((r,i)=>{
+    const el=document.getElementById('ait'+i);
+    if(el){el.className='aild';el.style.color='';el.textContent='Loading...';}
+    setTimeout(()=>genAI(r,i),i*800);
+  });
 }
 
 async function genAI(r,i){
@@ -828,18 +858,33 @@ Sentence 2: What does their current record and scoring tell us — are they over
 Sentence 3: Contention window — are they peaking, building, or declining, and what does ${r.contention} mean for their approach?
 Sentence 4: One specific, opinionated trade recommendation — what should they do right now?`;
   try{
+    if(!ANTHROPIC_KEY){
+      const el=document.getElementById('ait'+i);
+      if(el){el.className='aitxt';el.style.color='var(--text3)';el.textContent='Add your Anthropic API key above to see team breakdowns.';}
+      return;
+    }
     const res=await fetch('https://api.anthropic.com/v1/messages',{
       method:'POST',
-      headers:{'Content-Type':'application/json','anthropic-dangerous-direct-browser-access':'true'},
+      headers:{
+        'Content-Type':'application/json',
+        'x-api-key': ANTHROPIC_KEY,
+        'anthropic-version':'2023-06-01',
+        'anthropic-dangerous-direct-browser-access':'true'
+      },
       body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:350,messages:[{role:'user',content:prompt}]})
     });
     const data=await res.json();
+    if(data.error){
+      const el=document.getElementById('ait'+i);
+      if(el){el.className='aitxt';el.style.color='var(--text3)';el.textContent=`API error: ${data.error.message||'Check your key.'}`;}
+      return;
+    }
     const txt=(data.content||[]).map(c=>c.text||'').join('').trim();
     const el=document.getElementById('ait'+i);
-    if(el){el.className='aitxt';el.textContent=txt||'No breakdown available.';}
+    if(el){el.className='aitxt';el.style.color='';el.textContent=txt||'No breakdown returned.';}
   }catch(e){
     const el=document.getElementById('ait'+i);
-    if(el){el.className='aitxt';el.textContent='Breakdown unavailable.';}
+    if(el){el.className='aitxt';el.style.color='var(--text3)';el.textContent='Network error — check your connection and reload.';}
   }
 }
 
