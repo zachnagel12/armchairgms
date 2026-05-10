@@ -492,6 +492,10 @@ footer{flex-direction:column;gap:6px;text-align:center;padding:10px;}
   </div>
   <div class="nav-r">
     <span class="nav-user" id="nu"></span>
+    <div style="display:flex;gap:4px;align-items:center;">
+      <button class="scoring-btn active" data-s="SF" onclick="setScoring('SF')" style="font-family:Oswald,sans-serif;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;padding:4px 10px;border:1px solid var(--accent);background:var(--accent);color:var(--bg2);cursor:pointer;border-radius:4px;">SF</button>
+      <button class="scoring-btn" data-s="1QB" onclick="setScoring('1QB')" style="font-family:Oswald,sans-serif;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;padding:4px 10px;border:1px solid var(--border);background:transparent;color:var(--text3);cursor:pointer;border-radius:4px;">1QB</button>
+    </div>
     <button class="nav-out" onclick="doLogout()">Sign Out</button>
     <div class="nav-season">2026</div>
   </div>
@@ -509,13 +513,6 @@ footer{flex-direction:column;gap:6px;text-align:center;padding:10px;}
       <div class="stat-c"><div class="stat-v">2027–29</div><div class="stat-l">Draft Picks</div></div>
       <div class="stat-c"><div class="stat-v">#1 Josh Allen</div><div class="stat-l">Top Asset</div></div>
     </div>
-  </div>
-  <!-- SCORING MODE TOGGLE -->
-  <div style="background:var(--bg2);border-bottom:2px solid var(--border);padding:8px 16px;display:flex;align-items:center;gap:10px;">
-    <span style="font-family:Oswald,sans-serif;font-size:10px;letter-spacing:0.14em;text-transform:uppercase;color:var(--text3);">Format:</span>
-    <button class="scoring-btn active" data-s="SF" onclick="setScoring('SF')" style="font-family:Oswald,sans-serif;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;padding:5px 14px;border:1px solid var(--border);background:var(--accent);color:var(--bg2);cursor:pointer;border-radius:5px;">Superflex</button>
-    <button class="scoring-btn" data-s="1QB" onclick="setScoring('1QB')" style="font-family:Oswald,sans-serif;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;padding:5px 14px;border:1px solid var(--border);background:transparent;color:var(--text3);cursor:pointer;border-radius:5px;">1 QB</button>
-    <span id="scoring-desc" style="font-family:Oswald,sans-serif;font-size:10px;color:var(--text3);margin-left:4px;">QB=QB · WR=WR · RB=RB · TE=TE</span>
   </div>
   <div class="main-wrap">
     <div class="rp">
@@ -741,18 +738,28 @@ b.style.background=active?‘var(–accent)’:‘transparent’;
 b.style.color=active?‘var(–bg2)’:‘var(–text3)’;
 b.style.borderColor=active?‘var(–accent)’:‘var(–border)’;
 });
-const desc=document.getElementById(‘scoring-desc’);
-if(desc) desc.textContent=mode===‘SF’
-?“QB=QB · WR=WR · RB=RB · TE=TE”
-:“RB > WR > TE = QB (1QB positional weights)”;
 GP=[];RP=[];
 renderTable();
-renderTAll();
+renderTA();
+// Re-render league if data is loaded
+if(MODAL_DATA&&MODAL_DATA.length) reRenderLeague();
 }
 
 function normName(n){
 return (n||’’).toLowerCase().replace(/[’\u2019`.-]/g,’’).replace(/\s+(jr|sr|ii|iii|iv)$/,’’).replace(/\s+/g,’ ‘).trim();
 }
+function reRenderLeague(){
+if(!MODAL_DATA||!MODAL_DATA.length) return;
+// Recompute totalScore for each roster using current SCORING mode
+const leagueAvg=MODAL_DATA.reduce((s,r)=>s+(r.all.reduce((ss,p)=>ss+getScore(p),0)+(r.pickVal||0)),0)/MODAL_DATA.length;
+MODAL_DATA.forEach(r=>{
+r.totalScore=Math.round((r.all.reduce((s,p)=>s+getScore(p),0)+(r.pickVal||0))*10)/10;
+});
+MODAL_DATA.sort((a,b)=>b.totalScore-a.totalScore);
+const lcon=document.getElementById(‘lcon’);
+if(lcon&&lcon.innerHTML) renderLeague(window._lastLeague||{name:‘Your League’},MODAL_DATA,window._lastLeagueId||’’);
+}
+
 function posGlyph(pos){return {QB:‘QB’,WR:‘WR’,RB:‘RB’,TE:‘TE’}[pos]||’?’;}
 function posColor(pos){return {QB:‘var(–qb)’,WR:‘var(–wr)’,RB:‘var(–rb)’,TE:‘var(–te)’}[pos]||‘var(–text3)’;}
 
@@ -901,19 +908,19 @@ const ratio=r.totalScore/(leagueAvg||1);
 score += Math.min(30, Math.round(ratio*20));
 
 // 2. QB situation (0-20pts)
-const qbs=all.filter(p=>p.pos===‘QB’).sort((a,b)=>b.score-a.score);
-if(qbs[0]?.score>=60) score+=20;
-else if(qbs[0]?.score>=35) score+=14;
-else if(qbs[0]?.score>=15) score+=8;
+const qbs=all.filter(p=>p.pos===‘QB’).sort((a,b)=>getScore(b)-getScore(a));
+if(getScore(qbs[0])>=60) score+=20;
+else if(getScore(qbs[0])>=35) score+=14;
+else if(getScore(qbs[0])>=15) score+=8;
 else if(qbs.length) score+=3;
 else { score-=5; issues.push(‘No QB’); }
 
-// 3. Positional depth — top 2 at each skill pos (0-20pts)
+// 3. Positional depth
 [‘WR’,‘RB’,‘TE’].forEach(pos=>{
-const ps=all.filter(p=>p.pos===pos).sort((a,b)=>b.score-a.score);
-if(ps[0]?.score>=40) score+=5;
-else if(ps[0]?.score>=20) score+=3;
-if(ps[1]?.score>=20) score+=2;
+const ps=all.filter(p=>p.pos===pos).sort((a,b)=>getScore(b)-getScore(a));
+if(getScore(ps[0])>=40) score+=5;
+else if(getScore(ps[0])>=20) score+=3;
+if(getScore(ps[1])>=20) score+=2;
 });
 
 // 4. Age profile of top-8 — dynasty longevity (0-15pts)
@@ -926,8 +933,8 @@ else if(avgAge<31) score+=2;
 else { score-=3; issues.push(‘Aging core’); }
 
 // 5. Depth (top 10 vs top 3 ratio) — avoids one-trick pony (0-15pts)
-const top3val=all.slice(0,3).reduce((s,p)=>s+p.score,0);
-const top10val=all.slice(0,10).reduce((s,p)=>s+p.score,0);
+const top3val=all.slice(0,3).reduce((s,p)=>s+getScore(p),0);
+const top10val=all.slice(0,10).reduce((s,p)=>s+getScore(p),0);
 const depthRatio=top3val>0?top10val/top3val:1;
 if(depthRatio>=2.0) score+=15;
 else if(depthRatio>=1.6) score+=10;
@@ -996,8 +1003,8 @@ const pickMsg=gPicks.length>rPicks.length?`You're surrendering ${gPicks.length-r
 :‘Pick capital is neutral.’;
 
 // Narrative: combine value, age, picks into a read
-const gTotal=give.reduce((s,d)=>s+d.score,0);
-const rTotal=recv.reduce((s,d)=>s+d.score,0);
+const gTotal=give.reduce((s,d)=>s+getScore(d),0);
+const rTotal=recv.reduce((s,d)=>s+getScore(d),0);
 const diff=rTotal-gTotal;
 const isWin=diff>8, isLoss=diff<-8;
 const gettingOlder=gAge!==null&&rAge!==null&&rAge>gAge+1.5;
@@ -1272,7 +1279,7 @@ scored.forEach(r=>{
   // Replace pickVal with slot-aware value
   r.pickVal=Math.round(pickVal*10)/10;
   // Recompute totalScore with corrected pickVal
-  const playerScore=r.all.reduce((s,p)=>s+p.score,0);
+  const playerScore=r.all.reduce((s,p)=>s+getScore(p),0);
   r.totalScore=Math.round((playerScore+pickVal)*10)/10;
 });
 
@@ -1308,7 +1315,7 @@ scored.forEach(r=>{
 
   const avgAge = top5.reduce((s,p)=>s+(p.age||25),0)/top5.length;
   const top8Score = top8.reduce((s,p)=>s+p.score,0)/Math.max(1,top8.length);
-  const top3Score = r.all.slice(0,3).reduce((s,p)=>s+p.score,0)/Math.max(1,Math.min(3,r.all.length));
+  const top3Score = r.all.slice(0,3).reduce((s,p)=>s+getScore(p),0)/Math.max(1,Math.min(3,r.all.length));
 
   // How many years until their core hits typical peak (24-26)
   const yearsUntilPeak = Math.max(-2, Math.min(5, 25 - avgAge));
@@ -1363,6 +1370,8 @@ const sosSorted=[...scored].sort((a,b)=>b.sos-a.sos);
 sosSorted.forEach((r,i)=>{ r.sosRank=i+1; });
 
 MODAL_DATA=[...scored];
+window._lastLeague=league;
+window._lastLeagueId=id;
 renderLeague(league,scored,id);
 // Kick off history and trades in background
 loadHistory(id, umap, scored, allM);
@@ -1381,7 +1390,7 @@ function showRoster(idx){
 const r=MODAL_DATA[idx];if(!r)return;
 document.getElementById(‘modal-team-name’).textContent=`${r.owner}'s Roster`;
 const posOrder={QB:0,WR:1,RB:2,TE:3};
-const sorted=[…r.all].sort((a,b)=>(posOrder[a.pos]??9)-(posOrder[b.pos]??9)||b.score-a.score);
+const sorted=[…r.all].sort((a,b)=>(posOrder[a.pos]??9)-(posOrder[b.pos]??9)||getScore(b)-getScore(a));
 let html=’’;let curPos=’’;
 sorted.forEach(p=>{
 if(p.pos!==curPos){curPos=p.pos;html+=`<div class="modal-section">${p.pos}</div>`;}
@@ -1390,7 +1399,7 @@ const pc={QB:‘var(–qb)’,WR:‘var(–wr)’,RB:‘var(–rb)’,TE:‘var(
 const photo=pid
 ?`<img style="width:36px;height:36px;border-radius:50%;object-fit:cover;object-position:top center;border:1px solid var(--border);" src="https://sleepercdn.com/content/nfl/players/${pid}.jpg" onerror="this.style.display='none'">`
 :`<div style="width:36px;height:36px;border-radius:50%;background:var(--bg3);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-family:Oswald,sans-serif;font-size:10px;color:${pc};">${p.pos}</div>`;
-html+=`<div class="modal-player-row">${photo}<div style="flex:1;"><div class="modal-player-name">${p.name}</div><div class="modal-player-meta">${p.team==='FA'?'Free Agent':p.team}${p.age?' · Age '+p.age:''} · #${p.rank} Overall</div></div><div class="modal-player-score">${p.score.toFixed(1)}</div></div>`;
+html+=`<div class="modal-player-row">${photo}<div style="flex:1;"><div class="modal-player-name">${p.name}</div><div class="modal-player-meta">${p.team==='FA'?'Free Agent':p.team}${p.age?' · Age '+p.age:''} · #${p.rank} Overall</div></div><div class="modal-player-score">${getScore(p).toFixed(1)}</div></div>`;
 });
 if(!sorted.length)html=’<div style="padding:24px;text-align:center;color:var(--text3);font-size:13px;">No matched players found.</div>’;
 
@@ -1419,7 +1428,8 @@ html+=`<div class="modal-player-row"> <div style="width:36px;height:36px;border-
 }
 
 document.getElementById(‘modal-body’).innerHTML=html;
-document.getElementById(‘modal-total’).textContent=r.totalScore.toFixed(1);
+const displayTotal=(r.all.reduce((s,p)=>s+getScore(p),0)+(r.pickVal||0)).toFixed(1);
+document.getElementById(‘modal-total’).textContent=displayTotal;
 document.getElementById(‘roster-modal’).style.display=‘flex’;
 }
 function closeModal(){document.getElementById(‘roster-modal’).style.display=‘none’;}
@@ -1454,7 +1464,7 @@ ${r.pf>0?`<div class="tcpp">${r.pf.toFixed(0)} PF · ${r.pa.toFixed(0)} PA</div>
 ${r.top.map(p=>{
 const pid=p.sleeper_id||SLEEPER_PID[normName(p.name)];
 const img=pid?`<img src="https://sleepercdn.com/content/nfl/players/${pid}.jpg" style="width:20px;height:20px;border-radius:50%;object-fit:cover;object-position:top center;border:1px solid var(--border);vertical-align:middle;margin-right:3px;" onerror="this.style.display='none'">`:’’;
-return `<div class="tcp2 pos-${p.pos}">${img}${p.name.split(' ').pop()} <span style="opacity:0.5;font-size:9px;">${p.score.toFixed(1)}</span></div>`;
+return `<div class="tcp2 pos-${p.pos}">${img}${p.name.split(' ').pop()} <span style="opacity:0.5;font-size:9px;">${getScore(p).toFixed(1)}</span></div>`;
 }).join(’’)}
 ${!r.all.length?’<span style="font-size:11px;color:var(--text3);font-style:italic;">No matched players</span>’:’’}
 </div>
@@ -1485,7 +1495,7 @@ const rbs  = r.all.filter(p=>p.pos===‘RB’);
 const wrs  = r.all.filter(p=>p.pos===‘WR’);
 const tes  = r.all.filter(p=>p.pos===‘TE’);
 const avgAge5 = top5.length ? top5.reduce((s,p)=>s+(p.age||25),0)/top5.length : 25;
-const avgScore8 = top8.length ? top8.reduce((s,p)=>s+p.score,0)/top8.length : 0;
+const avgScore8 = top8.length ? top8.reduce((s,p)=>s+getScore(p),0)/top8.length : 0;
 
 const ratio = r.totalScore / (leagueAvg||1);
 const isContender = r.pwr >= 55;
@@ -1495,9 +1505,9 @@ const isMidAge    = avgAge5 >= 26.5;
 const isYoung     = avgAge5 < 25;
 const isElite     = ratio >= 1.2;
 const isWeak      = ratio < 0.82;
-const hasQB       = qbs.some(p=>p.score>=50);
-const hasEliteWR  = wrs.some(p=>p.score>=60);
-const hasEliteRB  = rbs.some(p=>p.score>=50);
+const hasQB       = qbs.some(p=>getScore(p)>=50);
+const hasEliteWR  = wrs.some(p=>getScore(p)>=60);
+const hasEliteRB  = rbs.some(p=>getScore(p)>=50);
 
 const starsStr = top3.map(p=>p.name.split(’ ‘).pop()).join(’, ’);
 const winStr   = `${r.pw}–${r.pl}`;
@@ -1723,7 +1733,7 @@ if(sideArr.length>=2){
 sideArr.forEach(side=>{
 side.value=side.players.reduce((sum,p)=>{
 const m=NM_EXACT[p.name.toLowerCase()]||NM_NORM[normName(p.name)];
-return sum+(m?m.score:0);
+return sum+(m?getScore(m):0);
 },0);
 side.value+=side.picks.length*18; // rough pick value
 });
