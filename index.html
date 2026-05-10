@@ -53,13 +53,13 @@ body{background:var(--bg3);color:var(--text);font-family:'Barlow Condensed',sans
 
 /* APP */
 #app{display:none;}
-nav{background:var(--bg2);border-bottom:2px solid var(--accent);display:flex;align-items:center;justify-content:space-between;padding:0 20px;height:50px;position:sticky;top:0;z-index:100;box-shadow:var(--shadow);}
-.nav-logo{font-family:'Russo One',sans-serif;font-size:19px;color:var(--text);letter-spacing:0.03em;}
+nav{background:var(--bg2);border-bottom:2px solid var(--accent);display:flex;align-items:center;justify-content:space-between;padding:0 20px;height:56px;position:sticky;top:0;z-index:100;box-shadow:var(--shadow);}
+.nav-logo{font-family:'Russo One',sans-serif;font-size:20px;color:var(--text);letter-spacing:0.03em;}
 .nav-logo span{color:var(--accent);}
-.nav-tabs{display:flex;}
-.nt{padding:0 13px;height:50px;display:flex;align-items:center;font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:var(--text3);cursor:pointer;border-bottom:2px solid transparent;transition:color 0.15s,border-color 0.15s;}
-.nt:hover{color:var(--text2);}
-.nt.active{color:var(--text);border-bottom:2px solid var(--accent);}
+.nav-tabs{display:flex;height:100%;}
+.nt{padding:0 16px;height:56px;display:flex;align-items:center;font-family:'Oswald',sans-serif;font-size:12px;letter-spacing:0.14em;text-transform:uppercase;color:var(--text3);cursor:pointer;border-bottom:3px solid transparent;transition:color 0.15s,border-color 0.15s;font-weight:400;}
+.nt:hover{color:var(--text2);border-bottom:3px solid var(--border2);}
+.nt.active{color:var(--text);border-bottom:3px solid var(--accent);font-weight:600;}
 .nav-r{display:flex;align-items:center;gap:10px;}
 .nav-user{font-family:'Oswald',sans-serif;font-size:11px;color:var(--text3);}
 .nav-out{font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;background:transparent;border:1px solid var(--border2);color:var(--text3);padding:4px 10px;cursor:pointer;border-radius:var(--r6);transition:all 0.15s;}
@@ -372,7 +372,7 @@ tbody tr.sel{background:rgba(192,120,72,0.13);}
   .nav-logo{font-size:16px;padding:10px 0;}
   .nav-tabs{overflow-x:auto;-webkit-overflow-scrolling:touch;width:100%;border-top:1px solid var(--border);scrollbar-width:none;}
   .nav-tabs::-webkit-scrollbar{display:none;}
-  .nt{padding:0 10px;height:40px;font-size:9px;white-space:nowrap;flex-shrink:0;}
+  .nt{padding:0 10px;height:40px;font-size:10px;white-space:nowrap;flex-shrink:0;}
   .nav-r{display:flex;flex-wrap:wrap;gap:6px;padding:4px 0;}
   .nav-out,.nav-season,.nav-user{display:none;}
   #nav-sleeper-row input{width:130px;}
@@ -450,18 +450,19 @@ tbody tr.sel{background:rgba(192,120,72,0.13);}
   </div>
   <div class="lr">
     <div class="auth-box">
-      <div class="a-hed">Welcome Back</div>
-      <div class="a-sub">Sign in to auto-sync your Sleeper league</div>
+      <div class="a-hed" id="a-hed-txt">Welcome Back</div>
+      <div class="a-sub" id="a-sub-txt">Sign in to auto-sync your Sleeper league</div>
       <div class="a-tabs">
         <button class="a-tab active" onclick="swAuth('login',this)">Sign In</button>
         <button class="a-tab" onclick="swAuth('signup',this)">Create Account</button>
       </div>
       <div id="a-err" class="a-err" style="display:none;"></div>
+      <div id="a-ok" style="display:none;background:rgba(58,122,74,0.15);border:1px solid var(--green);padding:10px 12px;font-size:12px;color:var(--gt);margin-bottom:14px;font-family:'Oswald',sans-serif;"></div>
       <div id="lf">
         <label class="fl">Email</label>
         <input class="fi" type="email" id="le" placeholder="your@email.com">
         <label class="fl">Password</label>
-        <input class="fi" type="password" id="lp" placeholder="••••••••">
+        <input class="fi" type="password" id="lp" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()">
         <button class="abtn abtn-p" onclick="doLogin()">Sign In →</button>
         <button class="abtn abtn-g" onclick="doGuest()">Continue as Guest</button>
       </div>
@@ -469,11 +470,14 @@ tbody tr.sel{background:rgba(192,120,72,0.13);}
         <label class="fl">Email</label>
         <input class="fi" type="email" id="se" placeholder="your@email.com">
         <label class="fl">Password</label>
-        <input class="fi" type="password" id="sp" placeholder="Minimum 6 characters">
-        <label class="fl">Sleeper League ID <span style="color:var(--text3);font-size:9px;">(optional)</span></label>
+        <input class="fi" type="password" id="sp" placeholder="Minimum 6 characters" onkeydown="if(event.key==='Enter')doSignup()">
+        <label class="fl">Sleeper League ID <span style="color:var(--text3);font-size:9px;">(optional — can add later)</span></label>
         <input class="fi" type="text" id="sl" placeholder="e.g. 1234567890123456789">
         <div class="fh">Sleeper app → League → Settings → League ID</div>
         <button class="abtn abtn-p" onclick="doSignup()">Create Account →</button>
+        <div style="margin-top:12px;padding:10px 12px;background:var(--bg3);border:1px solid var(--border);font-size:11px;color:var(--text3);line-height:1.6;">
+          <strong style="color:var(--text2);">Stored locally on this device.</strong> Your account lives in your browser's localStorage — no server, no data sent anywhere. Sign in on the same browser to restore your session automatically.
+        </div>
       </div>
     </div>
   </div>
@@ -677,27 +681,45 @@ function swAuth(m,btn){
   document.getElementById('lf').style.display=m==='login'?'block':'none';
   document.getElementById('sf').style.display=m==='signup'?'block':'none';
   document.getElementById('a-err').style.display='none';
+  document.getElementById('a-ok').style.display='none';
+  const hed=document.getElementById('a-hed-txt');
+  const sub=document.getElementById('a-sub-txt');
+  if(m==='login'){hed.textContent='Welcome Back';sub.textContent='Sign in to auto-sync your Sleeper league';}
+  else{hed.textContent='Create Account';sub.textContent='Saved locally on this device — no server required';}
 }
-function aerr(msg){const e=document.getElementById('a-err');e.textContent=msg;e.style.display='block';}
+function aerr(msg){
+  const e=document.getElementById('a-err');
+  e.textContent=msg;e.style.display='block';
+  document.getElementById('a-ok').style.display='none';
+}
+function aok(msg){
+  const e=document.getElementById('a-ok');
+  e.textContent=msg;e.style.display='block';
+  document.getElementById('a-err').style.display='none';
+}
 
 function doSignup(){
   const em=document.getElementById('se').value.trim();
   const pw=document.getElementById('sp').value;
   const lid=document.getElementById('sl').value.trim();
-  if(!em||!pw) return aerr('Email and password required.');
+  if(!em||!pw) return aerr('Email and password are required.');
+  if(!em.includes('@')) return aerr('Enter a valid email address.');
   if(pw.length<6) return aerr('Password must be at least 6 characters.');
   const us=gUsers();
-  if(us[em]) return aerr('Account already exists.');
+  if(us[em]) return aerr('An account with that email already exists. Sign in instead.');
   us[em]={em,pw,lid,c:Date.now()};
   sUsers(us);
-  const u={em,lid};sSess(u);launch(u);
+  const u={em,lid};sSess(u);
+  aok('Account created! Signing you in...');
+  setTimeout(()=>launch(u),600);
 }
 function doLogin(){
   const em=document.getElementById('le').value.trim();
   const pw=document.getElementById('lp').value;
   if(!em||!pw) return aerr('Enter your email and password.');
   const us=gUsers(),u=us[em];
-  if(!u||u.pw!==pw) return aerr('Invalid email or password.');
+  if(!u) return aerr('No account found with that email. Create one instead.');
+  if(u.pw!==pw) return aerr('Incorrect password. Try again.');
   const user={em,lid:u.lid};sSess(user);launch(user);
 }
 function doGuest(){launch({em:'Guest',lid:''});}
