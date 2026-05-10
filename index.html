@@ -190,12 +190,7 @@ td{padding:8px 16px;vertical-align:middle;overflow:hidden;text-overflow:ellipsis
 .tcp2.pos-WR{border-color:var(--wr);color:var(--wr);}
 .tcp2.pos-RB{border-color:var(--rb);color:var(--rb);}
 .tcp2.pos-TE{border-color:var(--te);color:var(--te);}
-.aibox{background:var(--bg2);border:1px solid #343a4d;padding:10px 13px;margin-top:8px;}
-.ailbl{font-family:'Oswald',sans-serif;font-size:9px;letter-spacing:0.18em;text-transform:uppercase;color:var(--accent);margin-bottom:5px;display:flex;align-items:center;gap:5px;}
-.aidot{width:5px;height:5px;background:var(--accent);border-radius:50%;animation:pd 2s infinite;}
-@keyframes pd{0%,100%{opacity:1;}50%{opacity:0.3;}}
-.aitxt{font-size:12px;color:var(--text2);line-height:1.65;font-weight:300;}
-.aild{font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:0.08em;color:var(--text3);font-style:italic;}
+.tc,.stat-c,.kpi,.pstat,.modal,.lov,.auth-box,.a-tabs{border-radius:var(--radius);}
 footer{background:var(--bg2);border-top:2px solid var(--border);padding:12px 20px;display:flex;align-items:center;justify-content:space-between;}
 .fl2{font-family:'Russo One',sans-serif;font-size:13px;color:var(--text2);}
 .fl2 span{color:var(--accent);}
@@ -213,7 +208,7 @@ body{font-size:14px;letter-spacing:0.01em;}
 nav{height:52px;border-bottom:2px solid var(--accent);box-shadow:0 2px 16px rgba(0,0,0,0.3);}
 .nav-logo{font-size:20px;letter-spacing:0.04em;}
 .nt{font-size:11px;letter-spacing:0.12em;padding:0 14px;height:52px;}
-.tc,.stat-c,.kpi,.pstat,.aibox,.modal,.lov,.auth-box,.a-tabs{border-radius:var(--radius);}
+.tc,.stat-c,.kpi,.pstat,.modal,.lov,.auth-box,.a-tabs{border-radius:var(--radius);}
 .tc{border-radius:10px;}
 .tctop{border-radius:10px 10px 0 0;}
 .tcb{border-radius:0 0 10px 10px;}
@@ -262,7 +257,29 @@ tbody tr.sel{background:rgba(192,122,74,0.12);}
 .bar-track{background:var(--bg3);border-radius:4px;height:18px;overflow:hidden;position:relative;}
 .bar-fill{height:100%;border-radius:4px;transition:width 0.6s cubic-bezier(.25,.8,.25,1);}
 .bar-val{font-family:'Russo One',sans-serif;font-size:12px;color:var(--text3);text-align:right;}
-/* H2H MATRIX */
+/* PROJECTIONS */
+.proj-tab{flex:1;padding:9px 0;text-align:center;font-family:Oswald,sans-serif;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:var(--text3);cursor:pointer;border:none;background:transparent;transition:all 0.15s;}
+.proj-tab.active{background:var(--accent);color:var(--bg2);}
+.proj-tab:hover:not(.active){color:var(--text2);background:var(--bg2);}
+.proj-table{width:100%;border-collapse:collapse;}
+.proj-table thead th{font-family:Oswald,sans-serif;font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:var(--text3);padding:8px 14px;text-align:left;border-bottom:1px solid var(--border);background:var(--bg2);position:sticky;top:0;}
+.proj-table thead th.num{text-align:right;}
+.proj-table tbody tr{border-bottom:1px solid rgba(46,51,72,0.5);transition:background 0.08s;}
+.proj-table tbody tr:hover{background:var(--panel);}
+.proj-table td{padding:7px 14px;vertical-align:middle;}
+.proj-table td.num{text-align:right;font-family:'Russo One',sans-serif;font-size:13px;}
+.proj-rank{font-family:Oswald,sans-serif;font-size:11px;color:var(--text3);width:36px;}
+.proj-name{font-family:Oswald,sans-serif;font-size:13px;font-weight:600;color:var(--text);}
+.proj-meta{font-size:10px;color:var(--text3);margin-top:1px;}
+/* VALUE TIER BADGES */
+.tier-badge{font-family:Oswald,sans-serif;font-size:9px;letter-spacing:0.12em;text-transform:uppercase;padding:2px 8px;border-radius:4px;display:inline-block;margin-top:2px;}
+.tier-way-above{background:rgba(126,200,152,0.2);color:#7ec898;border:1px solid rgba(126,200,152,0.4);}
+.tier-above{background:rgba(126,200,152,0.1);color:#7ec898;border:1px solid rgba(126,200,152,0.25);}
+.tier-at{background:rgba(212,170,90,0.12);color:#d4aa5a;border:1px solid rgba(212,170,90,0.3);}
+.tier-below{background:rgba(224,144,144,0.1);color:#e09090;border:1px solid rgba(224,144,144,0.25);}
+.tier-way-below{background:rgba(224,144,144,0.18);color:#e09090;border:1px solid rgba(224,144,144,0.4);}
+/* BLURB on team card */
+.team-blurb{font-size:12px;color:var(--text2);line-height:1.65;padding:10px 14px;border-top:1px solid var(--border);font-weight:300;}
 .h2h-wrap{overflow-x:auto;}
 .h2h-table{border-collapse:collapse;font-family:Oswald,sans-serif;font-size:11px;min-width:400px;}
 .h2h-table th{padding:5px 8px;background:var(--bg3);color:var(--text3);font-weight:400;letter-spacing:0.08em;text-align:center;white-space:nowrap;}
@@ -349,6 +366,7 @@ tbody tr.sel{background:rgba(192,122,74,0.12);}
     <div class="nt" onclick="showPg('sleeper',this)">League</div>
     <div class="nt" onclick="showPg('history',this)">History</div>
     <div class="nt" onclick="showPg('trades',this)">Trades</div>
+    <div class="nt" onclick="showPg('projections',this)">Projections</div>
   </div>
   <div class="nav-r">
     <span class="nav-user" id="nu"></span>
@@ -441,17 +459,9 @@ tbody tr.sel{background:rgba(192,122,74,0.12);}
   <div class="sw2">
     <div class="stop">
       <div class="stitle">LEAGUE <span>Analyzer</span></div>
-      <div style="display:flex;flex-direction:column;gap:8px;align-items:flex-end;">
-        <div class="lid-row">
-          <input type="text" id="lid" placeholder="Sleeper League ID...">
-          <button class="sbtn" onclick="loadLeague()" id="lbtn">Load League</button>
-        </div>
-        <div style="display:flex;gap:8px;align-items:center;">
-          <input type="password" id="ak-input" placeholder="Anthropic API key (for team breakdowns)..." style="background:var(--bg2);border:1px solid var(--border);color:var(--text);font-family:'Barlow Condensed',sans-serif;font-size:13px;padding:6px 10px;outline:none;width:300px;">
-          <button onclick="saveKey()" style="background:var(--bg2);border:1px solid var(--border);color:var(--text3);font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;padding:6px 12px;cursor:pointer;white-space:nowrap;">Save Key</button>
-          <span id="ak-status" style="font-family:'Oswald',sans-serif;font-size:10px;color:var(--text3);"></span>
-        </div>
-        <div style="font-size:11px;color:var(--text3);text-align:right;">Key is kept in memory only — never stored. Get yours at console.anthropic.com</div>
+      <div class="lid-row">
+        <input type="text" id="lid" placeholder="Sleeper League ID...">
+        <button class="sbtn" onclick="loadLeague()" id="lbtn">Load League</button>
       </div>
     </div>
     <div id="lerr" class="errb" style="display:none;"></div>
@@ -492,6 +502,24 @@ tbody tr.sel{background:rgba(192,122,74,0.12);}
       <div style="font-size:13px;color:var(--text3);line-height:1.7;max-width:380px;margin:0 auto;">Load your Sleeper league on the League tab first. Trade history will appear here automatically.</div>
     </div>
     <div id="trades-content" style="display:none;"></div>
+  </div>
+</div>
+
+<!-- PROJECTIONS PAGE -->
+<div class="page" id="page-projections">
+  <div class="sw2" style="max-width:1000px;">
+    <div class="stop">
+      <div class="stitle">PLAYER <span>Projections</span></div>
+      <div style="font-family:Oswald,sans-serif;font-size:11px;color:var(--text3);letter-spacing:0.06em;">2026 Season · PPR · Dynasty-weighted</div>
+    </div>
+    <div style="display:flex;gap:0;margin-bottom:16px;border:1px solid var(--border);border-radius:8px;overflow:hidden;">
+      <button class="proj-tab active" onclick="setProjMode('ALL',this)">All</button>
+      <button class="proj-tab" onclick="setProjMode('QB',this)">QB</button>
+      <button class="proj-tab" onclick="setProjMode('WR',this)">WR</button>
+      <button class="proj-tab" onclick="setProjMode('RB',this)">RB</button>
+      <button class="proj-tab" onclick="setProjMode('TE',this)">TE</button>
+    </div>
+    <div id="proj-content"></div>
   </div>
 </div>
 
@@ -616,7 +644,121 @@ function showPg(id,el){
   if(el)el.classList.add('active');
   if(id==='history') renderHistory();
   if(id==='trades') renderTrades();
+  if(id==='projections') renderProjections();
 }
+
+// ── PROJECTIONS ───────────────────────────────────────────────────────
+// PPR fantasy points projection formula based on our trade value score.
+// We derive projected season total and per-game from the score, age, and position.
+// This is a model estimate — not official projections.
+const GAMES = 17; // regular season games
+
+// Position-specific PPG baselines calibrated to PPR scoring
+// Elite score (~100) maps to elite PPG; zero score maps to bench-level
+const POS_BASELINE = {
+  QB:  {elite:28,  avg:20,  bench:12},
+  WR:  {elite:20,  avg:12,  bench:4 },
+  RB:  {elite:22,  avg:12,  bench:4 },
+  TE:  {elite:16,  avg:8,   bench:2 },
+};
+
+function projectedPPG(d){
+  if(d.type!=='player') return 0;
+  const bl = POS_BASELINE[d.pos];
+  if(!bl) return 0;
+  // Score ranges 0-100; map to bench → elite PPG curve
+  const t = Math.min(1, d.score / 100);
+  // Use a slight curve so top players don't compress too much
+  const curved = Math.pow(t, 0.65);
+  const ppg = bl.bench + curved * (bl.elite - bl.bench);
+  // Age penalty: after peak age, slight PPG decline
+  const peakAge = {QB:30, WR:27, RB:26, TE:28}[d.pos] || 27;
+  const agePenalty = Math.max(0, (d.age||25) - peakAge) * 0.25;
+  return Math.max(0.5, ppg - agePenalty);
+}
+
+let PROJ_MODE = 'ALL';
+function setProjMode(m, btn){
+  PROJ_MODE = m;
+  document.querySelectorAll('.proj-tab').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderProjections();
+}
+
+function renderProjections(){
+  const el = document.getElementById('proj-content');
+  if(!el) return;
+
+  const players = DATA.filter(d=>{
+    if(d.type!=='player') return false;
+    if(PROJ_MODE!=='ALL' && d.pos!==PROJ_MODE) return false;
+    return true;
+  });
+
+  // Compute projections and sort by total DESC
+  const proj = players.map(d=>{
+    const ppg = projectedPPG(d);
+    const total = Math.round(ppg * GAMES * 10) / 10;
+    return {...d, ppg: Math.round(ppg*10)/10, total};
+  }).sort((a,b)=>b.total-a.total);
+
+  // Position rank (within position)
+  const posRank = {};
+  ['QB','WR','RB','TE'].forEach(pos=>{
+    let rank=1;
+    proj.filter(p=>p.pos===pos).sort((a,b)=>b.total-a.total).forEach(p=>{p['pos_rank_'+pos]=rank++;});
+  });
+
+  const posColors = {QB:'var(--qb)',WR:'var(--wr)',RB:'var(--rb)',TE:'var(--te)'};
+  const maxTotal = proj[0]?.total || 1;
+
+  const rows = proj.map((d,i)=>{
+    const pc = posColors[d.pos]||'var(--text2)';
+    const pid = SLEEPER_PID[normName(d.name)];
+    const photo = pid
+      ? `<img data-fbid="" style="width:26px;height:26px;border-radius:50%;object-fit:cover;object-position:top center;border:1px solid var(--border);vertical-align:middle;margin-right:6px;" src="https://sleepercdn.com/content/nfl/players/${pid}.jpg" onerror="this.style.display='none'">`
+      : `<div style="width:26px;height:26px;border-radius:50%;background:var(--bg2);border:1px solid var(--border);display:inline-flex;align-items:center;justify-content:center;font-family:Oswald,sans-serif;font-size:9px;color:${pc};vertical-align:middle;margin-right:6px;">${d.pos}</div>`;
+    const barPct = Math.round((d.total/maxTotal)*100);
+    const posR = d['pos_rank_'+d.pos] ? `<span style="font-size:9px;color:${pc};font-family:Oswald,sans-serif;">${d.pos}${d['pos_rank_'+d.pos]}</span>` : '';
+    return `<tr>
+      <td class="proj-rank">${i+1}</td>
+      <td style="padding:6px 14px;">
+        <div style="display:flex;align-items:center;">
+          ${photo}
+          <div>
+            <div class="proj-name">${d.name} ${posR}</div>
+            <div class="proj-meta">${d.team==='FA'?'Free Agent':d.team}${d.age?' · Age '+d.age:''}</div>
+          </div>
+        </div>
+      </td>
+      <td><span class="pb2 pos-${d.pos}">${d.pos}</span></td>
+      <td style="padding:7px 14px;">
+        <div style="background:var(--bg3);border-radius:3px;height:6px;width:120px;overflow:hidden;">
+          <div style="height:100%;width:${barPct}%;background:${pc};border-radius:3px;"></div>
+        </div>
+      </td>
+      <td class="num" style="color:${pc};">${d.total}</td>
+      <td class="num" style="color:var(--text2);font-size:12px;">${d.ppg}</td>
+    </tr>`;
+  }).join('');
+
+  el.innerHTML = `
+    <div style="overflow-x:auto;">
+      <table class="proj-table">
+        <thead><tr>
+          <th style="width:36px;">#</th>
+          <th>Player</th>
+          <th style="width:50px;">Pos</th>
+          <th style="width:140px;">Output</th>
+          <th class="num" style="width:70px;" title="Projected season total fantasy points">Pts (Tot)</th>
+          <th class="num" style="width:60px;" title="Projected points per game">Per Gm</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>
+    <div style="margin-top:12px;font-size:11px;color:var(--text3);line-height:1.6;">Projections are estimated from each player's trade value score, position, and age. They represent a model-based outlook for 2026 PPR scoring — use as a relative guide, not official projections.</div>`;
+}
+
 function setMode(m,btn){MODE=m;document.querySelectorAll('.mb').forEach(b=>b.classList.remove('active'));btn.classList.add('active');renderTable();}
 
 function getFilt(){
@@ -882,27 +1024,31 @@ function showRoster(idx){
 function closeModal(){document.getElementById('roster-modal').style.display='none';}
 
 function renderLeague(league,rosters,lid){
-  const avg=Math.round(rosters.reduce((s,r)=>s+r.totalScore,0)/rosters.length);
+  const leagueAvg = rosters.reduce((s,r)=>s+r.totalScore,0) / (rosters.length||1);
   document.getElementById('lcon').innerHTML=`
     <div class="lov">
       <div><div class="lname">${league.name||'Your League'}</div><div class="lmeta">${league.season||''} Season · ${rosters.length} Teams · Dynasty</div></div>
       <div class="kpis">
         <div class="kpi"><div class="kpiv">${rosters.length}</div><div class="kpil">Teams</div></div>
-        <div class="kpi"><div class="kpiv">${avg}</div><div class="kpil">Avg Value</div></div>
+        <div class="kpi"><div class="kpiv">${Math.round(leagueAvg)}</div><div class="kpil">Avg Value</div></div>
         <div class="kpi"><div class="kpiv">${rosters[0]?.owner?.split(' ')[0]||'—'}</div><div class="kpil">#1 Roster</div></div>
       </div>
     </div>
-    <div style="font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:0.18em;text-transform:uppercase;color:var(--text3);margin-bottom:12px;">Power Rankings · Tap team name to see full roster</div>
-    <div class="tgrid">${rosters.map((r,i)=>`
+    <div style="font-family:Oswald,sans-serif;font-size:10px;letter-spacing:0.18em;text-transform:uppercase;color:var(--text3);margin-bottom:12px;">Power Rankings · Tap team name to see full roster</div>
+    <div class="tgrid">${rosters.map((r,i)=>{
+      const tier = valueTier(r.totalScore, leagueAvg);
+      const blurb = buildBlurb(r, leagueAvg);
+      return `
       <div class="tc" id="tc${i}">
         <div class="tctop">
           <div class="tcrank"><div class="tcrn">#${i+1}</div></div>
           <div class="tci">
-            <div class="tco" onclick="showRoster(${i})" style="cursor:pointer;text-decoration:underline;text-decoration-color:rgba(176,106,58,0.4);text-underline-offset:3px;">${r.owner}</div>
+            <div class="tco" onclick="showRoster(${i})" style="cursor:pointer;text-decoration:underline;text-decoration-color:rgba(192,122,74,0.4);text-underline-offset:3px;">${r.owner}</div>
             <div class="tcr">${r.wins}W – ${r.losses}L${r.ties>0?' – '+r.ties+'T':''} &nbsp;·&nbsp; Proj: ${r.pw}–${r.pl}</div>
-            <div style="display:flex;gap:10px;margin-top:3px;">
-              <div style="font-family:'Oswald',sans-serif;font-size:10px;color:var(--accent2);">🏆 ${r.champOdds}% odds</div>
-              <div style="font-family:'Oswald',sans-serif;font-size:10px;color:var(--text3);">Window: ${r.contention}</div>
+            <div style="display:flex;gap:8px;align-items:center;margin-top:4px;flex-wrap:wrap;">
+              <span class="tier-badge ${tier.cls}">${tier.label}</span>
+              <span style="font-family:Oswald,sans-serif;font-size:10px;color:var(--accent2);">🏆 ${r.champOdds}% odds</span>
+              <span style="font-family:Oswald,sans-serif;font-size:10px;color:var(--text3);">Window: ${r.contention}</span>
             </div>
           </div>
           <div class="tcv">
@@ -920,87 +1066,77 @@ function renderLeague(league,rosters,lid){
             }).join('')}
             ${!r.all.length?'<span style="font-size:11px;color:var(--text3);font-style:italic;">No matched players</span>':''}
           </div>
-          <div class="aibox" id="ai${i}">
-            <div class="ailbl"><div class="aidot"></div>Breakdown</div>
-            <div class="aild" id="ait${i}">Loading...</div>
-          </div>
         </div>
-      </div>`).join('')}
+        <div class="team-blurb">${blurb}</div>
+      </div>`;
+    }).join('')}
     </div>
-    <div style="margin-top:14px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
-      <div style="font-size:11px;color:var(--text3);line-height:1.6;">Tap any team name to see their full roster with individual player values. Championship odds reflect relative roster strength. Contention window is based on your core players' age and output.</div>
-      <button onclick="rerunBreakdowns()" style="background:var(--bg2);border:1px solid var(--border);color:var(--text3);font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;padding:6px 14px;cursor:pointer;white-space:nowrap;flex-shrink:0;">↻ Run Breakdowns</button>
-    </div>`;
-  rosters.forEach((r,i)=>setTimeout(()=>genAI(r,i),i*800));
+    <div style="margin-top:14px;font-size:11px;color:var(--text3);line-height:1.6;">Tap any team name to see their full roster. Value tiers and blurbs are calculated from roster score, age profile, projected PPG, and championship odds.</div>`;
 }
 
-// ── API KEY (memory only, never persisted) ─────────────────────────────
-let ANTHROPIC_KEY = '';
-function saveKey(){
-  const v = (document.getElementById('ak-input').value||'').trim();
-  if(!v){ document.getElementById('ak-status').textContent='Enter a key first.'; return; }
-  ANTHROPIC_KEY = v;
-  document.getElementById('ak-input').value = '••••••••••••••••';
-  document.getElementById('ak-status').textContent = '✓ Key saved';
-  document.getElementById('ak-status').style.color = 'var(--gt)';
-}
-function rerunBreakdowns(){
-  if(!ANTHROPIC_KEY){ alert('Paste your Anthropic API key above first, then click Save Key.'); return; }
-  MODAL_DATA.forEach((r,i)=>{
-    const el=document.getElementById('ait'+i);
-    if(el){el.className='aild';el.style.color='';el.textContent='Loading...';}
-    setTimeout(()=>genAI(r,i),i*800);
-  });
+// ── LOCAL TEAM BLURB GENERATOR (no API needed) ─────────────────────────
+function valueTier(score, avg){
+  const ratio = score / (avg||1);
+  if(ratio >= 1.25) return {cls:'tier-way-above', label:'Way Above Average'};
+  if(ratio >= 1.10) return {cls:'tier-above',     label:'Above Average'};
+  if(ratio >= 0.90) return {cls:'tier-at',        label:'League Average'};
+  if(ratio >= 0.75) return {cls:'tier-below',     label:'Below Average'};
+  return               {cls:'tier-way-below',     label:'Way Below Average'};
 }
 
-async function genAI(r,i){
-  const top=r.all.slice(0,6).map(p=>`${p.name} (${p.pos}, age ${p.age||'?'}, value ${p.score.toFixed(1)})`).join(', ');
-  const tier=r.totalScore>350?'elite':r.totalScore>250?'strong':r.totalScore>150?'solid':'rebuilding';
-  const pfStr=r.pf>0?`Points scored: ${r.pf.toFixed(0)}, Points allowed: ${r.pa.toFixed(0)}.`:'';
-  const prompt=`You are a dynasty fantasy football analyst. Write a 4-sentence team capsule. Be direct, name the actual players, and write like you've watched this league all year. Do not mention any tools, rankings, or outside sources.
+function buildBlurb(r, leagueAvg){
+  const top3 = r.all.slice(0,3);
+  const top5 = r.all.slice(0,5);
+  const top8 = r.all.slice(0,8);
 
-Team: ${r.owner}
-Current record: ${r.wins}-${r.losses}
-Roster strength tier: ${tier} (value score: ${r.totalScore.toFixed(1)})
-Key players: ${top||'limited data'}
-Projected finish: ${r.pw}W-${r.pl}L
-Championship odds: ${r.champOdds}%
-Contention window: ${r.contention}
-${pfStr}
+  // Age profile of top players by position (age cliff = avg >28)
+  const qbs  = r.all.filter(p=>p.pos==='QB');
+  const rbs  = r.all.filter(p=>p.pos==='RB');
+  const wrs  = r.all.filter(p=>p.pos==='WR');
+  const tes  = r.all.filter(p=>p.pos==='TE');
+  const avgAge5 = top5.length ? top5.reduce((s,p)=>s+(p.age||25),0)/top5.length : 25;
+  const avgScore8 = top8.length ? top8.reduce((s,p)=>s+p.score,0)/top8.length : 0;
 
-Sentence 1: Who is this team? Name their 2-3 best players and describe the team's core identity.
-Sentence 2: What does their current record and scoring tell us — are they over/underperforming their roster?
-Sentence 3: Contention window — are they peaking, building, or declining, and what does ${r.contention} mean for their approach?
-Sentence 4: One specific, opinionated trade recommendation — what should they do right now?`;
-  try{
-    if(!ANTHROPIC_KEY){
-      const el=document.getElementById('ait'+i);
-      if(el){el.className='aitxt';el.style.color='var(--text3)';el.textContent='Add your Anthropic API key above to see team breakdowns.';}
-      return;
-    }
-    const res=await fetch('https://api.anthropic.com/v1/messages',{
-      method:'POST',
-      headers:{
-        'Content-Type':'application/json',
-        'x-api-key': ANTHROPIC_KEY,
-        'anthropic-version':'2023-06-01',
-        'anthropic-dangerous-direct-browser-access':'true'
-      },
-      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:350,messages:[{role:'user',content:prompt}]})
-    });
-    const data=await res.json();
-    if(data.error){
-      const el=document.getElementById('ait'+i);
-      if(el){el.className='aitxt';el.style.color='var(--text3)';el.textContent=`API error: ${data.error.message||'Check your key.'}`;}
-      return;
-    }
-    const txt=(data.content||[]).map(c=>c.text||'').join('').trim();
-    const el=document.getElementById('ait'+i);
-    if(el){el.className='aitxt';el.style.color='';el.textContent=txt||'No breakdown returned.';}
-  }catch(e){
-    const el=document.getElementById('ait'+i);
-    if(el){el.className='aitxt';el.style.color='var(--text3)';el.textContent='Network error — check your connection and reload.';}
+  const ratio = r.totalScore / (leagueAvg||1);
+  const isContender = r.pwr >= 55;
+  const isStrong    = r.pwr >= 45;
+  const isOld       = avgAge5 >= 28.5;
+  const isMidAge    = avgAge5 >= 26.5;
+  const isYoung     = avgAge5 < 25;
+  const isElite     = ratio >= 1.2;
+  const isWeak      = ratio < 0.82;
+  const hasQB       = qbs.some(p=>p.score>=50);
+  const hasEliteWR  = wrs.some(p=>p.score>=60);
+  const hasEliteRB  = rbs.some(p=>p.score>=50);
+
+  const starsStr = top3.map(p=>p.name.split(' ').pop()).join(', ');
+  const winStr   = `${r.pw}–${r.pl}`;
+  const champStr = `${r.champOdds}%`;
+  const wStr     = r.contention;
+
+  // Pick a narrative archetype
+  let blurb;
+  if(isElite && isOld && isContender){
+    blurb = `Built to win now — ${starsStr} form the core of a genuine title contender with a projected ${winStr} finish and ${champStr} championship odds. But the age is real: this roster is peaking, and the window to win is ${wStr} before the talent curve bends sharply downward. Trade for proven starters over youth, make a run, and worry about rebuilding later. Every offseason they don't win is a missed shot.`;
+  } else if(isElite && isYoung){
+    blurb = `The pieces are in place and the youth is a weapon — ${starsStr} give this team a foundation most managers would envy. With a projected ${winStr} record and ${champStr} championship odds this year, the ceiling is obvious. The window opens at ${wStr} and stays open for years, so be patient but aggressive in adding around the edges. Trust the process; this one's built to run.`;
+  } else if(isElite && !isOld){
+    blurb = `${starsStr} anchor a squad that sits comfortably above the league average with a projected ${winStr} record. The contention window runs through ${wStr} — enough runway to be aggressive at the deadline. At ${champStr} championship odds, this is a "go get it" situation; don't let the window close by standing pat. Sell aging depth, buy prime-age starters.`;
+  } else if(isContender && isMidAge){
+    blurb = `Solidly in the mix — ${starsStr} make this team competitive week-to-week with a realistic shot at the playoffs. A projected ${winStr} finish puts them squarely in contention at ${champStr} odds. The age profile (${avgAge5.toFixed(1)} avg) means the window is open now but won't last forever — ${wStr} is the sweet spot to push all the chips in. Don't rebuild; reload.`;
+  } else if(isStrong && isYoung){
+    blurb = `Young and loaded with upside — ${starsStr} are part of a roster that's clearly building toward something. The ${winStr} projection is solid for now, but the best years are ahead with a window opening at ${wStr}. With ${champStr} championship odds this season, the expectation shouldn't be a title yet — it should be accumulating assets and developing your core. Stay the course.`;
+  } else if(isWeak && isOld){
+    blurb = `A tough spot: aging starters, thin depth, and a projected ${winStr} record that doesn't inspire confidence. The window at ${wStr} is already narrowing, and with ${champStr} championship odds there's no compelling reason to be a buyer at the deadline. The hard truth is this roster needs a reset — move the veterans who still have value and collect the youth or picks that start the next chapter.`;
+  } else if(isWeak && isYoung){
+    blurb = `This is a rebuild, and that's okay. ${starsStr} are young enough to be the foundation, but the roster depth isn't there yet and a ${winStr} projection reflects that reality. Championship odds of ${champStr} make this a future conversation — the window opens at ${wStr}. Accumulate draft capital, stay active on waivers, and let the young guys develop into what they can be.`;
+  } else if(isWeak){
+    blurb = `Rough stretch — ${starsStr} are doing the heavy lifting but the overall roster isn't generating wins at the rate it should. A ${winStr} projection and ${champStr} title odds tell the story. The ${wStr} contention window gives some hope, but changes are needed. Get active on the waiver wire, take calculated swings in trades, and figure out which pieces are actually part of the future.`;
+  } else {
+    // Average middle-of-pack team
+    blurb = `Right in the thick of things — ${starsStr} give this squad a legitimate identity. A ${winStr} projected record and ${champStr} championship odds make this a classic "bubble" situation where the schedule will matter. The contention window at ${wStr} means now is the time to be decisive at the deadline: figure out whether you're buying or selling and commit to it before it's too late.`;
   }
+  return blurb;
 }
 
 // ── LEAGUE HISTORY & TRADES ───────────────────────────────────────────
