@@ -264,7 +264,41 @@ tbody tr.sel{background:rgba(192,122,74,0.12);}
 .tier-at{background:rgba(212,170,90,0.12);color:#d4aa5a;border:1px solid rgba(212,170,90,0.3);}
 .tier-below{background:rgba(224,144,144,0.1);color:#e09090;border:1px solid rgba(224,144,144,0.25);}
 .tier-way-below{background:rgba(224,144,144,0.18);color:#e09090;border:1px solid rgba(224,144,144,0.4);}
-/* BLURB on team card */
+/* ROSTER GRADE */
+.grade-badge{font-family:'Russo One',sans-serif;font-size:20px;width:38px;height:38px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.grade-A{background:rgba(126,200,152,0.18);color:#7ec898;}
+.grade-B{background:rgba(138,175,224,0.18);color:#8aafe0;}
+.grade-C{background:rgba(212,170,90,0.15);color:#d4aa5a;}
+.grade-D{background:rgba(224,144,144,0.15);color:#e09090;}
+.grade-F{background:rgba(140,58,58,0.2);color:#c06060;}
+/* TRADE DYNASTY IMPACT */
+.impact-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px;}
+.impact-box{background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:10px 12px;}
+.impact-lbl{font-family:Oswald,sans-serif;font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:var(--text3);margin-bottom:6px;}
+.impact-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;font-size:12px;}
+.impact-key{font-family:Oswald,sans-serif;color:var(--text3);}
+.impact-val{font-family:'Russo One',sans-serif;font-size:13px;}
+.impact-narrative{margin-top:10px;padding:10px 14px;background:rgba(192,122,74,0.08);border-left:3px solid var(--accent);border-radius:0 6px 6px 0;font-size:13px;color:var(--text2);line-height:1.6;}
+/* SCORING SPARKLINE */
+.sparkline-wrap{display:flex;align-items:flex-end;gap:2px;height:28px;margin-top:4px;}
+.spark-bar{border-radius:2px 2px 0 0;min-width:4px;flex:1;}
+/* SEASON RECAP */
+.season-card{background:var(--panel);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:12px;}
+.season-card-header{background:var(--bg2);padding:12px 16px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;}
+.season-card-header:hover{background:rgba(192,122,74,0.07);}
+.season-year{font-family:'Russo One',sans-serif;font-size:18px;color:var(--accent);}
+.season-league-name{font-family:Oswald,sans-serif;font-size:11px;color:var(--text3);margin-top:2px;}
+.season-body{padding:14px 16px;display:none;}
+.season-stat-row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;}
+.season-stat{background:var(--bg3);border-radius:6px;padding:8px 12px;text-align:center;flex:1;min-width:80px;}
+.season-stat-val{font-family:'Russo One',sans-serif;font-size:16px;color:var(--accent);}
+.season-stat-lbl{font-family:Oswald,sans-serif;font-size:9px;letter-spacing:0.12em;text-transform:uppercase;color:var(--text3);margin-top:2px;}
+.season-standings{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:6px;}
+.season-standing-row{display:flex;align-items:center;gap:8px;padding:5px 8px;background:var(--bg2);border-radius:5px;}
+.season-standing-rank{font-family:'Russo One',sans-serif;font-size:13px;color:var(--text3);min-width:22px;}
+.season-standing-name{font-family:Oswald,sans-serif;font-size:12px;color:var(--text);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.season-standing-rec{font-family:Oswald,sans-serif;font-size:10px;color:var(--text3);}
+
 .team-blurb{font-size:12px;color:var(--text2);line-height:1.65;padding:10px 14px;border-top:1px solid var(--border);font-weight:300;}
 /* H2H CARDS */
 .h2h-cards{display:flex;flex-direction:column;gap:8px;}
@@ -359,7 +393,7 @@ tbody tr.sel{background:rgba(192,122,74,0.12);}
     <div class="nt" onclick="showPg('trade',this)">Trade</div>
     <div class="nt" onclick="showPg('sleeper',this)">League</div>
     <div class="nt" onclick="showPg('history',this)">History</div>
-    <div class="nt" onclick="showPg('trades',this)">Trades</div>
+    <div class="nt" onclick="showPg('trades',this)">Trade History</div>
   </div>
   <div class="nav-r">
     <span class="nav-user" id="nu"></span>
@@ -433,11 +467,12 @@ tbody tr.sel{background:rgba(192,122,74,0.12);}
     </div>
     <div style="background:var(--panel);border:1px solid var(--border);padding:16px 20px;margin-bottom:20px;">
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">
-        <div style="text-align:center;background:var(--bg3);border:1px solid var(--border);padding:10px;"><div style="font-family:'Oswald',sans-serif;font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--text3);margin-bottom:4px;">Give Total</div><div style="font-family:'Russo One',sans-serif;font-size:26px;color:var(--red);" id="gtf">—</div></div>
-        <div style="text-align:center;background:var(--bg3);border:1px solid var(--border);padding:10px;"><div style="font-family:'Oswald',sans-serif;font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--text3);margin-bottom:4px;">Receive Total</div><div style="font-family:'Russo One',sans-serif;font-size:26px;color:var(--green);" id="rtf">—</div></div>
+        <div style="text-align:center;background:var(--bg3);border:1px solid var(--border);padding:10px;border-radius:6px;"><div style="font-family:'Oswald',sans-serif;font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--text3);margin-bottom:4px;">Give Total</div><div style="font-family:'Russo One',sans-serif;font-size:26px;color:var(--red);" id="gtf">—</div></div>
+        <div style="text-align:center;background:var(--bg3);border:1px solid var(--border);padding:10px;border-radius:6px;"><div style="font-family:'Oswald',sans-serif;font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--text3);margin-bottom:4px;">Receive Total</div><div style="font-family:'Russo One',sans-serif;font-size:26px;color:var(--green);" id="rtf">—</div></div>
       </div>
       <div class="vbw" style="height:8px;margin-bottom:12px;"><div class="vbg" id="vgf" style="width:50%"></div><div class="vbr" id="vrf" style="width:50%"></div></div>
       <div style="font-family:'Oswald',sans-serif;font-size:16px;letter-spacing:0.06em;text-align:center;" id="vtf"><span style="color:var(--text3)">Add players to both sides</span></div>
+      <div id="dynasty-impact" style="display:none;"></div>
     </div>
     <div style="background:var(--panel);border:1px solid var(--border);padding:14px 16px;">
       <div style="font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:0.18em;text-transform:uppercase;color:var(--text3);margin-bottom:10px;">Add Players & Picks</div>
@@ -689,7 +724,13 @@ function setV(id,gt,rt,tot,dif,abs){
   const vg=document.getElementById('vg'+id),vr=document.getElementById('vr'+id),vt=document.getElementById('vt'+id);
   if(gte)gte.textContent=GP.length?gt.toFixed(1):'—';
   if(rte)rte.textContent=RP.length?rt.toFixed(1):'—';
-  if(!GP.length||!RP.length){if(vg){vg.style.width='50%';vr.style.width='50%';}if(vt)vt.innerHTML='<span style="color:var(--text3)">Add players to both sides</span>';return;}
+  if(!GP.length||!RP.length){
+    if(vg){vg.style.width='50%';vr.style.width='50%';}
+    if(vt)vt.innerHTML='<span style="color:var(--text3)">Add players to both sides</span>';
+    const di=document.getElementById('dynasty-impact');
+    if(di) di.style.display='none';
+    return;
+  }
   const gp=tot>0?Math.round((gt/tot)*100):50;
   if(vg){vg.style.width=gp+'%';vr.style.width=(100-gp)+'%';}
   if(vt){
@@ -699,7 +740,174 @@ function setV(id,gt,rt,tot,dif,abs){
     else if(dif>=-15)vt.innerHTML=`<span class="vlose">Slight loss — down ${abs} pts. Negotiate.</span>`;
     else vt.innerHTML=`<span class="vlose">Bad deal — losing ${abs} pts. Decline.</span>`;
   }
+  // Dynasty impact (full trade page only)
+  if(id==='f'){
+    const di=document.getElementById('dynasty-impact');
+    if(!di) return;
+    const impact=dynastyImpact(GP,RP);
+    if(!impact){di.style.display='none';return;}
+    const {gAge,rAge,windowMsg,pickMsg,narrative,gPlayers,rPlayers,gPicks,rPicks}=impact;
+    const ageFmt=a=>a!==null?a.toFixed(1)+' yrs':'—';
+    const posColor={QB:'var(--qb)',WR:'var(--wr)',RB:'var(--rb)',TE:'var(--te)',PICK:'var(--pick)'};
+    di.style.display='block';
+    di.innerHTML=`
+      <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border);">
+        <div style="font-family:Oswald,sans-serif;font-size:10px;letter-spacing:0.18em;text-transform:uppercase;color:var(--text3);margin-bottom:10px;">Dynasty Impact</div>
+        <div class="impact-grid">
+          <div class="impact-box">
+            <div class="impact-lbl">You Give</div>
+            <div class="impact-row"><span class="impact-key">Avg Age</span><span class="impact-val" style="color:var(--text2);">${ageFmt(gAge)}</span></div>
+            <div class="impact-row"><span class="impact-key">Players</span><span class="impact-val" style="color:var(--text2);">${gPlayers.length}</span></div>
+            <div class="impact-row"><span class="impact-key">Picks</span><span class="impact-val" style="color:var(--pick);">${gPicks.length}</span></div>
+          </div>
+          <div class="impact-box">
+            <div class="impact-lbl">You Receive</div>
+            <div class="impact-row"><span class="impact-key">Avg Age</span><span class="impact-val" style="color:var(--text2);">${ageFmt(rAge)}</span></div>
+            <div class="impact-row"><span class="impact-key">Players</span><span class="impact-val" style="color:var(--text2);">${rPlayers.length}</span></div>
+            <div class="impact-row"><span class="impact-key">Picks</span><span class="impact-val" style="color:var(--pick);">${rPicks.length}</span></div>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:4px;margin-top:8px;">
+          <div style="font-size:11px;color:var(--text3);font-family:Oswald,sans-serif;">⏳ ${windowMsg}</div>
+          <div style="font-size:11px;color:var(--text3);font-family:Oswald,sans-serif;">📋 ${pickMsg}</div>
+        </div>
+        <div class="impact-narrative">${narrative}</div>
+      </div>`;
+  }
 }
+// ── ROSTER CONSTRUCTION GRADE ────────────────────────────────────────
+function rosterGrade(r, leagueAvg){
+  const all=r.all; const n=all.length;
+  if(!n) return {letter:'F',cls:'grade-F',detail:'No matched players'};
+
+  let score=0; const issues=[];
+
+  // 1. Overall value vs league average (0-30pts)
+  const ratio=r.totalScore/(leagueAvg||1);
+  score += Math.min(30, Math.round(ratio*20));
+
+  // 2. QB situation (0-20pts)
+  const qbs=all.filter(p=>p.pos==='QB').sort((a,b)=>b.score-a.score);
+  if(qbs[0]?.score>=60) score+=20;
+  else if(qbs[0]?.score>=35) score+=14;
+  else if(qbs[0]?.score>=15) score+=8;
+  else if(qbs.length) score+=3;
+  else { score-=5; issues.push('No QB'); }
+
+  // 3. Positional depth — top 2 at each skill pos (0-20pts)
+  ['WR','RB','TE'].forEach(pos=>{
+    const ps=all.filter(p=>p.pos===pos).sort((a,b)=>b.score-a.score);
+    if(ps[0]?.score>=40) score+=5;
+    else if(ps[0]?.score>=20) score+=3;
+    if(ps[1]?.score>=20) score+=2;
+  });
+
+  // 4. Age profile of top-8 — dynasty longevity (0-15pts)
+  const top8=all.slice(0,8);
+  const avgAge=top8.reduce((s,p)=>s+(p.age||25),0)/(top8.length||1);
+  if(avgAge<25) score+=15;
+  else if(avgAge<27) score+=11;
+  else if(avgAge<29) score+=6;
+  else if(avgAge<31) score+=2;
+  else { score-=3; issues.push('Aging core'); }
+
+  // 5. Depth (top 10 vs top 3 ratio) — avoids one-trick pony (0-15pts)
+  const top3val=all.slice(0,3).reduce((s,p)=>s+p.score,0);
+  const top10val=all.slice(0,10).reduce((s,p)=>s+p.score,0);
+  const depthRatio=top3val>0?top10val/top3val:1;
+  if(depthRatio>=2.0) score+=15;
+  else if(depthRatio>=1.6) score+=10;
+  else if(depthRatio>=1.3) score+=5;
+  else issues.push('Thin depth');
+
+  // Convert score to letter
+  const pct=Math.min(100,score);
+  let letter,cls;
+  if(pct>=80){letter='A';cls='grade-A';}
+  else if(pct>=65){letter='B';cls='grade-B';}
+  else if(pct>=48){letter='C';cls='grade-C';}
+  else if(pct>=32){letter='D';cls='grade-D';}
+  else{letter='F';cls='grade-F';}
+
+  const detail=issues.length?issues.join(' · '):`Score: ${pct}/100`;
+  return {letter,cls,detail};
+}
+
+// ── SCORING SPARKLINE ─────────────────────────────────────────────────
+function buildSparkline(weeklyPts){
+  if(!weeklyPts||weeklyPts.length<2) return '';
+  const max=Math.max(...weeklyPts)||1;
+  const min=Math.min(...weeklyPts);
+  const range=max-min||1;
+  // Color gradient: low = red, high = green
+  const bars=weeklyPts.map(pts=>{
+    const pct=Math.round(((pts-min)/range)*100);
+    const h=Math.max(3,Math.round((pct/100)*28));
+    // Color: blend red→amber→green
+    const col=pct>65?'var(--gt)':pct>35?'var(--gold)':'var(--rt)';
+    return `<div class="spark-bar" style="height:${h}px;background:${col};opacity:0.85;" title="Wk ${weeklyPts.indexOf(pts)+1}: ${pts} pts"></div>`;
+  }).join('');
+  return `<div class="sparkline-wrap">${bars}</div>`;
+}
+
+// ── DYNASTY IMPACT ANALYSIS ───────────────────────────────────────────
+function dynastyImpact(give, recv){
+  if(!give.length||!recv.length) return null;
+
+  const players=arr=>arr.filter(d=>d.type==='player');
+  const picks=arr=>arr.filter(d=>d.type==='pick');
+
+  const gPlayers=players(give), rPlayers=players(recv);
+  const gPicks=picks(give),     rPicks=picks(recv);
+
+  // Age analysis (players only)
+  const avgAge=arr=>arr.length?arr.reduce((s,p)=>s+(p.age||25),0)/arr.length:null;
+  const gAge=avgAge(gPlayers), rAge=avgAge(rPlayers);
+
+  // Value by pos
+  const posVal=(arr,pos)=>arr.filter(p=>p.pos===pos).reduce((s,p)=>s+p.score,0);
+
+  // Window shift: are you getting younger or older?
+  let windowMsg='';
+  if(gAge!==null&&rAge!==null){
+    const ageDiff=rAge-gAge;
+    if(ageDiff<-2) windowMsg=`You're getting ${Math.abs(ageDiff).toFixed(1)} yrs younger — extending your window.`;
+    else if(ageDiff>2) windowMsg=`You're taking on ${ageDiff.toFixed(1)} yrs of age — shortening your window.`;
+    else windowMsg='Age impact is neutral on both sides.';
+  }
+
+  // Pick capital
+  const pickMsg=gPicks.length>rPicks.length?`You're surrendering ${gPicks.length-rPicks.length} more pick(s) — costs future capital.`
+    :rPicks.length>gPicks.length?`You're gaining ${rPicks.length-gPicks.length} pick(s) — adds future capital.`
+    :'Pick capital is neutral.';
+
+  // Narrative: combine value, age, picks into a read
+  const gTotal=give.reduce((s,d)=>s+d.score,0);
+  const rTotal=recv.reduce((s,d)=>s+d.score,0);
+  const diff=rTotal-gTotal;
+  const isWin=diff>8, isLoss=diff<-8;
+  const gettingOlder=gAge!==null&&rAge!==null&&rAge>gAge+1.5;
+  const gettingYounger=gAge!==null&&rAge!==null&&rAge<gAge-1.5;
+  const gettingPicks=rPicks.length>gPicks.length;
+  const losingPicks=gPicks.length>rPicks.length;
+
+  let narrative='';
+  if(isWin&&gettingYounger) narrative='Best of both worlds — you win the value battle and get younger. Accept immediately.';
+  else if(isWin&&gettingOlder) narrative='You win on value but inherit age. Good for a championship push; risky if your window is short.';
+  else if(isWin&&gettingPicks) narrative='Value win plus pick capital — a strong return that builds the future.';
+  else if(isWin) narrative='Clean value win. The formula says take it, and there are no dynasty red flags here.';
+  else if(isLoss&&gettingYounger&&gettingPicks) narrative='Selling now for youth and picks — classic dynasty rebuild move. Justified if your window is closed.';
+  else if(isLoss&&gettingYounger) narrative='You lose value but get younger. Defensible if you\'re pivoting to a multi-year rebuild.';
+  else if(isLoss&&gettingPicks) narrative='Losing value for picks is a bet on future drafts. Only makes sense if your core is young.';
+  else if(isLoss&&gettingOlder) narrative='Losing value and getting older. Hard to justify — push back or walk away.';
+  else if(isLoss) narrative='Value loss with no compelling dynasty upside. Negotiate or decline.';
+  else if(gettingYounger) narrative='Even value but you improve your age curve — quietly a good deal for dynasty.';
+  else if(gettingOlder) narrative='Even on value but you age up. Watch your contention window before accepting.';
+  else narrative='Roughly even across the board. Decide based on what your roster needs most right now.';
+
+  return {gAge,rAge,windowMsg,pickMsg,narrative,gPlayers,rPlayers,gPicks,rPicks};
+}
+
 function renderTS(){
   const q=document.getElementById('ts').value.toLowerCase().trim();
   const el=document.getElementById('tsr');
@@ -788,6 +996,7 @@ async function loadLeague(){
 
       found.sort((a,b)=>b.score-a.score);
       let pf=0,pa=0;
+      const weeklyPts=[];
       const rid=r.roster_id;
       allM.forEach(wm=>{
         if(!Array.isArray(wm)) return;
@@ -795,10 +1004,11 @@ async function loadLeague(){
         if(!my||!my.points) return;
         const op=wm.find(m=>m.matchup_id===my.matchup_id&&m.roster_id!==rid);
         pf+=my.points; if(op) pa+=op.points;
+        weeklyPts.push(Math.round(my.points*10)/10);
       });
       return{owner:owner.name,wins:r.settings?.wins||0,losses:r.settings?.losses||0,ties:r.settings?.ties||0,
         totalScore:Math.round(tot*10)/10,pickVal:Math.round(pickVal*10)/10,
-        top:found.slice(0,6),all:found,
+        top:found.slice(0,6),all:found,weeklyPts,
         pf:Math.round(pf*10)/10,pa:Math.round(pa*10)/10,rid};
     });
 
@@ -877,7 +1087,7 @@ async function loadLeague(){
     MODAL_DATA=[...scored];
     renderLeague(league,scored,id);
     // Kick off history and trades in background
-    loadHistory(id, umap, scored);
+    loadHistory(id, umap, scored, allM);
     loadTradeHistory(id, umap, sp);
   }catch(e){
     document.getElementById('lerr').textContent=e.message||'Failed to load. Check your League ID.';
@@ -925,6 +1135,8 @@ function renderLeague(league,rosters,lid){
     <div class="tgrid">${rosters.map((r,i)=>{
       const tier = valueTier(r.totalScore, leagueAvg);
       const blurb = buildBlurb(r, leagueAvg);
+      const grade = rosterGrade(r, leagueAvg);
+      const spark = buildSparkline(r.weeklyPts||[]);
       return `
       <div class="tc" id="tc${i}">
         <div class="tctop">
@@ -938,10 +1150,13 @@ function renderLeague(league,rosters,lid){
               <span style="font-family:Oswald,sans-serif;font-size:10px;color:var(--text3);">Window: ${r.contention}</span>
             </div>
           </div>
-          <div class="tcv">
-            <div class="tcvn">${r.totalScore.toFixed(1)}</div>
-            <div class="tcvl">Roster Value</div>
-            ${r.pf>0?`<div class="tcpp">${r.pf.toFixed(0)} PF · ${r.pa.toFixed(0)} PA</div>`:''}
+          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;">
+            <div class="grade-badge ${grade.cls}" title="${grade.detail}">${grade.letter}</div>
+            <div class="tcv" style="text-align:right;">
+              <div class="tcvn">${r.totalScore.toFixed(1)}</div>
+              <div class="tcvl">Roster Value</div>
+              ${r.pf>0?`<div class="tcpp">${r.pf.toFixed(0)} PF · ${r.pa.toFixed(0)} PA</div>`:''}
+            </div>
           </div>
         </div>
         <div class="tcb">
@@ -953,12 +1168,13 @@ function renderLeague(league,rosters,lid){
             }).join('')}
             ${!r.all.length?'<span style="font-size:11px;color:var(--text3);font-style:italic;">No matched players</span>':''}
           </div>
+          ${spark?`<div style="padding:6px 0 2px;"><div style="font-family:Oswald,sans-serif;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;color:var(--text3);margin-bottom:4px;">Scoring Trend (Wks 1–${r.weeklyPts.length})</div>${spark}</div>`:''}
         </div>
         <div class="team-blurb">${blurb}</div>
       </div>`;
     }).join('')}
     </div>
-    <div style="margin-top:14px;font-size:11px;color:var(--text3);line-height:1.6;">Tap any team name to see their full roster. Value tiers and blurbs are calculated from roster score, age profile, projected PPG, and championship odds.</div>`;
+    <div style="margin-top:14px;font-size:11px;color:var(--text3);line-height:1.6;">Tap any team name to see their full roster. Letter grade reflects positional balance, depth, and age profile. Scoring sparkline shows weekly PPG trend this season.</div>`;
 }
 
 // ── LOCAL TEAM BLURB GENERATOR (no API needed) ─────────────────────────
@@ -1030,7 +1246,7 @@ function buildBlurb(r, leagueAvg){
 // Called automatically when league loads; also called when user navigates to History/Trades tab
 let HIST_DATA=null, TRADES_DATA=null;
 
-async function loadHistory(leagueId, userMap, scored){
+async function loadHistory(leagueId, userMap, scored, currentAllM){
   // Fetch all historical seasons via linked league chain
   try{
     let allSeasons=[];
@@ -1039,7 +1255,7 @@ async function loadHistory(leagueId, userMap, scored){
     for(let s=0;s<8;s++){
       const lr=await fetch(`https://api.sleeper.app/v1/league/${lid}`).then(r=>r.json()).catch(()=>null);
       if(!lr) break;
-      allSeasons.push({lid,season:lr.season,name:lr.name});
+      allSeasons.push({lid,season:lr.season,name:lr.name,prevId:lr.previous_league_id});
       if(!lr.previous_league_id) break;
       lid=lr.previous_league_id;
     }
@@ -1053,27 +1269,47 @@ async function loadHistory(leagueId, userMap, scored){
         fetch(`https://api.sleeper.app/v1/league/${s.lid}/rosters`).then(r=>r.json()).catch(()=>[]),
         fetch(`https://api.sleeper.app/v1/league/${s.lid}/users`).then(r=>r.json()).catch(()=>[])
       ]);
-      // Build user map for this season
       const um={};users.forEach(u=>{um[u.user_id]=u.display_name;});
       const rm={};rosters.forEach(r=>{rm[r.roster_id]=um[r.owner_id]||'Unknown';});
-      // Find champion: highest seeded winner in winners bracket
-      // The bracket node with no following match is the champion
-      let champ=null,runnerUp=null,thirdLoser=null,fourthLoser=null;
+
+      // Fetch all matchup weeks for this season (reg season + playoffs)
+      const weekMatches=await Promise.all(
+        Array.from({length:17},(_,i)=>fetch(`https://api.sleeper.app/v1/league/${s.lid}/matchups/${i+1}`).then(r=>r.json()).catch(()=>[]))
+      );
+
+      // Build per-team stats from matchups
+      const teamStats={};
+      rosters.forEach(r=>{
+        const name=rm[r.roster_id]||'Unknown';
+        teamStats[name]={
+          wins:r.settings?.wins||0,
+          losses:r.settings?.losses||0,
+          ties:r.settings?.ties||0,
+          pf:Math.round(((r.settings?.fpts||0)+(r.settings?.fpts_decimal||0)/100)*10)/10,
+          weeklyPts:[]
+        };
+      });
+      weekMatches.forEach(wm=>{
+        if(!Array.isArray(wm)) return;
+        wm.forEach(m=>{
+          const name=rm[m.roster_id];
+          if(name&&m.points>0&&teamStats[name]) teamStats[name].weeklyPts.push(m.points);
+        });
+      });
+
+      // Highest single-week scorer
+      let highWeekOwner='', highWeekPts=0;
+      Object.entries(teamStats).forEach(([name,ts])=>{
+        const wMax=ts.weeklyPts.length?Math.max(...ts.weeklyPts):0;
+        if(wMax>highWeekPts){highWeekPts=wMax;highWeekOwner=name;}
+      });
+
+      let champ=null,runnerUp=null;
       if(Array.isArray(wb)&&wb.length){
-        // Finals = match with highest round
         const maxRound=Math.max(...wb.map(m=>m.r||0));
-        const finals=wb.filter(m=>m.r===maxRound);
-        const champMatch=finals[0];
-        if(champMatch){
-          champ=rm[champMatch.w]||null;
-          runnerUp=rm[champMatch.l]||null;
-        }
-        // 3rd place match
-        const thirdMatch=wb.find(m=>m.r===maxRound&&m.p===3);
-        if(thirdMatch){ thirdLoser=rm[thirdMatch.l]||null; }
-        // Losers bowl (last place) — look in losers bracket
+        const champMatch=wb.filter(m=>m.r===maxRound)[0];
+        if(champMatch){champ=rm[champMatch.w]||null;runnerUp=rm[champMatch.l]||null;}
       }
-      // Losers bracket for whizzer's bowl
       const [lb]=await Promise.all([
         fetch(`https://api.sleeper.app/v1/league/${s.lid}/losers_bracket`).then(r=>r.json()).catch(()=>[])
       ]);
@@ -1083,13 +1319,24 @@ async function loadHistory(leagueId, userMap, scored){
         const loserFinals=lb.filter(m=>m.r===maxLR);
         if(loserFinals[0]) whizzer=rm[loserFinals[0].l]||null;
       }
-      // All-time records from roster settings
       const recs={};
       rosters.forEach(r=>{
         const name=rm[r.roster_id]||'Unknown';
-        recs[name]={wins:r.settings?.wins||0,losses:r.settings?.losses||0,ties:r.settings?.ties||0,pf:Math.round((r.settings?.fpts||0)+(r.settings?.fpts_decimal||0)/100)};
+        recs[name]={wins:r.settings?.wins||0,losses:r.settings?.losses||0,ties:r.settings?.ties||0,
+          pf:Math.round(((r.settings?.fpts||0)+(r.settings?.fpts_decimal||0)/100)*10)/10};
       });
-      seasonData.push({season:s.season,lid:s.lid,champ,runnerUp,whizzer,recs});
+
+      // League avg PPG this season
+      const allPts=Object.values(teamStats).flatMap(ts=>ts.weeklyPts);
+      const avgPPG=allPts.length?Math.round((allPts.reduce((a,b)=>a+b,0)/allPts.length)*10)/10:0;
+      const highScorer=Object.entries(recs).sort((a,b)=>b[1].pf-a[1].pf)[0]?.[0]||'';
+
+      // Standings sorted by wins desc, then pf
+      const standings=Object.entries(recs).sort((a,b)=>b[1].wins-a[1].wins||(b[1].pf-a[1].pf)).map(([name,r])=>({name,...r}));
+
+      seasonData.push({season:s.season,lid:s.lid,leagueName:s.name,champ,runnerUp,whizzer,recs,
+        standings,avgPPG,highScorer,highWeekOwner,highWeekPts:Math.round(highWeekPts*10)/10,
+        teamStats});
     }
 
     // H2H: collect regular-season matchup results across all seasons
@@ -1295,13 +1542,14 @@ function renderHistory(){
     return wpB-wpA;
   }).map(([name,r])=>{
     const gp=r.w+r.l+r.t;
-    const wp=gp?Math.round((r.w/gp)*100):0;
+    const wlGames=r.w+r.l;
+    const wp=wlGames?Math.round((r.w/wlGames)*100):0;
     const titles=r.titles?`🏆 ${r.titles}×`:'';
     const whiz=r.whizzers?` 🚽 ${r.whizzers}×`:'';
     return `<div class="record-card">
       <div class="record-owner">${name}${titles?(' '+titles):''}${whiz}</div>
-      <div class="record-stat">${r.w}–${r.l}${r.t>0?'–'+r.t:''}</div>
-      <div class="record-sub">${wp}% win rate · ${gp} games</div>
+      <div class="record-stat">${r.w}–${r.l}${r.t>0?' ('+r.t+'T)':''}</div>
+      <div class="record-sub">${wp}% win rate · ${gp} games played</div>
     </div>`;
   }).join('');
 
@@ -1315,13 +1563,14 @@ function renderHistory(){
       const totalL=Object.values(opponents).reduce((s,r)=>s+r.l,0);
       const totalT=Object.values(opponents).reduce((s,r)=>s+r.t,0);
       const gp=totalW+totalL+totalT;
-      const wp=gp?Math.round((totalW/gp)*100):0;
+      const wlGames=totalW+totalL; // ties don't count for win%
+      const wp=wlGames?Math.round((totalW/wlGames)*100):0;
       const titles=(atRecs[name]?.titles||0);
       return `<div class="h2h-card" onclick="toggleH2H('h2h_${name.replace(/\s+/g,'_')}',this)">
         <div class="h2h-card-header">
           <div>
             <div class="h2h-card-name">${name}${titles?' 🏆'.repeat(Math.min(titles,3)):''}</div>
-            <div class="h2h-card-rec">${totalW}–${totalL}${totalT>0?'–'+totalT:''} all-time &nbsp;·&nbsp; ${wp}% win rate</div>
+            <div class="h2h-card-rec">${totalW}–${totalL}${totalT>0?' ('+totalT+'T)':''} &nbsp;·&nbsp; ${wp}% &nbsp;·&nbsp; ${gp} games</div>
           </div>
           <div class="h2h-card-chevron">▾</div>
         </div>
@@ -1332,13 +1581,15 @@ function renderHistory(){
           }).map(([opp,rec])=>{
             if(!rec.w&&!rec.l&&!rec.t) return '';
             const cls=rec.w>rec.l?'h2h-win':rec.l>rec.w?'h2h-lose':'h2h-even';
-            const bar=rec.w+rec.l+rec.t>0?Math.round((rec.w/(rec.w+rec.l+rec.t||1))*100):50;
+            const wlTotal=rec.w+rec.l;
+            const bar=wlTotal>0?Math.round((rec.w/wlTotal)*100):50;
+            const recStr=rec.w+'–'+rec.l+(rec.t>0?' ('+rec.t+'T)':'');
             return `<div class="h2h-row">
               <div class="h2h-opp">${opp}</div>
               <div class="h2h-bar-wrap">
                 <div class="h2h-bar-inner" style="width:${bar}%;background:${cls==='h2h-win'?'var(--gt)':cls==='h2h-lose'?'var(--rt)':'var(--gold)'};"></div>
               </div>
-              <div class="h2h-rec ${cls}">${rec.w}–${rec.l}${rec.t>0?'–'+rec.t:''}</div>
+              <div class="h2h-rec ${cls}">${recStr}</div>
             </div>`;
           }).join('')}
         </div>
@@ -1352,7 +1603,81 @@ function renderHistory(){
     <div class="hist-section"><div class="hist-section-title">🏆 Championship Roll</div>${champRows||'<div class="no-data">No championship data found</div>'}</div>
     <div class="hist-section"><div class="hist-section-title">🚽 Whizzer's Court Bowl</div>${whizzRows||'<div class="no-data">No loser bracket data found</div>'}</div>
     <div class="hist-section"><div class="hist-section-title">All-Time Records</div><div class="record-grid">${recCards||'<div class="no-data">No records found</div>'}</div></div>
+    <div class="hist-section"><div class="hist-section-title">📅 Season-by-Season Recap</div>${seasonRecap(seasons)}</div>
     <div class="hist-section"><div class="hist-section-title">Head-to-Head Records</div>${h2hHtml}</div>`;
+}
+
+function seasonRecap(seasons){
+  if(!seasons||!seasons.length) return '<div class="no-data">No season data</div>';
+  return [...seasons].reverse().map(s=>{
+    const hasData=s.standings&&s.standings.length;
+    const champLine=s.champ?`🏆 ${s.champ}`:'Champion unknown';
+    const whizLine=s.whizzer?`🚽 ${s.whizzer}`:'';
+    return `<div class="season-card">
+      <div class="season-card-header" onclick="toggleSeason('sc_${s.season}',this)">
+        <div>
+          <div class="season-year">${s.season}</div>
+          <div class="season-league-name">${s.leagueName||''}</div>
+        </div>
+        <div style="text-align:right;">
+          <div style="font-family:Oswald,sans-serif;font-size:12px;color:var(--text);">${champLine}</div>
+          ${whizLine?`<div style="font-family:Oswald,sans-serif;font-size:11px;color:var(--rt);">${whizLine}</div>`:''}
+        </div>
+        <div style="font-size:14px;color:var(--text3);margin-left:12px;">▾</div>
+      </div>
+      <div class="season-body" id="sc_${s.season}">
+        <div class="season-stat-row">
+          ${s.avgPPG?`<div class="season-stat"><div class="season-stat-val">${s.avgPPG}</div><div class="season-stat-lbl">Avg PPG</div></div>`:''}
+          ${s.highWeekPts?`<div class="season-stat"><div class="season-stat-val">${s.highWeekPts}</div><div class="season-stat-lbl">High Week</div></div>`:''}
+          ${s.highWeekOwner?`<div class="season-stat"><div class="season-stat-val" style="font-size:12px;">${s.highWeekOwner.split(' ')[0]}</div><div class="season-stat-lbl">High Scorer</div></div>`:''}
+          ${s.standings?`<div class="season-stat"><div class="season-stat-val">${s.standings.length}</div><div class="season-stat-lbl">Teams</div></div>`:''}
+        </div>
+        ${hasData?`<div style="font-family:Oswald,sans-serif;font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:var(--text3);margin-bottom:8px;">Final Standings</div>
+        <div class="season-standings">
+          ${s.standings.slice(0,12).map((t,i)=>`<div class="season-standing-row">
+            <div class="season-standing-rank">${i===0?'🏆':i+1}</div>
+            <div class="season-standing-name" title="${t.name}">${t.name}</div>
+            <div class="season-standing-rec">${t.wins}–${t.losses}</div>
+          </div>`).join('')}
+        </div>`:'<div class="no-data">No standings data</div>'}
+        ${s.teamStats?buildSeasonSparklines(s.teamStats):''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function buildSeasonSparklines(teamStats){
+  const entries=Object.entries(teamStats).filter(([,ts])=>ts.weeklyPts.length>2);
+  if(!entries.length) return '';
+  entries.sort((a,b)=>b[1].pf-a[1].pf);
+  const allPts=entries.flatMap(([,ts])=>ts.weeklyPts);
+  const globalMax=Math.max(...allPts)||1;
+  const rows=entries.slice(0,8).map(([name,ts])=>{
+    const bars=ts.weeklyPts.map(pts=>{
+      const pct=Math.round((pts/globalMax)*100);
+      const h=Math.max(2,Math.round((pct/100)*20));
+      const col=pct>70?'var(--gt)':pct>40?'var(--gold)':'var(--rt)';
+      return `<div style="height:${h}px;flex:1;min-width:3px;background:${col};border-radius:1px;opacity:0.85;"></div>`;
+    }).join('');
+    return `<div style="display:grid;grid-template-columns:90px 1fr 50px;align-items:center;gap:8px;padding:4px 0;border-bottom:1px solid rgba(46,51,72,0.3);">
+      <div style="font-family:Oswald,sans-serif;font-size:11px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${name}</div>
+      <div style="display:flex;align-items:flex-end;gap:2px;height:22px;">${bars}</div>
+      <div style="font-family:'Russo One',sans-serif;font-size:11px;color:var(--text3);text-align:right;">${ts.pf} PF</div>
+    </div>`;
+  }).join('');
+  return `<div style="margin-top:14px;">
+    <div style="font-family:Oswald,sans-serif;font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:var(--text3);margin-bottom:8px;">Weekly Scoring Trends</div>
+    ${rows}
+  </div>`;
+}
+
+function toggleSeason(id, header){
+  const el=document.getElementById(id);
+  if(!el) return;
+  const open=el.style.display==='none'||el.style.display==='';
+  el.style.display=open?'block':'none';
+  const chev=header.querySelector('div:last-child');
+  if(chev) chev.textContent=open?'▴':'▾';
 }
 
 function toggleH2H(id, card){
