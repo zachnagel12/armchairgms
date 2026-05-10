@@ -957,83 +957,68 @@ async function loadLeague(){
     let sp={};
     try{const pr=await fetch('https://api.sleeper.app/v1/players/nfl');sp=await pr.json();}catch(e){}
 
-    // Draft capital — collect traded_picks across ALL historical seasons
-    // Picks traded in previous league years won't appear in current league's traded_picks
+    // Draft capital
     document.getElementById('llod').textContent='Fetching draft capital...';
-    let tradedPicks=[];
+    const allTradedPicks=[];
     try{
-      // Walk the previous_league_id chain to collect all historical traded picks
       let scanId=id;
       for(let s=0;s<8;s++){
-        const tp=await fetch(`https://api.sleeper.app/v1/league/${scanId}/traded_picks`).then(r=>r.json()).catch(()=>[]);
-        if(Array.isArray(tp)) tradedPicks=tradedPicks.concat(tp);
-        // Get the previous league id
-        const lr=await fetch(`https://api.sleeper.app/v1/league/${scanId}`).then(r=>r.json()).catch(()=>null);
+        const [tp,lr]=await Promise.all([
+          fetch(`https://api.sleeper.app/v1/league/${scanId}/traded_picks`).then(r=>r.json()).catch(()=>[]),
+          fetch(`https://api.sleeper.app/v1/league/${scanId}`).then(r=>r.json()).catch(()=>null)
+        ]);
+        if(Array.isArray(tp)) tp.forEach(p=>allTradedPicks.push(p));
         if(!lr||!lr.previous_league_id) break;
         scanId=lr.previous_league_id;
       }
     }catch(e){}
 
-    // Build user_id -> roster_id map for current league
-    // (original_owner_id in traded_picks can be either a user_id or roster_id)
-    const userToRoster={};
-    rosters.forEach(r=>{ if(r.owner_id) userToRoster[r.owner_id]=r.roster_id; });
+    // roster_id in traded_picks is always who currently owns the pick.
+    // Build the final pick state: for each future pick that appears in traded_picks,
+    // roster_id IS the answer — no inference needed.
+    // For picks never traded, they still belong to their original owner (not in traded_picks).
 
-    const pickYears=[2027,2028,2029];
-    const pickRounds=[1,2,3,4];
+    // Seed
     const rosterPicks={};
     rosters.forEach(r=>{ rosterPicks[r.roster_id]=[]; });
+    [2027,2028,2029].forEach(yr=>[1,2,3,4].forEach(rd=>
+      rosters.forEach(r=>rosterPicks[r.roster_id].push({season:yr,round:rd,isOwn:true}))
+    ));
 
-    // Seed every team with their own picks
-    rosters.forEach(r=>{
-      pickYears.forEach(yr=>{
-        pickRounds.forEach(rd=>{
-          rosterPicks[r.roster_id].push({season:yr,round:rd,originalRid:r.roster_id,isOwn:true});
-        });
-      });
-    });
+    // For every future pick in traded_picks:
+    // - roster_id = current owner (always correct per Sleeper)
+    // - we need to identify which team's pick this was originally to remove it from them
+    // - use original_owner_id, resolving user_id -> roster_id if needed
+    const userToRoster={};
+    rosters.forEach(r=>{ if(r.owner_id) userToRoster[String(r.owner_id)]=r.roster_id; });
+    function toRid(v){
+      if(!v&&v!==0) return null;
+      const n=parseInt(v);
+      if(rosters.find(r=>r.roster_id===n)) return n;
+      return userToRoster[String(v)]||null;
+    }
 
-    // Process all traded picks across all seasons
-    // For future picks (>2026): remove from original owner, give to current owner
-    const tradedAwayKeys=new Set();
-    tradedPicks.forEach(pk=>{
+    // Process: last entry for each season+round+originalOwner wins (most recent trade)
+    const processed={}; // "yr_rd_origRid" -> current roster_id
+    allTradedPicks.forEach(pk=>{
       const yr=parseInt(pk.season)||0;
-      const rd=pk.round;
-      if(yr<=2026||!rd) return;
-
-      // current owner is always roster_id (integer 1-12)
-      const cur=pk.roster_id;
-
-      // original owner: try as roster_id first, then convert from user_id
-      let origRid=pk.original_owner_id;
-      if(origRid!==null&&origRid!==undefined){
-        origRid=parseInt(origRid)||origRid;
-        // If it's not a valid roster_id (1-12 range), try user->roster map
-        if(!rosterPicks[origRid]&&userToRoster[origRid]){
-          origRid=userToRoster[origRid];
-        }
-        // Also try string version
-        if(!rosterPicks[origRid]&&userToRoster[String(pk.original_owner_id)]){
-          origRid=userToRoster[String(pk.original_owner_id)];
-        }
-      }
-
-      if(!origRid||!cur) return;
-
-      tradedAwayKeys.add(`${yr}_${rd}_${origRid}`);
-
-      if(rosterPicks[cur]){
-        const dup=rosterPicks[cur].find(p=>p.season===yr&&p.round===rd&&p.originalRid===origRid);
-        if(!dup) rosterPicks[cur].push({season:yr,round:rd,originalRid:origRid,isOwn:false});
-      }
+      if(yr<=2026||!pk.round) return;
+      const cur=toRid(pk.roster_id);
+      const orig=toRid(pk.original_owner_id);
+      if(!cur||!orig) return;
+      processed[`${yr}_${pk.round}_${orig}`]=cur;
     });
 
-    // Remove picks traded away from original owners
-    rosters.forEach(r=>{
-      rosterPicks[r.roster_id]=rosterPicks[r.roster_id].filter(pk=>{
-        if(!pk.isOwn) return true;
-        return !tradedAwayKeys.has(`${pk.season}_${pk.round}_${r.roster_id}`);
-      });
+    // Apply: remove from original owner seed, assign to current owner
+    Object.entries(processed).forEach(([key,cur])=>{
+      const parts=key.split('_');
+      const yr=Number(parts[0]),rd=Number(parts[1]),orig=Number(parts[2]);
+      // Remove from original owner
+      if(rosterPicks[orig])
+        rosterPicks[orig]=rosterPicks[orig].filter(p=>!(p.season===yr&&p.round===rd&&p.isOwn));
+      // Give to current owner (if not already there)
+      if(rosterPicks[cur]&&!rosterPicks[cur].find(p=>p.season===yr&&p.round===rd&&!p.isOwn&&p._orig===orig))
+        rosterPicks[cur].push({season:yr,round:rd,isOwn:false,_orig:orig});
     });
 
     // Cache Sleeper player IDs for photo lookups — normalized name → sleeper_id
