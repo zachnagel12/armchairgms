@@ -374,7 +374,8 @@ nav{padding:0 10px;height:auto;flex-wrap:wrap;gap:0;}
 .nav-tabs{overflow-x:auto;-webkit-overflow-scrolling:touch;width:100%;border-top:1px solid var(–border);scrollbar-width:none;}
 .nav-tabs::-webkit-scrollbar{display:none;}
 .nt{padding:0 10px;height:40px;font-size:9px;white-space:nowrap;flex-shrink:0;}
-.nav-r{display:none;}
+.nav-r{display:flex;}
+.nav-out,.nav-season,.nav-user{display:none;}
 .nav-season{display:none;}
 
 .hero{grid-template-columns:1fr;gap:10px;padding:14px 12px;}
@@ -722,7 +723,7 @@ const SLEEPER_PID={};
 let MODE=‘ALL’,SEL=null,GP=[],RP=[],SCORING=‘SF’;
 
 // 1QB positional multipliers relative to Superflex
-const QB_MULTS={QB:0.50,WR:1.08,RB:1.25,TE:1.00,PICK:1.00};
+const QB_MULTS={QB:0.50,WR:1.15,RB:1.40,TE:0.50,PICK:1.00};
 
 function getScore(d){
 if(!d) return 0;
@@ -748,18 +749,6 @@ if(MODAL_DATA&&MODAL_DATA.length) reRenderLeague();
 function normName(n){
 return (n||’’).toLowerCase().replace(/[’\u2019`.-]/g,’’).replace(/\s+(jr|sr|ii|iii|iv)$/,’’).replace(/\s+/g,’ ‘).trim();
 }
-function reRenderLeague(){
-if(!MODAL_DATA||!MODAL_DATA.length) return;
-// Recompute totalScore for each roster using current SCORING mode
-const leagueAvg=MODAL_DATA.reduce((s,r)=>s+(r.all.reduce((ss,p)=>ss+getScore(p),0)+(r.pickVal||0)),0)/MODAL_DATA.length;
-MODAL_DATA.forEach(r=>{
-r.totalScore=Math.round((r.all.reduce((s,p)=>s+getScore(p),0)+(r.pickVal||0))*10)/10;
-});
-MODAL_DATA.sort((a,b)=>b.totalScore-a.totalScore);
-const lcon=document.getElementById(‘lcon’);
-if(lcon&&lcon.innerHTML) renderLeague(window._lastLeague||{name:‘Your League’},MODAL_DATA,window._lastLeagueId||’’);
-}
-
 function posGlyph(pos){return {QB:‘QB’,WR:‘WR’,RB:‘RB’,TE:‘TE’}[pos]||’?’;}
 function posColor(pos){return {QB:‘var(–qb)’,WR:‘var(–wr)’,RB:‘var(–rb)’,TE:‘var(–te)’}[pos]||‘var(–text3)’;}
 
@@ -1482,6 +1471,18 @@ if(ratio >= 1.10) return {cls:‘tier-above’,     label:‘Above Average’};
 if(ratio >= 0.90) return {cls:‘tier-at’,        label:‘League Average’};
 if(ratio >= 0.75) return {cls:‘tier-below’,     label:‘Below Average’};
 return               {cls:‘tier-way-below’,     label:‘Way Below Average’};
+}
+
+function reRenderLeague(){
+if(!MODAL_DATA||!MODAL_DATA.length) return;
+// Recompute totalScore for each roster using current SCORING mode
+const leagueAvg=MODAL_DATA.reduce((s,r)=>s+(r.all.reduce((ss,p)=>ss+getScore(p),0)+(r.pickVal||0)),0)/MODAL_DATA.length;
+MODAL_DATA.forEach(r=>{
+r.totalScore=Math.round((r.all.reduce((s,p)=>s+getScore(p),0)+(r.pickVal||0))*10)/10;
+});
+MODAL_DATA.sort((a,b)=>b.totalScore-a.totalScore);
+const lcon=document.getElementById(‘lcon’);
+if(lcon&&lcon.innerHTML) renderLeague(window._lastLeague||{name:‘Your League’},MODAL_DATA,window._lastLeagueId||’’);
 }
 
 function buildBlurb(r, leagueAvg){
