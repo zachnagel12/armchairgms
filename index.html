@@ -200,7 +200,62 @@ footer{background:var(--bg2);border-top:2px solid var(--border);padding:12px 20p
 .fl2{font-family:'Russo One',sans-serif;font-size:13px;color:var(--text2);}
 .fl2 span{color:var(--accent);}
 .fm{font-family:'Oswald',sans-serif;font-size:9px;letter-spacing:0.12em;text-transform:uppercase;color:var(--text3);}
-/* PLAYER PHOTOS */
+/* SOFTER UI OVERRIDES */
+:root{
+  --bg:#1c1f28;--bg2:#151720;--bg3:#111318;--panel:#21253a;
+  --border:#2e3348;--accent:#c07a4a;--accent2:#e09060;--gold:#d4aa5a;
+  --text:#e8e2d8;--text2:#a09890;--text3:#666070;
+  --qb:#8aafe0;--wr:#7ec898;--rb:#e09090;--te:#c8a870;--pick:#b0a0d8;
+  --green:#3a7a4a;--red:#7a3030;--gt:#7ec898;--rt:#e09090;
+  --radius:8px;
+}
+body{font-size:14px;letter-spacing:0.01em;}
+nav{height:52px;border-bottom:2px solid var(--accent);box-shadow:0 2px 16px rgba(0,0,0,0.3);}
+.nav-logo{font-size:20px;letter-spacing:0.04em;}
+.nt{font-size:11px;letter-spacing:0.12em;padding:0 14px;height:52px;}
+.tc,.stat-c,.kpi,.pstat,.aibox,.modal,.lov,.auth-box,.a-tabs{border-radius:var(--radius);}
+.tc{border-radius:10px;}
+.tctop{border-radius:10px 10px 0 0;}
+.tcb{border-radius:0 0 10px 10px;}
+tbody tr:hover{background:rgba(192,122,74,0.07);}
+tbody tr.sel{background:rgba(192,122,74,0.12);}
+.abtn-p,.sbtn{border-radius:6px;}
+.abtn-g{border-radius:6px;}
+.fi{border-radius:5px;}
+.pcb{border-radius:5px;}
+.mb{border-radius:0;}
+
+/* HISTORY & TRADES */
+.hist-section{margin-bottom:28px;}
+.hist-section-title{font-family:'Russo One',sans-serif;font-size:14px;color:var(--accent);letter-spacing:0.06em;text-transform:uppercase;margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid var(--border);}
+.champ-row{display:flex;align-items:center;gap:14px;padding:10px 14px;background:var(--panel);border-radius:8px;margin-bottom:6px;}
+.champ-year{font-family:'Russo One',sans-serif;font-size:16px;color:var(--gold);min-width:52px;}
+.champ-trophy{font-size:18px;}
+.champ-name{font-family:'Oswald',sans-serif;font-size:14px;font-weight:600;color:var(--text);}
+.champ-sub{font-size:11px;color:var(--text3);margin-top:1px;font-family:'Oswald',sans-serif;}
+.whizz-row{display:flex;align-items:center;gap:14px;padding:10px 14px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;margin-bottom:6px;}
+.whizz-year{font-family:'Russo One',sans-serif;font-size:16px;color:var(--rt);min-width:52px;}
+.record-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;}
+.record-card{background:var(--panel);border-radius:8px;padding:12px 14px;}
+.record-owner{font-family:'Oswald',sans-serif;font-size:13px;font-weight:600;color:var(--text);}
+.record-stat{font-family:'Russo One',sans-serif;font-size:20px;color:var(--accent);margin-top:4px;}
+.record-sub{font-size:11px;color:var(--text3);font-family:'Oswald',sans-serif;margin-top:2px;}
+.trade-card{background:var(--panel);border-radius:10px;padding:14px 16px;margin-bottom:10px;}
+.trade-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+.trade-date{font-family:'Oswald',sans-serif;font-size:11px;color:var(--text3);letter-spacing:0.08em;}
+.trade-sides-row{display:grid;grid-template-columns:1fr auto 1fr;gap:10px;align-items:start;}
+.trade-side-box{background:var(--bg2);border-radius:6px;padding:8px 10px;}
+.trade-side-lbl{font-family:'Oswald',sans-serif;font-size:9px;letter-spacing:0.16em;text-transform:uppercase;color:var(--text3);margin-bottom:5px;}
+.trade-item{font-family:'Oswald',sans-serif;font-size:12px;color:var(--text2);display:flex;align-items:center;gap:5px;margin-bottom:3px;}
+.trade-vs{font-family:'Russo One',sans-serif;font-size:14px;color:var(--text3);text-align:center;padding-top:16px;}
+.winner-badge{font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;padding:2px 8px;border-radius:4px;margin-top:6px;display:inline-block;}
+.winner-w{background:rgba(126,200,152,0.15);color:var(--gt);border:1px solid rgba(126,200,152,0.3);}
+.winner-l{background:rgba(224,144,144,0.1);color:var(--rt);border:1px solid rgba(224,144,144,0.2);}
+.winner-e{background:rgba(212,170,90,0.1);color:var(--gold);border:1px solid rgba(212,170,90,0.2);}
+.traded-player-row{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--bg2);border-radius:6px;margin-bottom:5px;}
+.traded-count{font-family:'Russo One',sans-serif;font-size:18px;color:var(--accent);min-width:36px;}
+.no-data{text-align:center;padding:32px;color:var(--text3);font-family:'Oswald',sans-serif;font-size:12px;letter-spacing:0.1em;text-transform:uppercase;}
+
 .p-avatar{width:36px;height:36px;border-radius:50%;object-fit:cover;object-position:top center;border:1px solid var(--border);background:var(--bg2);flex-shrink:0;}
 .p-avatar-sm{width:28px;height:28px;border-radius:50%;object-fit:cover;object-position:top center;border:1px solid var(--border);background:var(--bg2);flex-shrink:0;}
 .p-avatar-lg{width:56px;height:56px;border-radius:50%;object-fit:cover;object-position:top center;border:2px solid var(--border);background:var(--bg2);}
@@ -274,6 +329,8 @@ footer{background:var(--bg2);border-top:2px solid var(--border);padding:12px 20p
     <div class="nt active" onclick="showPg('rankings',this)">Rankings</div>
     <div class="nt" onclick="showPg('trade',this)">Trade</div>
     <div class="nt" onclick="showPg('sleeper',this)">League</div>
+    <div class="nt" onclick="showPg('history',this)">History</div>
+    <div class="nt" onclick="showPg('trades',this)">Trades</div>
   </div>
   <div class="nav-r">
     <span class="nav-user" id="nu"></span>
@@ -281,8 +338,6 @@ footer{background:var(--bg2);border-top:2px solid var(--border);padding:12px 20p
     <div class="nav-season">2026</div>
   </div>
 </nav>
-<div class="ticker"><span class="ticker-tag">Live</span><span>Josh Allen 100.0 · Ja'Marr Chase 98.0 · Jaxon Smith-Njigba 96.1 · Bijan Robinson 94.2 · Puka Nacua 92.2 · Drake Maye 90.2 · Jahmyr Gibbs 88.3 · Amon-Ra St. Brown 86.3 · Justin Jefferson 84.4 · Ashton Jeanty 82.5</span></div>
-
 <!-- RANKINGS -->
 <div class="page active" id="page-rankings">
   <div class="hero">
@@ -392,7 +447,37 @@ footer{background:var(--bg2);border-top:2px solid var(--border);padding:12px 20p
   </div>
 </div>
 
-<footer><div class="fl2">ARMCHAIR <span>GMs</span></div><div class="fm">Dynasty Trade Rater · 369 Players · 13 Picks · 2027–2028</div></footer>
+<!-- HISTORY PAGE -->
+<div class="page" id="page-history">
+  <div class="sw2">
+    <div class="stop">
+      <div class="stitle">LEAGUE <span>History</span></div>
+      <div style="font-family:'Oswald',sans-serif;font-size:11px;color:var(--text3);letter-spacing:0.06em;">Loaded from your Sleeper league · Load League first</div>
+    </div>
+    <div id="hist-empty" style="text-align:center;padding:60px 20px;">
+      <div style="font-family:'Russo One',sans-serif;font-size:18px;color:var(--text2);margin-bottom:10px;">No History Yet</div>
+      <div style="font-size:13px;color:var(--text3);line-height:1.7;max-width:380px;margin:0 auto;">Load your Sleeper league on the League tab first. History will appear here automatically.</div>
+    </div>
+    <div id="hist-content" style="display:none;"></div>
+  </div>
+</div>
+
+<!-- TRADES PAGE -->
+<div class="page" id="page-trades">
+  <div class="sw2">
+    <div class="stop">
+      <div class="stitle">TRADE <span>History</span></div>
+      <div style="font-family:'Oswald',sans-serif;font-size:11px;color:var(--text3);letter-spacing:0.06em;">All-time league trades · Load League first</div>
+    </div>
+    <div id="trades-empty" style="text-align:center;padding:60px 20px;">
+      <div style="font-family:'Russo One',sans-serif;font-size:18px;color:var(--text2);margin-bottom:10px;">No Trade Data Yet</div>
+      <div style="font-size:13px;color:var(--text3);line-height:1.7;max-width:380px;margin:0 auto;">Load your Sleeper league on the League tab first. Trade history will appear here automatically.</div>
+    </div>
+    <div id="trades-content" style="display:none;"></div>
+  </div>
+</div>
+
+<footer><div class="fl2">ARMCHAIR <span>GMs</span></div><div class="fm">Dynasty Trade Rater · 2026</div></footer>
 
 <!-- ROSTER MODAL -->
 <div class="modal-overlay" id="roster-modal" style="display:none;" onclick="if(event.target===this)closeModal()">
@@ -491,12 +576,26 @@ function posColor(pos){return {QB:'var(--qb)',WR:'var(--wr)',RB:'var(--rb)',TE:'
 function avatarHtml(d,dim=28){
   if(d.type==='pick'){
     const lbl=d.round+(d.slot==='Early'?'E':d.slot==='Mid'?'M':'L');
-    return `<div style="width:${dim}px;height:${dim}px;border-radius:50%;background:rgba(155,138,191,0.12);border:1px solid var(--pick);display:flex;align-items:center;justify-content:center;font-family:'Oswald',sans-serif;font-size:${Math.round(dim*0.25)}px;color:var(--pick);flex-shrink:0;">${lbl}</div>`;
+    return `<div style="width:${dim}px;height:${dim}px;border-radius:50%;background:rgba(155,138,191,0.12);border:1px solid var(--pick);display:flex;align-items:center;justify-content:center;font-family:Oswald,sans-serif;font-size:${Math.round(dim*0.25)}px;color:var(--pick);flex-shrink:0;">${lbl}</div>`;
   }
   const pid=SLEEPER_PID[normName(d.name)];
-  const fb=`<div style="width:${dim}px;height:${dim}px;border-radius:50%;background:var(--bg2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-family:'Oswald',sans-serif;font-size:${Math.round(dim*0.25)}px;color:${posColor(d.pos)};flex-shrink:0;">${posGlyph(d.pos)}</div>`;
-  if(!pid) return fb;
-  return `<img style="width:${dim}px;height:${dim}px;border-radius:50%;object-fit:cover;object-position:top center;border:1px solid var(--border);background:var(--bg2);flex-shrink:0;" src="https://sleepercdn.com/content/nfl/players/${pid}.jpg" onerror="this.outerHTML='${fb.replace(/'/g,"\\'")}'">`;
+  const pc=posColor(d.pos);
+  const pg=posGlyph(d.pos);
+  // Safe fallback: no quotes inside the onerror attribute, uses a global helper
+  const fbId='fb_'+Math.random().toString(36).slice(2,7);
+  window._fbCache=window._fbCache||{};
+  window._fbCache[fbId]={dim,pc,pg};
+  if(!pid) return `<div style="width:${dim}px;height:${dim}px;border-radius:50%;background:var(--bg2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-family:Oswald,sans-serif;font-size:${Math.round(dim*0.25)}px;color:${pc};flex-shrink:0;">${pg}</div>`;
+  return `<img data-fbid="${fbId}" style="width:${dim}px;height:${dim}px;border-radius:50%;object-fit:cover;object-position:top center;border:1px solid var(--border);background:var(--bg2);flex-shrink:0;" src="https://sleepercdn.com/content/nfl/players/${pid}.jpg" onerror="imgFb(this)">`;
+}
+function imgFb(el){
+  const id=el.getAttribute('data-fbid');
+  const cfg=(window._fbCache||{})[id]||{dim:28,pc:'var(--text3)',pg:'?'};
+  const d=document.createElement('div');
+  d.style.cssText=`width:${cfg.dim}px;height:${cfg.dim}px;border-radius:50%;background:var(--bg2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-family:Oswald,sans-serif;font-size:${Math.round(cfg.dim*0.25)}px;color:${cfg.pc};flex-shrink:0;`;
+  d.textContent=cfg.pg;
+  el.parentNode.replaceChild(d,el);
+}
 }
 
 function showPg(id,el){
@@ -504,6 +603,8 @@ function showPg(id,el){
   document.querySelectorAll('.nt').forEach(t=>t.classList.remove('active'));
   document.getElementById('page-'+id).classList.add('active');
   if(el)el.classList.add('active');
+  if(id==='history') renderHistory();
+  if(id==='trades') renderTrades();
 }
 function setMode(m,btn){MODE=m;document.querySelectorAll('.mb').forEach(b=>b.classList.remove('active'));btn.classList.add('active');renderTable();}
 
@@ -736,6 +837,9 @@ async function loadLeague(){
     scored.sort((a,b)=>b.totalScore-a.totalScore);
     MODAL_DATA=[...scored];
     renderLeague(league,scored,id);
+    // Kick off history and trades in background
+    loadHistory(id, umap, scored);
+    loadTradeHistory(id, umap, sp);
   }catch(e){
     document.getElementById('lerr').textContent=e.message||'Failed to load. Check your League ID.';
     document.getElementById('lerr').style.display='block';
@@ -888,7 +992,257 @@ Sentence 4: One specific, opinionated trade recommendation — what should they 
   }
 }
 
-// Name lookup maps (built after DATA is defined)
+// ── LEAGUE HISTORY & TRADES ───────────────────────────────────────────
+// Called automatically when league loads; also called when user navigates to History/Trades tab
+let HIST_DATA=null, TRADES_DATA=null;
+
+async function loadHistory(leagueId, userMap, scored){
+  // Fetch all historical seasons via linked league chain
+  try{
+    let allSeasons=[];
+    let lid=leagueId;
+    // Walk previous_league_id chain up to 8 seasons
+    for(let s=0;s<8;s++){
+      const lr=await fetch(`https://api.sleeper.app/v1/league/${lid}`).then(r=>r.json()).catch(()=>null);
+      if(!lr) break;
+      allSeasons.push({lid,season:lr.season,name:lr.name});
+      if(!lr.previous_league_id) break;
+      lid=lr.previous_league_id;
+    }
+    allSeasons.sort((a,b)=>Number(a.season)-Number(b.season));
+
+    // For each season fetch winners bracket and rosters
+    const seasonData=[];
+    for(const s of allSeasons){
+      const [wb,rosters,users]=await Promise.all([
+        fetch(`https://api.sleeper.app/v1/league/${s.lid}/winners_bracket`).then(r=>r.json()).catch(()=>[]),
+        fetch(`https://api.sleeper.app/v1/league/${s.lid}/rosters`).then(r=>r.json()).catch(()=>[]),
+        fetch(`https://api.sleeper.app/v1/league/${s.lid}/users`).then(r=>r.json()).catch(()=>[])
+      ]);
+      // Build user map for this season
+      const um={};users.forEach(u=>{um[u.user_id]=u.display_name;});
+      const rm={};rosters.forEach(r=>{rm[r.roster_id]=um[r.owner_id]||'Unknown';});
+      // Find champion: highest seeded winner in winners bracket
+      // The bracket node with no following match is the champion
+      let champ=null,runnerUp=null,thirdLoser=null,fourthLoser=null;
+      if(Array.isArray(wb)&&wb.length){
+        // Finals = match with highest round
+        const maxRound=Math.max(...wb.map(m=>m.r||0));
+        const finals=wb.filter(m=>m.r===maxRound);
+        const champMatch=finals[0];
+        if(champMatch){
+          champ=rm[champMatch.w]||null;
+          runnerUp=rm[champMatch.l]||null;
+        }
+        // 3rd place match
+        const thirdMatch=wb.find(m=>m.r===maxRound&&m.p===3);
+        if(thirdMatch){ thirdLoser=rm[thirdMatch.l]||null; }
+        // Losers bowl (last place) — look in losers bracket
+      }
+      // Losers bracket for whizzer's bowl
+      const [lb]=await Promise.all([
+        fetch(`https://api.sleeper.app/v1/league/${s.lid}/losers_bracket`).then(r=>r.json()).catch(()=>[])
+      ]);
+      let whizzer=null;
+      if(Array.isArray(lb)&&lb.length){
+        const maxLR=Math.max(...lb.map(m=>m.r||0));
+        const loserFinals=lb.filter(m=>m.r===maxLR);
+        if(loserFinals[0]) whizzer=rm[loserFinals[0].l]||null;
+      }
+      // All-time records from roster settings
+      const recs={};
+      rosters.forEach(r=>{
+        const name=rm[r.roster_id]||'Unknown';
+        recs[name]={wins:r.settings?.wins||0,losses:r.settings?.losses||0,ties:r.settings?.ties||0,pf:Math.round((r.settings?.fpts||0)+(r.settings?.fpts_decimal||0)/100)};
+      });
+      seasonData.push({season:s.season,lid:s.lid,champ,runnerUp,whizzer,recs});
+    }
+    HIST_DATA={seasons:seasonData,userMap,scored};
+    renderHistory();
+  }catch(e){console.error('History load error:',e);}
+}
+
+async function loadTradeHistory(leagueId, userMap, sleeperPlayers){
+  try{
+    // Collect all transaction IDs across all weeks for current + previous seasons
+    let lid=leagueId;
+    let allTrades=[];
+    for(let s=0;s<6;s++){
+      const lr=await fetch(`https://api.sleeper.app/v1/league/${lid}`).then(r=>r.json()).catch(()=>null);
+      if(!lr) break;
+      const [rosters,users]=await Promise.all([
+        fetch(`https://api.sleeper.app/v1/league/${lid}/rosters`).then(r=>r.json()).catch(()=>[]),
+        fetch(`https://api.sleeper.app/v1/league/${lid}/users`).then(r=>r.json()).catch(()=>[])
+      ]);
+      const um={};users.forEach(u=>{um[u.user_id]=u.display_name;});
+      const rm={};rosters.forEach(r=>{rm[r.roster_id]=um[r.owner_id]||'Unknown';});
+      // Fetch transactions for all 18 weeks
+      const weekTxns=await Promise.all(
+        Array.from({length:18},(_,i)=>fetch(`https://api.sleeper.app/v1/league/${lid}/transactions/${i+1}`).then(r=>r.json()).catch(()=>[]))
+      );
+      weekTxns.forEach(txns=>{
+        if(!Array.isArray(txns)) return;
+        txns.forEach(t=>{
+          if(t.type!=='trade') return;
+          const rosterIds=t.roster_ids||[];
+          const adds=t.adds||{};
+          const drops=t.drops||{};
+          const picks=t.draft_picks||[];
+          // Map players to roster sides
+          const sides={};
+          rosterIds.forEach(rid=>sides[rid]={players:[],picks:[],name:rm[rid]||'Unknown'});
+          Object.entries(adds).forEach(([pid,rid])=>{
+            if(sides[rid]){
+              const p=sleeperPlayers[pid];
+              const name=p?`${p.first_name} ${p.last_name}`.trim():pid;
+              sides[rid].players.push({pid,name});
+            }
+          });
+          picks.forEach(pk=>{
+            const toRid=pk.owner_id;
+            if(sides[toRid]) sides[toRid].picks.push(`${pk.season} Rd${pk.round}`);
+          });
+          const sideArr=Object.values(sides).filter(s=>s.name);
+          if(sideArr.length>=2){
+            // Score each side using our DB
+            sideArr.forEach(side=>{
+              side.value=side.players.reduce((sum,p)=>{
+                const m=NM_EXACT[p.name.toLowerCase()]||NM_NORM[normName(p.name)];
+                return sum+(m?m.score:0);
+              },0);
+              side.value+=side.picks.length*18; // rough pick value
+            });
+            allTrades.push({
+              season:lr.season,
+              ts:t.status_updated||t.created||0,
+              sides:sideArr,
+              id:t.transaction_id
+            });
+          }
+        });
+      });
+      if(!lr.previous_league_id) break;
+      lid=lr.previous_league_id;
+    }
+    // Sort by date descending
+    allTrades.sort((a,b)=>b.ts-a.ts);
+
+    // Most traded players: count appearances across all trades
+    const playerCounts={};
+    allTrades.forEach(t=>{
+      t.sides.forEach(side=>{
+        side.players.forEach(p=>{
+          playerCounts[p.name]=(playerCounts[p.name]||0)+1;
+        });
+      });
+    });
+    const topTraded=Object.entries(playerCounts).sort((a,b)=>b[1]-a[1]).slice(0,10).map(([name,count])=>({name,count}));
+
+    TRADES_DATA={trades:allTrades,topTraded};
+    renderTrades();
+  }catch(e){console.error('Trade history error:',e);}
+}
+
+function renderHistory(){
+  const el=document.getElementById('hist-content');
+  const emp=document.getElementById('hist-empty');
+  if(!HIST_DATA||!HIST_DATA.seasons.length){emp.style.display='block';el.style.display='none';return;}
+  emp.style.display='none';el.style.display='block';
+  const {seasons,scored}=HIST_DATA;
+
+  // Championship section
+  const champRows=seasons.filter(s=>s.champ).reverse().map(s=>`
+    <div class="champ-row">
+      <div class="champ-year">${s.season}</div>
+      <div class="champ-trophy">🏆</div>
+      <div><div class="champ-name">${s.champ}</div><div class="champ-sub">${s.runnerUp?'Runner-up: '+s.runnerUp:''}</div></div>
+    </div>`).join('');
+
+  // Whizzer's Court Bowl
+  const whizzRows=seasons.filter(s=>s.whizzer).reverse().map(s=>`
+    <div class="whizz-row">
+      <div class="whizz-year">${s.season}</div>
+      <div style="font-size:18px;">🚽</div>
+      <div><div class="champ-name" style="color:var(--rt);">${s.whizzer}</div><div class="champ-sub">Whizzer's Court Bowl Champion</div></div>
+    </div>`).join('');
+
+  // All-time records aggregated across seasons
+  const atRecs={};
+  seasons.forEach(s=>{Object.entries(s.recs).forEach(([name,rec])=>{
+    if(!atRecs[name]) atRecs[name]={w:0,l:0,t:0,titles:0,whizzers:0};
+    atRecs[name].w+=rec.wins; atRecs[name].l+=rec.losses; atRecs[name].t+=rec.ties;
+    if(s.champ===name) atRecs[name].titles++;
+    if(s.whizzer===name) atRecs[name].whizzers++;
+  });});
+  const recCards=Object.entries(atRecs).sort((a,b)=>{
+    const wpA=a[1].w/(a[1].w+a[1].l+a[1].t||1);
+    const wpB=b[1].w/(b[1].w+b[1].l+b[1].t||1);
+    return wpB-wpA;
+  }).map(([name,r])=>{
+    const gp=r.w+r.l+r.t;
+    const wp=gp?Math.round((r.w/gp)*100):0;
+    const titles=r.titles?`🏆 ${r.titles}×`:'' ;
+    const whiz=r.whizzers?`🚽 ${r.whizzers}×`:'';
+    return `<div class="record-card">
+      <div class="record-owner">${name} ${titles}${whiz}</div>
+      <div class="record-stat">${r.w}–${r.l}${r.t>0?'–'+r.t:''}</div>
+      <div class="record-sub">${wp}% win rate · ${gp} games</div>
+    </div>`;
+  }).join('');
+
+  el.innerHTML=`
+    <div class="hist-section"><div class="hist-section-title">🏆 Championship Roll</div>${champRows||'<div class="no-data">No championship data found</div>'}</div>
+    <div class="hist-section"><div class="hist-section-title">🚽 Whizzer's Court Bowl</div>${whizzRows||'<div class="no-data">No loser bracket data found</div>'}</div>
+    <div class="hist-section"><div class="hist-section-title">All-Time Records</div><div class="record-grid">${recCards||'<div class="no-data">No records found</div>'}</div></div>`;
+}
+
+function renderTrades(){
+  const el=document.getElementById('trades-content');
+  const emp=document.getElementById('trades-empty');
+  if(!TRADES_DATA){emp.style.display='block';el.style.display='none';return;}
+  emp.style.display='none';el.style.display='block';
+  const {trades,topTraded}=TRADES_DATA;
+
+  // Top traded players
+  const topHtml=topTraded.map((p,i)=>`
+    <div class="traded-player-row">
+      <div style="display:flex;align-items:center;gap:12px;">
+        <div class="traded-count">#${i+1}</div>
+        <div><div style="font-family:'Oswald',sans-serif;font-size:13px;font-weight:600;color:var(--text);">${p.name}</div></div>
+      </div>
+      <div style="font-family:'Russo One',sans-serif;font-size:14px;color:var(--text3);">${p.count}× traded</div>
+    </div>`).join('');
+
+  // Trade cards
+  const tradeHtml=trades.slice(0,60).map(t=>{
+    const [s1,s2,...rest]=t.sides;
+    const s1val=s1.value,s2val=s2.value;
+    const diff=Math.abs(s1val-s2val);
+    const total=s1val+s2val||1;
+    const isEven=diff/total<0.12;
+    const winnerIdx=isEven?-1:s1val>s2val?0:1;
+    function sideHtml(side,idx){
+      const badge=isEven?`<div class="winner-badge winner-e">Even</div>`:winnerIdx===idx?`<div class="winner-badge winner-w">Won</div>`:`<div class="winner-badge winner-l">Lost</div>`;
+      const items=[...side.players.map(p=>`<div class="trade-item"><span class="pb2 pos-${(NM_EXACT[p.name.toLowerCase()]||NM_NORM[normName(p.name)])?.pos||'WR'}">${(NM_EXACT[p.name.toLowerCase()]||NM_NORM[normName(p.name)])?.pos||'?'}</span>${p.name}</div>`),
+        ...side.picks.map(pk=>`<div class="trade-item"><span class="pb2 pos-PICK">PICK</span>${pk}</div>`)].join('');
+      return `<div class="trade-side-box"><div class="trade-side-lbl">${side.name}</div>${items||'<div style="font-size:11px;color:var(--text3);">No players</div>'}${badge}</div>`;
+    }
+    const d=t.ts?new Date(t.ts).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):'';
+    return `<div class="trade-card">
+      <div class="trade-header"><div style="font-family:'Oswald',sans-serif;font-size:12px;font-weight:600;color:var(--text);">${s1.name} ↔ ${s2.name}</div><div class="trade-date">${t.season} Season${d?' · '+d:''}</div></div>
+      <div class="trade-sides-row">${sideHtml(s1,0)}<div class="trade-vs">↔</div>${sideHtml(s2,1)}</div>
+    </div>`;
+  }).join('');
+
+  el.innerHTML=`
+    <div class="hist-section"><div class="hist-section-title">Most Traded Players (All-Time)</div>${topHtml||'<div class="no-data">No trade data found</div>'}</div>
+    <div class="hist-section"><div class="hist-section-title">Trade Log (${trades.length} total trades)</div>${tradeHtml||'<div class="no-data">No trades found</div>'}</div>`;
+}
+
+// Call history + trades loading after the main league loads
+// Hook into renderLeague's end
+const _origRenderLeague=null;
+
 const NM_EXACT={},NM_NORM={};
 DATA.forEach(d=>{
   if(d.type!=='player') return;
