@@ -661,7 +661,8 @@ const RAW=[{"r":1,"n":"Josh Allen","p":"QB","t":"BUF","a":29.0,"s":100.0,"h":tru
 // Expand mini data to full format
 const PC={QB:'var(--qb)',WR:'var(--wr)',RB:'var(--rb)',TE:'var(--te)',PICK:'var(--pick)'};
 const BC={QB:'#8aafe0',WR:'#7ec898',RB:'#e09090',TE:'#c8a870',PICK:'#b0a0d8'};
-window.POS_COLORS=PC; window.BAR_COLORS=BC;
+const POS_COLORS=PC;
+const BAR_COLORS=BC;
 const DATA=RAW.map(d=>({rank:d.r,name:d.n,pos:d.p,team:d.t,age:d.a,score:d.s,hardcoded:d.h,type:d.T,year:d.y,round:d.ro,slot:d.sl}));
 
 // Name lookup maps
@@ -709,7 +710,8 @@ CU=u;
 document.getElementById(‘landing’).style.display=‘none’;
 document.getElementById(‘app’).style.display=‘block’;
 document.getElementById(‘nu’).textContent=u.em;
-renderTable();renderTA();
+try{renderTable();}catch(e){console.error(‘renderTable error:’,e);}
+try{renderTA();}catch(e){console.error(‘renderTA error:’,e);}
 if(u.lid){
 document.getElementById(‘lid’).value=u.lid;
 showPg(‘sleeper’,document.querySelectorAll(’.nt’)[2]);
