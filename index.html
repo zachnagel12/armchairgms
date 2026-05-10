@@ -231,7 +231,7 @@ footer{background:var(--bg2);border-top:2px solid var(--border);padding:12px 20p
     <div class="ll-logo"><div class="ll-dot"></div>Armchair GMs</div>
     <div class="ll-tag">Dynasty<br>Trade Value,<br><em>Decided.</em></div>
     <p class="ll-sub">The dynasty trade calculator built for serious GMs. Scores every player by production, age curve, and positional value — so you always know who's winning the deal.</p>
-    <div class="ll-feat"><div class="ll-icon">📊</div><div><strong>382 assets ranked</strong> — every NFL skill player, rookies, 2027–2028 dynasty picks</div></div>
+    <div class="ll-feat"><div class="ll-icon">📊</div><div><strong>Every skill player ranked</strong> — QBs, WRs, RBs, TEs, rookies, and 2027–2028 dynasty picks</div></div>
     <div class="ll-feat"><div class="ll-icon">⚡</div><div><strong>Instant trade grades</strong> — add players to both sides, get your verdict in seconds</div></div>
     <div class="ll-feat"><div class="ll-icon">🏆</div><div><strong>League Analyzer</strong> — connect your Sleeper league for power rankings, contention windows, and team breakdowns</div></div>
   </div>
@@ -287,13 +287,13 @@ footer{background:var(--bg2);border-top:2px solid var(--border);padding:12px 20p
 <div class="page active" id="page-rankings">
   <div class="hero">
     <div>
-      <div class="hero-ey">Dynasty + PPR Redraft · 2026 Season · 382 Assets Ranked</div>
+      <div class="hero-ey">Dynasty + PPR Redraft · 2026 Season · Updated Rankings</div>
       <div class="hero-title">Know Your <em>Trade Value.</em><br>Win Your League.</div>
       <div class="hero-desc">Trade scores built on production, age curves, positional importance, health, and consistency. 369 players + 2027–2028 dynasty picks, updated for 2026.</div>
     </div>
     <div class="h-stats">
-      <div class="stat-c"><div class="stat-v">369</div><div class="stat-l">Players</div></div>
-      <div class="stat-c"><div class="stat-v">13</div><div class="stat-l">Draft Picks</div></div>
+      <div class="stat-c"><div class="stat-v">2026</div><div class="stat-l">Season</div></div>
+      <div class="stat-c"><div class="stat-v">2027–28</div><div class="stat-l">Draft Picks</div></div>
       <div class="stat-c"><div class="stat-v">#1 Josh Allen</div><div class="stat-l">Top Asset</div></div>
     </div>
   </div>
@@ -308,7 +308,7 @@ footer{background:var(--bg2);border-top:2px solid var(--border);padding:12px 20p
         <button class="mb" onclick="setMode('PICK',this)">Picks</button>
       </div>
       <div class="sw"><input type="text" id="search" placeholder="Search player or pick..." oninput="renderTable()"></div>
-      <div class="pb"><span class="pt" id="rc">382 assets</span><span style="font-size:9px;color:var(--text3);font-family:'Oswald',sans-serif;letter-spacing:0.1em;">CLICK ROW TO SELECT</span></div>
+      <div class="pb"><span class="pt" id="rc">All assets</span><span style="font-size:9px;color:var(--text3);font-family:'Oswald',sans-serif;letter-spacing:0.1em;">CLICK ROW TO SELECT</span></div>
       <div class="tw">
         <table>
           <thead><tr><th style="width:34px;">#</th><th>Player / Pick</th><th style="width:56px;text-align:right;">Score</th><th style="width:70px;text-align:right;">Value</th></tr></thead>
@@ -470,8 +470,26 @@ function launch(u){
 }
 window.addEventListener('DOMContentLoaded',()=>{const s=lSess();if(s)launch(s);});
 
-// RANKINGS
+// ── CORE STATE & HELPERS ──────────────────────────────────────────────────
+const SLEEPER_PID={};
 let MODE='ALL',SEL=null,GP=[],RP=[];
+
+function normName(n){
+  return (n||'').toLowerCase().replace(/['\u2019`.\-]/g,'').replace(/\s+(jr|sr|ii|iii|iv)$/,'').replace(/\s+/g,' ').trim();
+}
+function posGlyph(pos){return {QB:'QB',WR:'WR',RB:'RB',TE:'TE'}[pos]||'?';}
+function posColor(pos){return {QB:'var(--qb)',WR:'var(--wr)',RB:'var(--rb)',TE:'var(--te)'}[pos]||'var(--text3)';}
+
+function avatarHtml(d,dim=28){
+  if(d.type==='pick'){
+    const lbl=d.round+(d.slot==='Early'?'E':d.slot==='Mid'?'M':'L');
+    return `<div style="width:${dim}px;height:${dim}px;border-radius:50%;background:rgba(155,138,191,0.12);border:1px solid var(--pick);display:flex;align-items:center;justify-content:center;font-family:'Oswald',sans-serif;font-size:${Math.round(dim*0.25)}px;color:var(--pick);flex-shrink:0;">${lbl}</div>`;
+  }
+  const pid=SLEEPER_PID[normName(d.name)];
+  const fb=`<div style="width:${dim}px;height:${dim}px;border-radius:50%;background:var(--bg2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-family:'Oswald',sans-serif;font-size:${Math.round(dim*0.25)}px;color:${posColor(d.pos)};flex-shrink:0;">${posGlyph(d.pos)}</div>`;
+  if(!pid) return fb;
+  return `<img style="width:${dim}px;height:${dim}px;border-radius:50%;object-fit:cover;object-position:top center;border:1px solid var(--border);background:var(--bg2);flex-shrink:0;" src="https://sleepercdn.com/content/nfl/players/${pid}.jpg" onerror="this.outerHTML='${fb.replace(/'/g,"\\'")}'" alt="${d.name}">`;
+}
 
 function showPg(id,el){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
@@ -480,27 +498,6 @@ function showPg(id,el){
   if(el)el.classList.add('active');
 }
 function setMode(m,btn){MODE=m;document.querySelectorAll('.mb').forEach(b=>b.classList.remove('active'));btn.classList.add('active');renderTable();}
-
-// SLEEPER PLAYER ID CACHE (populated when league loads)
-const SLEEPER_PID = {}; // normName -> sleeper_player_id
-let MODE='ALL',SEL=null,GP=[],RP=[];
-
-function normName(n){
-  return (n||'').toLowerCase().replace(/['\u2019`.\-]/g,'').replace(/\s+(jr|sr|ii|iii|iv)$/,'').replace(/\s+/g,' ').trim();
-}
-function posGlyph(pos){ return {QB:'QB',WR:'WR',RB:'RB',TE:'TE'}[pos]||'?'; }
-function posColor(pos){ return {QB:'var(--qb)',WR:'var(--wr)',RB:'var(--rb)',TE:'var(--te)'}[pos]||'var(--text3)'; }
-
-function avatarHtml(d, dim=28){
-  if(d.type==='pick'){
-    const lbl=d.round+(d.slot==='Early'?'E':d.slot==='Mid'?'M':'L');
-    return `<div style="width:${dim}px;height:${dim}px;border-radius:50%;background:rgba(155,138,191,0.12);border:1px solid var(--pick);display:flex;align-items:center;justify-content:center;font-family:'Oswald',sans-serif;font-size:${Math.round(dim*0.25)}px;color:var(--pick);flex-shrink:0;">${lbl}</div>`;
-  }
-  const pid = SLEEPER_PID[normName(d.name)];
-  const fb = `<div style="width:${dim}px;height:${dim}px;border-radius:50%;background:var(--bg2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-family:'Oswald',sans-serif;font-size:${Math.round(dim*0.25)}px;color:${posColor(d.pos)};flex-shrink:0;">${posGlyph(d.pos)}</div>`;
-  if(!pid) return fb;
-  return `<img style="width:${dim}px;height:${dim}px;border-radius:50%;object-fit:cover;object-position:top center;border:1px solid var(--border);background:var(--bg2);flex-shrink:0;" src="https://sleepercdn.com/content/nfl/players/${pid}.jpg" onerror="this.outerHTML='${fb.replace(/'/g,"\\'")}'">`;
-}
 
 function getFilt(){
   const q=document.getElementById('search').value.toLowerCase().trim();
