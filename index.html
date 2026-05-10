@@ -490,9 +490,9 @@ tbody tr.sel{background:rgba(192,120,72,0.13);}
   </div>
   <div class="nav-r">
     <span class="nav-user" id="nu"></span>
-    <div style="display:flex;gap:4px;align-items:center;">
-      <button class="scoring-btn active" data-s="SF" onclick="setScoring('SF')" style="font-family:Oswald,sans-serif;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;padding:4px 10px;border:1px solid var(--accent);background:var(--accent);color:var(--bg2);cursor:pointer;border-radius:4px;">SF</button>
-      <button class="scoring-btn" data-s="1QB" onclick="setScoring('1QB')" style="font-family:Oswald,sans-serif;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;padding:4px 10px;border:1px solid var(--border);background:transparent;color:var(--text3);cursor:pointer;border-radius:4px;">1QB</button>
+    <div style="display:flex;align-items:center;gap:0;background:var(--bg3);border:1px solid var(--border2);border-radius:6px;overflow:hidden;">
+      <button class="scoring-btn active" data-s="SF" onclick="setScoring('SF')" style="font-family:Oswald,sans-serif;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;padding:6px 14px;border:none;background:var(--accent);color:var(--bg2);cursor:pointer;font-weight:600;white-space:nowrap;">⚡ Superflex</button>
+      <button class="scoring-btn" data-s="1QB" onclick="setScoring('1QB')" style="font-family:Oswald,sans-serif;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;padding:6px 14px;border:none;background:transparent;color:var(--text3);cursor:pointer;font-weight:600;white-space:nowrap;">1 QB</button>
     </div>
     <button class="nav-out" onclick="doLogout()">Sign Out</button>
     <div class="nav-season">2026</div>
@@ -731,12 +731,10 @@ function setScoring(mode){
     const active=b.getAttribute('data-s')===mode;
     b.style.background=active?'var(--accent)':'transparent';
     b.style.color=active?'var(--bg2)':'var(--text3)';
-    b.style.borderColor=active?'var(--accent)':'var(--border)';
   });
   GP=[];RP=[];
   renderTable();
   renderTA();
-  // Re-render league if data is loaded
   if(MODAL_DATA&&MODAL_DATA.length) reRenderLeague();
 }
 
@@ -1060,6 +1058,11 @@ async function loadLeague(){
     if(!lr.ok)throw new Error('League not found. Check your League ID.');
     const [league,users,rosters]=await Promise.all([lr.json(),ur.json(),rr.json()]);
     const umap={};users.forEach(u=>{umap[u.user_id]={name:u.display_name};});
+
+    // Auto-detect league format from roster_positions
+    const rp=league.roster_positions||[];
+    const detectedFormat=rp.includes('SUPER_FLEX')?'SF':'1QB';
+    if(detectedFormat!==SCORING) setScoring(detectedFormat);
     document.getElementById('llod').textContent='Fetching matchup history...';
     const wf=[];for(let w=1;w<=17;w++)wf.push(fetch(`https://api.sleeper.app/v1/league/${id}/matchups/${w}`).then(r=>r.json()).catch(()=>[]));
     const allM=await Promise.all(wf);
