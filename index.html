@@ -373,8 +373,10 @@ tbody tr.sel{background:rgba(192,120,72,0.13);}
   .nav-tabs{overflow-x:auto;-webkit-overflow-scrolling:touch;width:100%;border-top:1px solid var(--border);scrollbar-width:none;}
   .nav-tabs::-webkit-scrollbar{display:none;}
   .nt{padding:0 10px;height:40px;font-size:9px;white-space:nowrap;flex-shrink:0;}
-  .nav-r{display:flex;}
+  .nav-r{display:flex;flex-wrap:wrap;gap:6px;padding:4px 0;}
   .nav-out,.nav-season,.nav-user{display:none;}
+  #nav-sleeper-row input{width:130px;}
+  #nav-sleeper-row button{font-size:9px;padding:5px 8px;}
   .nav-season{display:none;}
 
   .hero{grid-template-columns:1fr;gap:10px;padding:14px 12px;}
@@ -490,6 +492,10 @@ tbody tr.sel{background:rgba(192,120,72,0.13);}
   </div>
   <div class="nav-r">
     <span class="nav-user" id="nu"></span>
+    <div id="nav-sleeper-row" style="display:flex;align-items:center;gap:6px;">
+      <input type="text" id="nav-lid" placeholder="Sleeper League ID..." oninput="document.getElementById('lid').value=this.value" style="background:var(--bg3);border:1px solid var(--border2);color:var(--text);font-family:'Barlow Condensed',sans-serif;font-size:12px;padding:5px 9px;outline:none;width:180px;border-radius:4px;" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border2)'">
+      <button onclick="syncNavLeague()" style="font-family:Oswald,sans-serif;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;padding:5px 12px;border:none;background:var(--accent);color:var(--bg2);cursor:pointer;border-radius:4px;white-space:nowrap;">Sync League</button>
+    </div>
     <div style="display:flex;align-items:center;gap:0;background:var(--bg3);border:1px solid var(--border2);border-radius:6px;overflow:hidden;">
       <button class="scoring-btn active" data-s="SF" onclick="setScoring('SF')" style="font-family:Oswald,sans-serif;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;padding:6px 14px;border:none;background:var(--accent);color:var(--bg2);cursor:pointer;font-weight:600;white-space:nowrap;">⚡ Superflex</button>
       <button class="scoring-btn" data-s="1QB" onclick="setScoring('1QB')" style="font-family:Oswald,sans-serif;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;padding:6px 14px;border:none;background:transparent;color:var(--text3);cursor:pointer;font-weight:600;white-space:nowrap;">1 QB</button>
@@ -585,7 +591,7 @@ tbody tr.sel{background:rgba(192,120,72,0.13);}
     <div class="stop">
       <div class="stitle">LEAGUE <span>Analyzer</span></div>
       <div class="lid-row">
-        <input type="text" id="lid" placeholder="Sleeper League ID...">
+        <input type="text" id="lid" placeholder="Sleeper League ID..." oninput="const n=document.getElementById('nav-lid');if(n)n.value=this.value">
         <button class="sbtn" onclick="loadLeague()" id="lbtn">Load League</button>
       </div>
     </div>
@@ -736,6 +742,14 @@ function setScoring(mode){
   renderTable();
   renderTA();
   if(MODAL_DATA&&MODAL_DATA.length) reRenderLeague();
+}
+
+function syncNavLeague(){
+  const val=(document.getElementById('nav-lid').value||'').trim();
+  if(!val) return;
+  document.getElementById('lid').value=val;
+  showPg('sleeper',document.querySelectorAll('.nt')[2]);
+  loadLeague();
 }
 
 
