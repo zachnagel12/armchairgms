@@ -257,20 +257,6 @@ tbody tr.sel{background:rgba(192,122,74,0.12);}
 .bar-track{background:var(--bg3);border-radius:4px;height:18px;overflow:hidden;position:relative;}
 .bar-fill{height:100%;border-radius:4px;transition:width 0.6s cubic-bezier(.25,.8,.25,1);}
 .bar-val{font-family:'Russo One',sans-serif;font-size:12px;color:var(--text3);text-align:right;}
-/* PROJECTIONS */
-.proj-tab{flex:1;padding:9px 0;text-align:center;font-family:Oswald,sans-serif;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:var(--text3);cursor:pointer;border:none;background:transparent;transition:all 0.15s;}
-.proj-tab.active{background:var(--accent);color:var(--bg2);}
-.proj-tab:hover:not(.active){color:var(--text2);background:var(--bg2);}
-.proj-table{width:100%;border-collapse:collapse;}
-.proj-table thead th{font-family:Oswald,sans-serif;font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:var(--text3);padding:8px 14px;text-align:left;border-bottom:1px solid var(--border);background:var(--bg2);position:sticky;top:0;}
-.proj-table thead th.num{text-align:right;}
-.proj-table tbody tr{border-bottom:1px solid rgba(46,51,72,0.5);transition:background 0.08s;}
-.proj-table tbody tr:hover{background:var(--panel);}
-.proj-table td{padding:7px 14px;vertical-align:middle;}
-.proj-table td.num{text-align:right;font-family:'Russo One',sans-serif;font-size:13px;}
-.proj-rank{font-family:Oswald,sans-serif;font-size:11px;color:var(--text3);width:36px;}
-.proj-name{font-family:Oswald,sans-serif;font-size:13px;font-weight:600;color:var(--text);}
-.proj-meta{font-size:10px;color:var(--text3);margin-top:1px;}
 /* VALUE TIER BADGES */
 .tier-badge{font-family:Oswald,sans-serif;font-size:9px;letter-spacing:0.12em;text-transform:uppercase;padding:2px 8px;border-radius:4px;display:inline-block;margin-top:2px;}
 .tier-way-above{background:rgba(126,200,152,0.2);color:#7ec898;border:1px solid rgba(126,200,152,0.4);}
@@ -280,16 +266,24 @@ tbody tr.sel{background:rgba(192,122,74,0.12);}
 .tier-way-below{background:rgba(224,144,144,0.18);color:#e09090;border:1px solid rgba(224,144,144,0.4);}
 /* BLURB on team card */
 .team-blurb{font-size:12px;color:var(--text2);line-height:1.65;padding:10px 14px;border-top:1px solid var(--border);font-weight:300;}
-.h2h-wrap{overflow-x:auto;}
-.h2h-table{border-collapse:collapse;font-family:Oswald,sans-serif;font-size:11px;min-width:400px;}
-.h2h-table th{padding:5px 8px;background:var(--bg3);color:var(--text3);font-weight:400;letter-spacing:0.08em;text-align:center;white-space:nowrap;}
-.h2h-table th.row-head{text-align:right;padding-right:12px;min-width:100px;}
-.h2h-table td{padding:4px 8px;text-align:center;border:1px solid var(--border);font-size:11px;}
-.h2h-self{background:var(--bg2);color:var(--text3);}
-.h2h-win{background:rgba(126,200,152,0.18);color:var(--gt);font-weight:600;}
-.h2h-lose{background:rgba(224,144,144,0.12);color:var(--rt);}
-.h2h-even{background:rgba(212,170,90,0.1);color:var(--gold);}
-
+/* H2H CARDS */
+.h2h-cards{display:flex;flex-direction:column;gap:8px;}
+.h2h-card{background:var(--panel);border-radius:8px;border:1px solid var(--border);overflow:hidden;cursor:pointer;user-select:none;}
+.h2h-card-header{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;transition:background 0.1s;}
+.h2h-card:hover .h2h-card-header{background:rgba(192,122,74,0.07);}
+.h2h-card-name{font-family:'Russo One',sans-serif;font-size:14px;color:var(--text);}
+.h2h-card-rec{font-family:Oswald,sans-serif;font-size:11px;color:var(--text3);margin-top:2px;letter-spacing:0.06em;}
+.h2h-card-chevron{font-size:14px;color:var(--text3);flex-shrink:0;padding-left:8px;}
+.h2h-detail{padding:4px 16px 12px;border-top:1px solid var(--border);}
+.h2h-row{display:grid;grid-template-columns:140px 1fr 64px;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid rgba(46,51,72,0.4);}
+.h2h-row:last-child{border-bottom:none;}
+.h2h-opp{font-family:Oswald,sans-serif;font-size:12px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.h2h-bar-wrap{background:var(--bg3);border-radius:3px;height:6px;overflow:hidden;}
+.h2h-bar-inner{height:100%;border-radius:3px;}
+.h2h-rec{font-family:'Russo One',sans-serif;font-size:12px;text-align:right;}
+.h2h-win{color:var(--gt);}
+.h2h-lose{color:var(--rt);}
+.h2h-even{color:var(--gold);}
 
 .p-avatar{width:36px;height:36px;border-radius:50%;object-fit:cover;object-position:top center;border:1px solid var(--border);background:var(--bg2);flex-shrink:0;}
 .p-avatar-sm{width:28px;height:28px;border-radius:50%;object-fit:cover;object-position:top center;border:1px solid var(--border);background:var(--bg2);flex-shrink:0;}
@@ -366,7 +360,6 @@ tbody tr.sel{background:rgba(192,122,74,0.12);}
     <div class="nt" onclick="showPg('sleeper',this)">League</div>
     <div class="nt" onclick="showPg('history',this)">History</div>
     <div class="nt" onclick="showPg('trades',this)">Trades</div>
-    <div class="nt" onclick="showPg('projections',this)">Projections</div>
   </div>
   <div class="nav-r">
     <span class="nav-user" id="nu"></span>
@@ -505,24 +498,6 @@ tbody tr.sel{background:rgba(192,122,74,0.12);}
   </div>
 </div>
 
-<!-- PROJECTIONS PAGE -->
-<div class="page" id="page-projections">
-  <div class="sw2" style="max-width:1000px;">
-    <div class="stop">
-      <div class="stitle">PLAYER <span>Projections</span></div>
-      <div style="font-family:Oswald,sans-serif;font-size:11px;color:var(--text3);letter-spacing:0.06em;">2026 Season · PPR · Dynasty-weighted</div>
-    </div>
-    <div style="display:flex;gap:0;margin-bottom:16px;border:1px solid var(--border);border-radius:8px;overflow:hidden;">
-      <button class="proj-tab active" onclick="setProjMode('ALL',this)">All</button>
-      <button class="proj-tab" onclick="setProjMode('QB',this)">QB</button>
-      <button class="proj-tab" onclick="setProjMode('WR',this)">WR</button>
-      <button class="proj-tab" onclick="setProjMode('RB',this)">RB</button>
-      <button class="proj-tab" onclick="setProjMode('TE',this)">TE</button>
-    </div>
-    <div id="proj-content"></div>
-  </div>
-</div>
-
 <footer><div class="fl2">ARMCHAIR <span>GMs</span></div><div class="fm">Dynasty Trade Rater · 2026</div></footer>
 
 <!-- ROSTER MODAL -->
@@ -644,119 +619,6 @@ function showPg(id,el){
   if(el)el.classList.add('active');
   if(id==='history') renderHistory();
   if(id==='trades') renderTrades();
-  if(id==='projections') renderProjections();
-}
-
-// ── PROJECTIONS ───────────────────────────────────────────────────────
-// PPR fantasy points projection formula based on our trade value score.
-// We derive projected season total and per-game from the score, age, and position.
-// This is a model estimate — not official projections.
-const GAMES = 17; // regular season games
-
-// Position-specific PPG baselines calibrated to PPR scoring
-// Elite score (~100) maps to elite PPG; zero score maps to bench-level
-const POS_BASELINE = {
-  QB:  {elite:28,  avg:20,  bench:12},
-  WR:  {elite:20,  avg:12,  bench:4 },
-  RB:  {elite:22,  avg:12,  bench:4 },
-  TE:  {elite:16,  avg:8,   bench:2 },
-};
-
-function projectedPPG(d){
-  if(d.type!=='player') return 0;
-  const bl = POS_BASELINE[d.pos];
-  if(!bl) return 0;
-  // Score ranges 0-100; map to bench → elite PPG curve
-  const t = Math.min(1, d.score / 100);
-  // Use a slight curve so top players don't compress too much
-  const curved = Math.pow(t, 0.65);
-  const ppg = bl.bench + curved * (bl.elite - bl.bench);
-  // Age penalty: after peak age, slight PPG decline
-  const peakAge = {QB:30, WR:27, RB:26, TE:28}[d.pos] || 27;
-  const agePenalty = Math.max(0, (d.age||25) - peakAge) * 0.25;
-  return Math.max(0.5, ppg - agePenalty);
-}
-
-let PROJ_MODE = 'ALL';
-function setProjMode(m, btn){
-  PROJ_MODE = m;
-  document.querySelectorAll('.proj-tab').forEach(b=>b.classList.remove('active'));
-  btn.classList.add('active');
-  renderProjections();
-}
-
-function renderProjections(){
-  const el = document.getElementById('proj-content');
-  if(!el) return;
-
-  const players = DATA.filter(d=>{
-    if(d.type!=='player') return false;
-    if(PROJ_MODE!=='ALL' && d.pos!==PROJ_MODE) return false;
-    return true;
-  });
-
-  // Compute projections and sort by total DESC
-  const proj = players.map(d=>{
-    const ppg = projectedPPG(d);
-    const total = Math.round(ppg * GAMES * 10) / 10;
-    return {...d, ppg: Math.round(ppg*10)/10, total};
-  }).sort((a,b)=>b.total-a.total);
-
-  // Position rank (within position)
-  const posRank = {};
-  ['QB','WR','RB','TE'].forEach(pos=>{
-    let rank=1;
-    proj.filter(p=>p.pos===pos).sort((a,b)=>b.total-a.total).forEach(p=>{p['pos_rank_'+pos]=rank++;});
-  });
-
-  const posColors = {QB:'var(--qb)',WR:'var(--wr)',RB:'var(--rb)',TE:'var(--te)'};
-  const maxTotal = proj[0]?.total || 1;
-
-  const rows = proj.map((d,i)=>{
-    const pc = posColors[d.pos]||'var(--text2)';
-    const pid = SLEEPER_PID[normName(d.name)];
-    const photo = pid
-      ? `<img data-fbid="" style="width:26px;height:26px;border-radius:50%;object-fit:cover;object-position:top center;border:1px solid var(--border);vertical-align:middle;margin-right:6px;" src="https://sleepercdn.com/content/nfl/players/${pid}.jpg" onerror="this.style.display='none'">`
-      : `<div style="width:26px;height:26px;border-radius:50%;background:var(--bg2);border:1px solid var(--border);display:inline-flex;align-items:center;justify-content:center;font-family:Oswald,sans-serif;font-size:9px;color:${pc};vertical-align:middle;margin-right:6px;">${d.pos}</div>`;
-    const barPct = Math.round((d.total/maxTotal)*100);
-    const posR = d['pos_rank_'+d.pos] ? `<span style="font-size:9px;color:${pc};font-family:Oswald,sans-serif;">${d.pos}${d['pos_rank_'+d.pos]}</span>` : '';
-    return `<tr>
-      <td class="proj-rank">${i+1}</td>
-      <td style="padding:6px 14px;">
-        <div style="display:flex;align-items:center;">
-          ${photo}
-          <div>
-            <div class="proj-name">${d.name} ${posR}</div>
-            <div class="proj-meta">${d.team==='FA'?'Free Agent':d.team}${d.age?' · Age '+d.age:''}</div>
-          </div>
-        </div>
-      </td>
-      <td><span class="pb2 pos-${d.pos}">${d.pos}</span></td>
-      <td style="padding:7px 14px;">
-        <div style="background:var(--bg3);border-radius:3px;height:6px;width:120px;overflow:hidden;">
-          <div style="height:100%;width:${barPct}%;background:${pc};border-radius:3px;"></div>
-        </div>
-      </td>
-      <td class="num" style="color:${pc};">${d.total}</td>
-      <td class="num" style="color:var(--text2);font-size:12px;">${d.ppg}</td>
-    </tr>`;
-  }).join('');
-
-  el.innerHTML = `
-    <div style="overflow-x:auto;">
-      <table class="proj-table">
-        <thead><tr>
-          <th style="width:36px;">#</th>
-          <th>Player</th>
-          <th style="width:50px;">Pos</th>
-          <th style="width:140px;">Output</th>
-          <th class="num" style="width:70px;" title="Projected season total fantasy points">Pts (Tot)</th>
-          <th class="num" style="width:60px;" title="Projected points per game">Per Gm</th>
-        </tr></thead>
-        <tbody>${rows}</tbody>
-      </table>
-    </div>
-    <div style="margin-top:12px;font-size:11px;color:var(--text3);line-height:1.6;">Projections are estimated from each player's trade value score, position, and age. They represent a model-based outlook for 2026 PPR scoring — use as a relative guide, not official projections.</div>`;
 }
 
 function setMode(m,btn){MODE=m;document.querySelectorAll('.mb').forEach(b=>b.classList.remove('active'));btn.classList.add('active');renderTable();}
@@ -899,8 +761,31 @@ async function loadLeague(){
       pids.forEach(pid=>{
         const p=sp[pid]; if(!p) return;
         const m=lookupInDB(p);
-        if(m&&!seen.has(m.rank)){seen.add(m.rank);tot+=m.score;found.push({...m,sleeper_id:pid});}
+        if(m&&!seen.has(m.rank)){
+          seen.add(m.rank);
+          tot+=m.score;
+          // Store the actual Sleeper player ID so photos work
+          found.push({...m,sleeper_id:pid});
+        }
       });
+
+      // Include dynasty draft picks in roster value
+      const picks=r.draft_picks||[];
+      let pickVal=0;
+      picks.forEach(pk=>{
+        // Map pick to our DATA picks by year + round
+        const yr=pk.season||pk.year;
+        const rd=pk.round;
+        // Find matching pick in our DATA
+        const match=DATA.find(d=>d.type==='pick'&&d.year==yr&&d.round==rd);
+        if(match) pickVal+=match.score;
+        else {
+          // Fallback: rough value by round
+          pickVal += rd===1?20 : rd===2?8 : rd===3?4 : 1;
+        }
+      });
+      tot+=pickVal;
+
       found.sort((a,b)=>b.score-a.score);
       let pf=0,pa=0;
       const rid=r.roster_id;
@@ -912,7 +797,8 @@ async function loadLeague(){
         pf+=my.points; if(op) pa+=op.points;
       });
       return{owner:owner.name,wins:r.settings?.wins||0,losses:r.settings?.losses||0,ties:r.settings?.ties||0,
-        totalScore:Math.round(tot*10)/10,top:found.slice(0,6),all:found,
+        totalScore:Math.round(tot*10)/10,pickVal:Math.round(pickVal*10)/10,
+        top:found.slice(0,6),all:found,
         pf:Math.round(pf*10)/10,pa:Math.round(pa*10)/10,rid};
     });
 
@@ -1009,11 +895,12 @@ function showRoster(idx){
   let html='';let curPos='';
   sorted.forEach(p=>{
     if(p.pos!==curPos){curPos=p.pos;html+=`<div class="modal-section">${p.pos}</div>`;}
-    const pid=SLEEPER_PID[normName(p.name)];
+    // Use the Sleeper ID stored directly on the player object (most accurate)
+    const pid=p.sleeper_id||SLEEPER_PID[normName(p.name)];
     const pc={QB:'var(--qb)',WR:'var(--wr)',RB:'var(--rb)',TE:'var(--te)'}[p.pos]||'var(--text3)';
     const photo=pid
       ?`<img style="width:36px;height:36px;border-radius:50%;object-fit:cover;object-position:top center;border:1px solid var(--border);" src="https://sleepercdn.com/content/nfl/players/${pid}.jpg" onerror="this.style.display='none'">`
-      :`<div style="width:36px;height:36px;border-radius:50%;background:var(--bg3);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-family:'Oswald',sans-serif;font-size:10px;color:${pc};">${p.pos}</div>`;
+      :`<div style="width:36px;height:36px;border-radius:50%;background:var(--bg3);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-family:Oswald,sans-serif;font-size:10px;color:${pc};">${p.pos}</div>`;
     html+=`<div class="modal-player-row">${photo}<div style="flex:1;"><div class="modal-player-name">${p.name}</div><div class="modal-player-meta">${p.team==='FA'?'Free Agent':p.team}${p.age?' · Age '+p.age:''} · #${p.rank} Overall</div></div><div class="modal-player-score">${p.score.toFixed(1)}</div></div>`;
   });
   if(!sorted.length)html='<div style="padding:24px;text-align:center;color:var(--text3);font-size:13px;">No matched players found for this roster.</div>';
@@ -1060,7 +947,7 @@ function renderLeague(league,rosters,lid){
         <div class="tcb">
           <div class="tcpills">
             ${r.top.map(p=>{
-              const pid=SLEEPER_PID[normName(p.name)];
+              const pid=p.sleeper_id||SLEEPER_PID[normName(p.name)];
               const img=pid?`<img src="https://sleepercdn.com/content/nfl/players/${pid}.jpg" style="width:20px;height:20px;border-radius:50%;object-fit:cover;object-position:top center;border:1px solid var(--border);vertical-align:middle;margin-right:3px;" onerror="this.style.display='none'">`:'';
               return `<div class="tcp2 pos-${p.pos}">${img}${p.name.split(' ').pop()} <span style="opacity:0.5;font-size:9px;">${p.score.toFixed(1)}</span></div>`;
             }).join('')}
@@ -1418,37 +1305,63 @@ function renderHistory(){
     </div>`;
   }).join('');
 
-  // H2H Matrix
+  // H2H: clickable manager cards
   let h2hHtml='<div class="no-data">No head-to-head data available</div>';
   if(h2h&&Object.keys(h2h).length){
     const names=Object.keys(h2h).sort();
-    const shortName=n=>n.split(' ')[0]; // first name only for headers
-    h2hHtml=`<div class="h2h-wrap"><table class="h2h-table">
-      <thead><tr>
-        <th class="row-head"></th>
-        ${names.map(n=>`<th title="${n}">${shortName(n)}</th>`).join('')}
-      </tr></thead>
-      <tbody>
-        ${names.map(rowName=>`<tr>
-          <th class="row-head">${shortName(rowName)}</th>
-          ${names.map(colName=>{
-            if(rowName===colName) return '<td class="h2h-self">—</td>';
-            const rec=h2h[rowName]?.[colName];
-            if(!rec||(!rec.w&&!rec.l&&!rec.t)) return '<td style="color:var(--text3);">—</td>';
+    const managerCards=names.map(name=>{
+      const opponents=h2h[name]||{};
+      const totalW=Object.values(opponents).reduce((s,r)=>s+r.w,0);
+      const totalL=Object.values(opponents).reduce((s,r)=>s+r.l,0);
+      const totalT=Object.values(opponents).reduce((s,r)=>s+r.t,0);
+      const gp=totalW+totalL+totalT;
+      const wp=gp?Math.round((totalW/gp)*100):0;
+      const titles=(atRecs[name]?.titles||0);
+      return `<div class="h2h-card" onclick="toggleH2H('h2h_${name.replace(/\s+/g,'_')}',this)">
+        <div class="h2h-card-header">
+          <div>
+            <div class="h2h-card-name">${name}${titles?' 🏆'.repeat(Math.min(titles,3)):''}</div>
+            <div class="h2h-card-rec">${totalW}–${totalL}${totalT>0?'–'+totalT:''} all-time &nbsp;·&nbsp; ${wp}% win rate</div>
+          </div>
+          <div class="h2h-card-chevron">▾</div>
+        </div>
+        <div class="h2h-detail" id="h2h_${name.replace(/\s+/g,'_')}" style="display:none;">
+          ${Object.entries(opponents).sort((a,b)=>{
+            const rA=a[1],rB=b[1];
+            return (rB.w-rB.l)-(rA.w-rA.l);
+          }).map(([opp,rec])=>{
+            if(!rec.w&&!rec.l&&!rec.t) return '';
             const cls=rec.w>rec.l?'h2h-win':rec.l>rec.w?'h2h-lose':'h2h-even';
-            return `<td class="${cls}" title="${rowName} vs ${colName}: ${rec.w}-${rec.l}">${rec.w}-${rec.l}</td>`;
+            const bar=rec.w+rec.l+rec.t>0?Math.round((rec.w/(rec.w+rec.l+rec.t||1))*100):50;
+            return `<div class="h2h-row">
+              <div class="h2h-opp">${opp}</div>
+              <div class="h2h-bar-wrap">
+                <div class="h2h-bar-inner" style="width:${bar}%;background:${cls==='h2h-win'?'var(--gt)':cls==='h2h-lose'?'var(--rt)':'var(--gold)'};"></div>
+              </div>
+              <div class="h2h-rec ${cls}">${rec.w}–${rec.l}${rec.t>0?'–'+rec.t:''}</div>
+            </div>`;
           }).join('')}
-        </tr>`).join('')}
-      </tbody>
-    </table></div>
-    <div style="margin-top:8px;font-size:11px;color:var(--text3);">Read across each row: that manager's record against each opponent. Green = winning record, red = losing.</div>`;
+        </div>
+      </div>`;
+    });
+    h2hHtml=`<div class="h2h-cards">${managerCards.join('')}</div>
+    <div style="margin-top:10px;font-size:11px;color:var(--text3);">Click any manager to expand their all-time record against each opponent.</div>`;
   }
 
   el.innerHTML=`
     <div class="hist-section"><div class="hist-section-title">🏆 Championship Roll</div>${champRows||'<div class="no-data">No championship data found</div>'}</div>
     <div class="hist-section"><div class="hist-section-title">🚽 Whizzer's Court Bowl</div>${whizzRows||'<div class="no-data">No loser bracket data found</div>'}</div>
     <div class="hist-section"><div class="hist-section-title">All-Time Records</div><div class="record-grid">${recCards||'<div class="no-data">No records found</div>'}</div></div>
-    <div class="hist-section"><div class="hist-section-title">Head-to-Head Matrix</div>${h2hHtml}</div>`;
+    <div class="hist-section"><div class="hist-section-title">Head-to-Head Records</div>${h2hHtml}</div>`;
+}
+
+function toggleH2H(id, card){
+  const el=document.getElementById(id);
+  if(!el) return;
+  const open=el.style.display==='none';
+  el.style.display=open?'block':'none';
+  const chev=card.querySelector('.h2h-card-chevron');
+  if(chev) chev.textContent=open?'▴':'▾';
 }
 
 function renderTrades(){
