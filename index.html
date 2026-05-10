@@ -1093,18 +1093,21 @@ async function loadLeague(){
 
     allTxns.forEach(txn=>{
       const picks=txn.draft_picks||[];
+      const rosterIds=txn.roster_ids||[];
       picks.forEach(pk=>{
         const yr=parseInt(pk.season)||0;
         const rd=parseInt(pk.round)||0;
         if(yr<=2026||!rd) return;
 
         // original_roster_id = who the pick was ORIGINALLY created for (never changes)
-        // previous_owner_id = who sent it in THIS trade (changes each trade)
-        // roster_id = who RECEIVED it in THIS trade
+        // previous_owner_id = who sent (traded away) this pick in THIS transaction
         const orig=toRid(pk.original_roster_id)||toRid(pk.previous_owner_id);
-        const cur=toRid(pk.roster_id);
+        const sender=toRid(pk.previous_owner_id)||toRid(pk.roster_id);
 
-        console.log(`  pick ${yr}R${rd}: original_roster_id=${pk.original_roster_id} previous_owner_id=${pk.previous_owner_id} roster_id=${pk.roster_id} → orig=${orig} cur=${cur}`);
+        // receiver = the other team in this transaction (not the sender)
+        const cur=rosterIds.map(id=>toRid(id)).find(rid=>rid&&rid!==sender)||toRid(pk.roster_id);
+
+        console.log(`  pick ${yr}R${rd}: orig=${orig} sender=${sender} cur=${cur} roster_ids=${rosterIds}`);
 
         if(!orig||!cur) return;
 
