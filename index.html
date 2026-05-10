@@ -944,6 +944,54 @@ async function loadLeague(){
     let sp={};
     try{const pr=await fetch('https://api.sleeper.app/v1/players/nfl');sp=await pr.json();}catch(e){}
 
+    // Fetch traded picks — this is where dynasty pick ownership actually lives
+    document.getElementById('llod').textContent='Fetching draft capital...';
+    let tradedPicks=[];
+    try{const tp=await fetch(`https://api.sleeper.app/v1/league/${id}/traded_picks`);tradedPicks=await tp.json();}catch(e){}
+
+    // Build a map of roster_id -> picks they OWN
+    // traded_picks gives us the current owner after all trades
+    // Each entry: {season, round, roster_id (current owner), previous_owner_id, original_owner_id}
+    const rosterPicks={}; // roster_id -> [{season,round}]
+    rosters.forEach(r=>{ rosterPicks[r.roster_id]=[]; });
+
+    // Start with each team owning their own future picks (2027+)
+    // Sleeper traded_picks only tracks picks that have been traded at least once
+    // First give everyone their own picks for 2027-2029 rounds 1-4
+    const pickYears=[2027,2028,2029];
+    const pickRounds=[1,2,3,4];
+    rosters.forEach(r=>{
+      pickYears.forEach(yr=>{
+        pickRounds.forEach(rd=>{
+          rosterPicks[r.roster_id].push({season:yr,round:rd,fromRid:r.roster_id,isOwn:true});
+        });
+      });
+    });
+
+    // Now apply traded picks — any traded pick overrides ownership
+    // If a pick appears in tradedPicks, the roster_id field is the CURRENT owner
+    // We need to remove the pick from the original owner and add to current owner
+    const tradedSet=new Set(); // "season_round_originalOwner" -> currentOwner
+    tradedPicks.forEach(pk=>{
+      const key=`${pk.season}_${pk.round}_${pk.original_owner_id}`;
+      tradedSet.add(key);
+      // Remove from original owner, give to current owner
+      const curOwner=pk.roster_id;
+      if(rosterPicks[curOwner]&&!rosterPicks[curOwner].find(p=>p.season==pk.season&&p.round==pk.round&&p.fromRid==pk.original_owner_id)){
+        rosterPicks[curOwner].push({season:pk.season,round:pk.round,fromRid:pk.original_owner_id,isOwn:false});
+      }
+    });
+    // Remove traded-away picks from original owners
+    rosters.forEach(r=>{
+      const rid=r.roster_id;
+      rosterPicks[rid]=rosterPicks[rid].filter(pk=>{
+        if(!pk.isOwn) return true; // picks received via trade — keep
+        // Check if this own pick was traded away
+        const key=`${pk.season}_${pk.round}_${rid}`;
+        return !tradedSet.has(key);
+      });
+    });
+
     // Cache Sleeper player IDs for photo lookups — normalized name → sleeper_id
     Object.entries(sp).forEach(([pid,p])=>{
       if(!p.first_name&&!p.last_name) return;
@@ -982,21 +1030,18 @@ async function loadLeague(){
         }
       });
 
-      // Include dynasty draft picks in roster value
-      const picks=r.draft_picks||[];
+      // Include dynasty draft picks in roster value using the rosterPicks map
+      const picks=rosterPicks[r.roster_id]||[];
       let pickVal=0;
       picks.forEach(pk=>{
-        // Map pick to our DATA picks by year + round
-        const yr=pk.season||pk.year;
+        const yr=pk.season;
         const rd=pk.round;
-        // Find matching pick in our DATA
         const match=DATA.find(d=>d.type==='pick'&&d.year==yr&&d.round==rd);
         if(match) pickVal+=match.score;
-        else {
-          // Fallback by year+round for picks not in our dataset
-          const yearPenalty = Math.max(0, (parseInt(yr)||2027) - 2027) * 0.15;
-          const base = rd===1?20 : rd===2?8 : rd===3?4 : 1;
-          pickVal += base * (1 - yearPenalty);
+        else{
+          const yearPenalty=Math.max(0,(parseInt(yr)||2027)-2027)*0.15;
+          const base=rd===1?20:rd===2?8:rd===3?4:1;
+          pickVal+=base*(1-yearPenalty);
         }
       });
       tot+=pickVal;
