@@ -957,26 +957,53 @@ async function loadLeague(){
     let sp={};
     try{const pr=await fetch('https://api.sleeper.app/v1/players/nfl');sp=await pr.json();}catch(e){}
 
-    // Fetch traded picks — Sleeper's source of truth for dynasty pick ownership
+    // Draft capital: correct ownership logic
+    // - Every team starts with their own picks for 2027-2029 rounds 1-4
+    // - traded_picks tells us which picks have moved: remove from original owner, add to current owner
+    // - Filter out 2026 and earlier always
     document.getElementById('llod').textContent='Fetching draft capital...';
     let tradedPicks=[];
     try{const tp=await fetch(`https://api.sleeper.app/v1/league/${id}/traded_picks`);tradedPicks=await tp.json();}catch(e){}
 
-    // Build rosterPicks purely from traded_picks — no seeding, no guessing.
-    // Each entry in traded_picks = one pick currently owned by roster_id.
-    // Only include future picks (season > 2026). Sleeper already reflects all trades.
+    const pickYears=[2027,2028,2029];
+    const pickRounds=[1,2,3,4];
     const rosterPicks={};
     rosters.forEach(r=>{ rosterPicks[r.roster_id]=[]; });
+
+    // Seed: every team owns their own future picks to start
+    rosters.forEach(r=>{
+      pickYears.forEach(yr=>{
+        pickRounds.forEach(rd=>{
+          rosterPicks[r.roster_id].push({season:yr,round:rd,originalRid:r.roster_id,isOwn:true});
+        });
+      });
+    });
+
+    // Process traded_picks: for each entry, the pick has moved
+    // original_owner_id = who originally had it (remove from them)
+    // roster_id = who currently has it (add to them if not already there)
+    const tradedAwayKeys=new Set();
     tradedPicks.forEach(pk=>{
       const yr=parseInt(pk.season)||0;
       const rd=pk.round;
-      const cur=pk.roster_id;
       const orig=pk.original_owner_id;
-      if(yr<=2026||!rd||!cur) return; // skip past picks and invalid entries
-      if(!rosterPicks[cur]) return;
-      // Avoid duplicates
-      const dup=rosterPicks[cur].find(p=>p.season===yr&&p.round===rd&&p.originalRid===orig);
-      if(!dup) rosterPicks[cur].push({season:yr,round:rd,originalRid:orig,isOwn:orig===cur});
+      const cur=pk.roster_id;
+      if(yr<=2026||!rd||!orig||!cur) return;
+      // Mark as traded away from original owner
+      tradedAwayKeys.add(`${yr}_${rd}_${orig}`);
+      // Give to current owner if not already there
+      if(rosterPicks[cur]){
+        const dup=rosterPicks[cur].find(p=>p.season===yr&&p.round===rd&&p.originalRid===orig);
+        if(!dup) rosterPicks[cur].push({season:yr,round:rd,originalRid:orig,isOwn:false});
+      }
+    });
+
+    // Remove picks traded away from their original owners
+    rosters.forEach(r=>{
+      rosterPicks[r.roster_id]=rosterPicks[r.roster_id].filter(pk=>{
+        if(!pk.isOwn) return true; // received via trade — keep always
+        return !tradedAwayKeys.has(`${pk.season}_${pk.round}_${r.roster_id}`);
+      });
     });
 
     // Cache Sleeper player IDs for photo lookups — normalized name → sleeper_id
