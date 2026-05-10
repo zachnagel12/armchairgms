@@ -1060,7 +1060,7 @@ async function loadLeague(){
       });
       return{owner:owner.name,wins:r.settings?.wins||0,losses:r.settings?.losses||0,ties:r.settings?.ties||0,
         totalScore:Math.round(tot*10)/10,pickVal:Math.round(pickVal*10)/10,
-        top:found.slice(0,6),all:found,weeklyPts,
+        top:found.slice(0,6),all:found,weeklyPts,picks:picks,
         pf:Math.round(pf*10)/10,pa:Math.round(pa*10)/10,rid};
     });
 
@@ -1180,7 +1180,6 @@ function showRoster(idx){
   let html='';let curPos='';
   sorted.forEach(p=>{
     if(p.pos!==curPos){curPos=p.pos;html+=`<div class="modal-section">${p.pos}</div>`;}
-    // Use the Sleeper ID stored directly on the player object (most accurate)
     const pid=p.sleeper_id||SLEEPER_PID[normName(p.name)];
     const pc={QB:'var(--qb)',WR:'var(--wr)',RB:'var(--rb)',TE:'var(--te)'}[p.pos]||'var(--text3)';
     const photo=pid
@@ -1188,7 +1187,26 @@ function showRoster(idx){
       :`<div style="width:36px;height:36px;border-radius:50%;background:var(--bg3);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-family:Oswald,sans-serif;font-size:10px;color:${pc};">${p.pos}</div>`;
     html+=`<div class="modal-player-row">${photo}<div style="flex:1;"><div class="modal-player-name">${p.name}</div><div class="modal-player-meta">${p.team==='FA'?'Free Agent':p.team}${p.age?' · Age '+p.age:''} · #${p.rank} Overall</div></div><div class="modal-player-score">${p.score.toFixed(1)}</div></div>`;
   });
-  if(!sorted.length)html='<div style="padding:24px;text-align:center;color:var(--text3);font-size:13px;">No matched players found for this roster.</div>';
+  if(!sorted.length)html='<div style="padding:24px;text-align:center;color:var(--text3);font-size:13px;">No matched players found.</div>';
+
+  // Draft Capital section
+  const picks=(r.picks||[]).slice().sort((a,b)=>a.season-b.season||a.round-b.round);
+  if(picks.length){
+    html+=`<div class="modal-section">Draft Capital</div>`;
+    picks.forEach(pk=>{
+      const match=DATA.find(d=>d.type==='pick'&&d.year==pk.season&&d.round==pk.round);
+      const val=match?match.score.toFixed(1):'—';
+      const slotLabel=match?match.slot:'';
+      const pickName=`${pk.season} Round ${pk.round}${slotLabel?' · '+slotLabel:''}`;
+      const traded=!pk.isOwn?` <span style="font-size:9px;color:var(--accent2);font-family:Oswald,sans-serif;letter-spacing:0.08em;">TRADED IN</span>`:'';
+      html+=`<div class="modal-player-row">
+        <div style="width:36px;height:36px;border-radius:50%;background:rgba(155,138,191,0.12);border:1px solid var(--pick);display:flex;align-items:center;justify-content:center;font-family:Oswald,sans-serif;font-size:9px;color:var(--pick);flex-shrink:0;">R${pk.round}</div>
+        <div style="flex:1;"><div class="modal-player-name" style="color:var(--pick);">${pickName}${traded}</div><div class="modal-player-meta">${pk.season} Dynasty Pick</div></div>
+        <div class="modal-player-score" style="color:var(--pick);">${val}</div>
+      </div>`;
+    });
+  }
+
   document.getElementById('modal-body').innerHTML=html;
   document.getElementById('modal-total').textContent=r.totalScore.toFixed(1);
   document.getElementById('roster-modal').style.display='flex';
