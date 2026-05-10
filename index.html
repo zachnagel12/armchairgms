@@ -488,7 +488,7 @@ function avatarHtml(d,dim=28){
   const pid=SLEEPER_PID[normName(d.name)];
   const fb=`<div style="width:${dim}px;height:${dim}px;border-radius:50%;background:var(--bg2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-family:'Oswald',sans-serif;font-size:${Math.round(dim*0.25)}px;color:${posColor(d.pos)};flex-shrink:0;">${posGlyph(d.pos)}</div>`;
   if(!pid) return fb;
-  return `<img style="width:${dim}px;height:${dim}px;border-radius:50%;object-fit:cover;object-position:top center;border:1px solid var(--border);background:var(--bg2);flex-shrink:0;" src="https://sleepercdn.com/content/nfl/players/${pid}.jpg" onerror="this.outerHTML='${fb.replace(/'/g,"\\'")}'" alt="${d.name}">`;
+  return `<img style="width:${dim}px;height:${dim}px;border-radius:50%;object-fit:cover;object-position:top center;border:1px solid var(--border);background:var(--bg2);flex-shrink:0;" src="https://sleepercdn.com/content/nfl/players/${pid}.jpg" onerror="this.outerHTML='${fb.replace(/'/g,"\\'")}'">`;
 }
 
 function showPg(id,el){
@@ -663,25 +663,66 @@ async function loadLeague(){
       r.pw=Math.round(wr*TW);r.pl=TW-r.pw;r.pwr=Math.round(wr*100);
     });
 
-    // Championship odds: softmax over roster values
-    const maxVal=Math.max(...scored.map(r=>r.totalScore));
-    const exps=scored.map(r=>Math.exp((r.totalScore-maxVal)/28));
-    const expSum=exps.reduce((a,b)=>a+b,0);
-    scored.forEach((r,i)=>{r.champOdds=Math.max(1,Math.round((exps[i]/expSum)*100));});
-    // Normalize odds to sum to 100
-    const oddsSum=scored.reduce((s,r)=>s+r.champOdds,0);
-    scored.forEach(r=>r.champOdds=Math.max(1,Math.round((r.champOdds/oddsSum)*100)));
-
-    // Contention window: based on age & PPG of top players only
+    // Championship odds — realistic distribution
+    // Top teams cluster together; bottom teams get very little
+    // Use PF if available, otherwise fall back to roster value
+    const usePF = scored.filter(r=>r.pf>0).length >= scored.length * 0.5;
+    const strengthMetric = r => usePF ? r.pf : r.totalScore;
+    const strengths = scored.map(strengthMetric);
+    const sMin = Math.min(...strengths), sMax = Math.max(...strengths);
+    const sRange = sMax - sMin || 1;
+    // Normalize 0-1, then apply steep power curve so top teams dominate but aren't monopolies
+    scored.forEach((r,i)=>{
+      const norm = (strengths[i] - sMin) / sRange; // 0=worst, 1=best
+      r._champRaw = Math.pow(norm, 1.8) + 0.04; // floor prevents 0%, curve spreads top
+    });
+    const rawSum = scored.reduce((s,r)=>s+r._champRaw,0);
+    // Assign percentages, ensure top 4-5 are meaningfully close
     scored.forEach(r=>{
-      const top5=r.all.slice(0,5);
-      if(!top5.length){r.contention='2029';return;}
-      const avgAge=top5.reduce((s,p)=>s+(p.age||25),0)/top5.length;
-      const avgScore=r.all.slice(0,8).reduce((s,p)=>s+p.score,0)/Math.max(1,Math.min(8,r.all.length));
-      const yearsUntilPrime=Math.max(0,24.5-avgAge);
-      let raw=2026+Math.round(yearsUntilPrime);
-      if(avgScore>40) raw-=1; else if(avgScore<15) raw+=2; else if(avgScore<25) raw+=1;
-      r.contention=String(Math.min(2031,Math.max(2027,raw)));
+      r.champOdds = Math.max(1, Math.round((r._champRaw/rawSum)*100));
+    });
+    // Re-normalize to exactly 100
+    const totalOdds = scored.reduce((s,r)=>s+r.champOdds,0);
+    const diff100 = 100 - totalOdds;
+    scored[0].champOdds += diff100; // add remainder to top team
+
+    // Contention window — based purely on top players' age + PPG output
+    // Window format: single year for clear peaks, range for building/declining
+    scored.forEach(r=>{
+      const top5 = r.all.slice(0,5);
+      const top8 = r.all.slice(0,8);
+      if(!top5.length){ r.contention='2030–2031'; return; }
+
+      const avgAge = top5.reduce((s,p)=>s+(p.age||25),0)/top5.length;
+      const top8Score = top8.reduce((s,p)=>s+p.score,0)/Math.max(1,top8.length);
+      const top3Score = r.all.slice(0,3).reduce((s,p)=>s+p.score,0)/Math.max(1,Math.min(3,r.all.length));
+
+      // How many years until their core hits typical peak (24-26)
+      const yearsUntilPeak = Math.max(-2, Math.min(5, 25 - avgAge));
+
+      // Base peak year
+      let peakYear = Math.round(2026 + yearsUntilPeak);
+
+      // Adjust for actual output — high-scoring rosters are already good
+      if(top8Score > 45) peakYear -= 1;       // elite output = peaking now
+      else if(top8Score > 30) peakYear += 0;  // strong = near peak
+      else if(top8Score > 18) peakYear += 1;  // average = 1 yr away
+      else if(top8Score > 8) peakYear += 2;   // weak = rebuilding
+      else peakYear += 3;                      // very weak = far out
+
+      // Clamp to reasonable range
+      peakYear = Math.min(2031, Math.max(2027, peakYear));
+
+      // Window width: narrow for older/peaking teams, wider for young/building
+      let windowWidth;
+      if(avgAge > 29 || top8Score > 50) windowWidth = 0;        // peak now, no future window
+      else if(avgAge > 27 && top8Score > 35) windowWidth = 1;   // 2-yr window (peaking)
+      else if(avgAge < 24 && top8Score < 20) windowWidth = 2;   // young + weak = 3-yr build window
+      else if(top8Score < 12) windowWidth = 2;                  // really weak
+      else windowWidth = 1;                                      // default 2-yr
+
+      if(windowWidth === 0) r.contention = String(peakYear);
+      else r.contention = `${peakYear}–${peakYear+windowWidth}`;
     });
 
     scored.sort((a,b)=>b.totalScore-a.totalScore);
@@ -702,17 +743,15 @@ function showRoster(idx){
   const sorted=[...r.all].sort((a,b)=>(posOrder[a.pos]??9)-(posOrder[b.pos]??9)||b.score-a.score);
   let html='';let curPos='';
   sorted.forEach(p=>{
-    if(p.pos!==curPos){
-      curPos=p.pos;
-      html+=`<div class="modal-section">${p.pos}</div>`;
-    }
+    if(p.pos!==curPos){curPos=p.pos;html+=`<div class="modal-section">${p.pos}</div>`;}
     const pid=SLEEPER_PID[normName(p.name)];
-    const photoHtml=pid
-      ? `<img style="width:36px;height:36px;border-radius:50%;object-fit:cover;object-position:top center;border:1px solid var(--border);" src="https://sleepercdn.com/content/nfl/players/${pid}.jpg" onerror="this.style.display='none'">`
-      : `<div style="width:36px;height:36px;border-radius:50%;background:var(--bg3);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-family:'Oswald',sans-serif;font-size:10px;color:${({QB:'var(--qb)',WR:'var(--wr)',RB:'var(--rb)',TE:'var(--te)'}[p.pos]||'var(--text3)')};">${p.pos}</div>`;
-    html+=`<div class="modal-player-row">${photoHtml}<div style="flex:1;"><div class="modal-player-name">${p.name}</div><div class="modal-player-meta">${p.team==='FA'?'Free Agent':p.team}${p.age?' · Age '+p.age:''} · #${p.rank} Overall</div></div><div class="modal-player-score">${p.score.toFixed(1)}</div></div>`;
+    const pc={QB:'var(--qb)',WR:'var(--wr)',RB:'var(--rb)',TE:'var(--te)'}[p.pos]||'var(--text3)';
+    const photo=pid
+      ?`<img style="width:36px;height:36px;border-radius:50%;object-fit:cover;object-position:top center;border:1px solid var(--border);" src="https://sleepercdn.com/content/nfl/players/${pid}.jpg" onerror="this.style.display='none'">`
+      :`<div style="width:36px;height:36px;border-radius:50%;background:var(--bg3);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-family:'Oswald',sans-serif;font-size:10px;color:${pc};">${p.pos}</div>`;
+    html+=`<div class="modal-player-row">${photo}<div style="flex:1;"><div class="modal-player-name">${p.name}</div><div class="modal-player-meta">${p.team==='FA'?'Free Agent':p.team}${p.age?' · Age '+p.age:''} · #${p.rank} Overall</div></div><div class="modal-player-score">${p.score.toFixed(1)}</div></div>`;
   });
-  if(!sorted.length) html='<div style="padding:24px;text-align:center;color:var(--text3);font-size:13px;">No matched players found for this roster.</div>';
+  if(!sorted.length)html='<div style="padding:24px;text-align:center;color:var(--text3);font-size:13px;">No matched players found for this roster.</div>';
   document.getElementById('modal-body').innerHTML=html;
   document.getElementById('modal-total').textContent=r.totalScore.toFixed(1);
   document.getElementById('roster-modal').style.display='flex';
@@ -739,7 +778,7 @@ function renderLeague(league,rosters,lid){
             <div class="tco" onclick="showRoster(${i})" style="cursor:pointer;text-decoration:underline;text-decoration-color:rgba(176,106,58,0.4);text-underline-offset:3px;">${r.owner}</div>
             <div class="tcr">${r.wins}W – ${r.losses}L${r.ties>0?' – '+r.ties+'T':''} &nbsp;·&nbsp; Proj: ${r.pw}–${r.pl}</div>
             <div style="display:flex;gap:10px;margin-top:3px;">
-              <div style="font-family:'Oswald',sans-serif;font-size:10px;color:var(--accent2);">🏆 ${r.champOdds}% champ odds</div>
+              <div style="font-family:'Oswald',sans-serif;font-size:10px;color:var(--accent2);">🏆 ${r.champOdds}% odds</div>
               <div style="font-family:'Oswald',sans-serif;font-size:10px;color:var(--text3);">Window: ${r.contention}</div>
             </div>
           </div>
@@ -756,49 +795,51 @@ function renderLeague(league,rosters,lid){
               const img=pid?`<img src="https://sleepercdn.com/content/nfl/players/${pid}.jpg" style="width:20px;height:20px;border-radius:50%;object-fit:cover;object-position:top center;border:1px solid var(--border);vertical-align:middle;margin-right:3px;" onerror="this.style.display='none'">`:'';
               return `<div class="tcp2 pos-${p.pos}">${img}${p.name.split(' ').pop()} <span style="opacity:0.5;font-size:9px;">${p.score.toFixed(1)}</span></div>`;
             }).join('')}
-            ${!r.all.length?'<span style="font-size:11px;color:var(--text3);font-style:italic;">No matched players — tap reload to retry</span>':''}
+            ${!r.all.length?'<span style="font-size:11px;color:var(--text3);font-style:italic;">No matched players</span>':''}
           </div>
           <div class="aibox" id="ai${i}">
-            <div class="ailbl"><div class="aidot"></div>Analysis</div>
-            <div class="aild" id="ait${i}">Loading breakdown...</div>
+            <div class="ailbl"><div class="aidot"></div>Breakdown</div>
+            <div class="aild" id="ait${i}">Loading...</div>
           </div>
         </div>
       </div>`).join('')}
     </div>
-    <div style="margin-top:14px;font-size:11px;color:var(--text3);line-height:1.6;">Tap any team name to see their full roster with individual player values. Championship odds are based on relative roster strength across the league. Contention window is estimated from the age and output of each team's core players.</div>`;
-  rosters.forEach((r,i)=>setTimeout(()=>genAI(r,i),i*750));
+    <div style="margin-top:14px;font-size:11px;color:var(--text3);line-height:1.6;">Tap any team name to see their full roster with individual player values. Championship odds reflect relative roster strength. Contention window is based on your core players' age and output.</div>`;
+  rosters.forEach((r,i)=>setTimeout(()=>genAI(r,i),i*800));
 }
 
 async function genAI(r,i){
-  const top=r.all.slice(0,6).map(p=>`${p.name} (${p.pos}, score ${p.score.toFixed(1)}, age ${p.age||'?'})`).join(', ');
-  const tier=r.totalScore>350?'elite':r.totalScore>250?'strong':r.totalScore>150?'average':'rebuilding';
-  const outlook=r.pwr>=60?'a clear contender':r.pwr>=45?'on the playoff bubble':'likely to miss the playoffs';
-  const prompt=`You are a dynasty fantasy football analyst writing a team capsule. Be direct, specific, and use the players' actual names. Do not mention AI, rankings sources, or any external tools. Write in a natural, confident analyst voice — like a beat writer who knows the league.
+  const top=r.all.slice(0,6).map(p=>`${p.name} (${p.pos}, age ${p.age||'?'}, value ${p.score.toFixed(1)})`).join(', ');
+  const tier=r.totalScore>350?'elite':r.totalScore>250?'strong':r.totalScore>150?'solid':'rebuilding';
+  const pfStr=r.pf>0?`Points scored: ${r.pf.toFixed(0)}, Points allowed: ${r.pa.toFixed(0)}.`:'';
+  const prompt=`You are a dynasty fantasy football analyst. Write a 4-sentence team capsule. Be direct, name the actual players, and write like you've watched this league all year. Do not mention any tools, rankings, or outside sources.
 
 Team: ${r.owner}
-Record: ${r.wins}-${r.losses} | Roster Value: ${r.totalScore.toFixed(1)} (${tier})
-Key players: ${top||'roster data unavailable'}
-Projected record: ${r.pw}-${r.pl} (${r.pwr}% win rate, ${outlook})
+Current record: ${r.wins}-${r.losses}
+Roster strength tier: ${tier} (value score: ${r.totalScore.toFixed(1)})
+Key players: ${top||'limited data'}
+Projected finish: ${r.pw}W-${r.pl}L
 Championship odds: ${r.champOdds}%
 Contention window: ${r.contention}
-${r.pf>0?`Points for: ${r.pf.toFixed(0)}, Points against: ${r.pa.toFixed(0)}`:''}
+${pfStr}
 
-Write exactly 4 sentences:
-1. Their identity — what kind of team are they and who are their best players? Name at least 2 players.
-2. What their record and scoring data tells us about how they're actually performing right now.
-3. Their contention window and what it means — are they building, peaking, or declining?
-4. One sharp, specific trade recommendation. What should they buy, sell, or target?
-
-No fluff. No hedging. Write like you've watched every week.`;
+Sentence 1: Who is this team? Name their 2-3 best players and describe the team's core identity.
+Sentence 2: What does their current record and scoring tell us — are they over/underperforming their roster?
+Sentence 3: Contention window — are they peaking, building, or declining, and what does ${r.contention} mean for their approach?
+Sentence 4: One specific, opinionated trade recommendation — what should they do right now?`;
   try{
-    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,messages:[{role:'user',content:prompt}]})});
+    const res=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:350,messages:[{role:'user',content:prompt}]})
+    });
     const data=await res.json();
-    const txt=data.content?.map(c=>c.text||'').join('')||'Analysis unavailable.';
+    const txt=(data.content||[]).map(c=>c.text||'').join('').trim();
     const el=document.getElementById('ait'+i);
-    if(el){el.className='aitxt';el.textContent=txt;}
+    if(el){el.className='aitxt';el.textContent=txt||'No breakdown available.';}
   }catch(e){
     const el=document.getElementById('ait'+i);
-    if(el){el.className='aitxt';el.textContent='Breakdown unavailable — check your connection and reload.';}
+    if(el){el.className='aitxt';el.textContent='Breakdown unavailable.';}
   }
 }
 
