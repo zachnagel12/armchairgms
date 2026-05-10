@@ -582,10 +582,12 @@ tbody tr.sel{background:rgba(192,120,72,0.13);}
       <div class="lid-row">
         <input type="text" id="lid" placeholder="Sleeper League ID...">
         <button class="sbtn" onclick="loadLeague()" id="lbtn">Load League</button>
+        <button class="sbtn" onclick="diagPicks()" style="background:var(--bg2);border:1px solid var(--border);color:var(--text3);font-size:10px;">🔍 Pick Diag</button>
       </div>
     </div>
     <div id="lerr" class="errb" style="display:none;"></div>
     <div id="llod" class="lodb" style="display:none;">Connecting to Sleeper...</div>
+    <div id="diag-out" style="display:none;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:14px;margin-top:10px;font-family:monospace;font-size:11px;color:var(--text2);white-space:pre-wrap;max-height:400px;overflow-y:auto;"></div>
     <div id="lcon"></div>
     <div id="lemp" style="text-align:center;padding:60px 20px;">
       <div style="font-family:'Russo One',sans-serif;font-size:18px;color:var(--text2);margin-bottom:10px;">Connect Your League</div>
@@ -2016,6 +2018,56 @@ function renderTrades(){
     </div>
     <div class="hist-section"><div class="hist-section-title">Most Traded Players (All-Time)</div>${topHtml||'<div class="no-data">No trade data found</div>'}</div>
     <div class="hist-section"><div class="hist-section-title">Trade Log (${trades.length} total trades)</div>${tradeHtml||'<div class="no-data">No trades found</div>'}</div>`;
+}
+
+// ── PICK DIAGNOSTIC ──────────────────────────────────────────────────
+async function diagPicks(){
+  const id=(document.getElementById('lid').value||'').trim();
+  if(!id){alert('Enter a League ID first');return;}
+  const out=document.getElementById('diag-out');
+  out.style.display='block';
+  out.textContent='Fetching...';
+  try{
+    const [rosters,users]=await Promise.all([
+      fetch(`https://api.sleeper.app/v1/league/${id}/rosters`).then(r=>r.json()),
+      fetch(`https://api.sleeper.app/v1/league/${id}/users`).then(r=>r.json())
+    ]);
+    const umap={};users.forEach(u=>{umap[u.user_id]=u.display_name;});
+    const rmap={};rosters.forEach(r=>{rmap[r.roster_id]=umap[r.owner_id]||'Unknown';});
+
+    let lines=[];
+    lines.push(`League: ${id}`);
+    lines.push(`Teams: ${rosters.map(r=>`[${r.roster_id}]${rmap[r.roster_id]}`).join(', ')}`);
+    lines.push('');
+
+    // Fetch all transactions weeks 1-18
+    const txnWeeks=await Promise.all(
+      Array.from({length:18},(_,i)=>
+        fetch(`https://api.sleeper.app/v1/league/${id}/transactions/${i+1}`).then(r=>r.json()).catch(()=>[])
+      )
+    );
+    const trades=txnWeeks.flat().filter(t=>t.type==='trade'&&(t.draft_picks||[]).length>0);
+    lines.push(`Trades with picks: ${trades.length}`);
+    lines.push('');
+
+    trades.forEach((t,i)=>{
+      lines.push(`--- Trade ${i+1} (${new Date(t.created).toLocaleDateString()}) ---`);
+      lines.push(`  roster_ids: ${(t.roster_ids||[]).map(r=>`${r}(${rmap[r]||'?'})`).join(' vs ')}`);
+      (t.draft_picks||[]).forEach(pk=>{
+        lines.push(`  PICK season=${pk.season} round=${pk.round}`);
+        lines.push(`       roster_id=${pk.roster_id}(${rmap[pk.roster_id]||'?'})`);
+        lines.push(`       previous_owner_id=${pk.previous_owner_id}(${rmap[pk.previous_owner_id]||'?'})`);
+        lines.push(`       original_roster_id=${pk.original_roster_id}(${rmap[pk.original_roster_id]||'?'})`);
+        lines.push(`       owner_id=${pk.owner_id}(${rmap[pk.owner_id]||'?'})`);
+        lines.push(`       all keys: ${Object.keys(pk).join(', ')}`);
+      });
+      lines.push('');
+    });
+
+    out.textContent=lines.join('\n');
+  }catch(e){
+    out.textContent='Error: '+e.message;
+  }
 }
 
 const NM_EXACT={},NM_NORM={};
