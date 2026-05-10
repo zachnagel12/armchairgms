@@ -251,7 +251,8 @@ tbody tr.sel{background:rgba(192,120,72,0.13);}
 .trade-card{background:var(--panel);border-radius:10px;padding:14px 16px;margin-bottom:10px;}
 .trade-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
 .trade-date{font-family:'Oswald',sans-serif;font-size:11px;color:var(--text3);letter-spacing:0.08em;}
-.trade-sides-row{display:grid;grid-template-columns:1fr auto 1fr;gap:10px;align-items:start;}
+.trade-sides-row{display:grid;grid-template-columns:1fr auto 1fr;gap:16px;align-items:start;}
+.tsp{}
 .trade-side-box{background:var(--bg2);border-radius:6px;padding:8px 10px;}
 .trade-side-lbl{font-family:'Oswald',sans-serif;font-size:9px;letter-spacing:0.16em;text-transform:uppercase;color:var(--text3);margin-bottom:5px;}
 .trade-item{font-family:'Oswald',sans-serif;font-size:12px;color:var(--text2);display:flex;align-items:center;gap:5px;margin-bottom:3px;}
@@ -358,6 +359,79 @@ tbody tr.sel{background:rgba(192,120,72,0.13);}
 .modal-total{padding:14px 20px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;background:var(--bg2);flex-shrink:0;}
 .modal-total-label{font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:var(--text3);}
 .modal-total-val{font-family:'Russo One',sans-serif;font-size:22px;color:var(--accent);}
+
+/* ── MOBILE RESPONSIVE ───────────────────────────────────────────── */
+@media(max-width:768px){
+  #landing{grid-template-columns:1fr;}
+  .ll{padding:32px 20px;}
+  .ll-h1{font-size:28px;}
+  .lr{padding:24px 20px;border-left:none;border-top:1px solid var(--border);}
+  .auth-box{width:100%;max-width:100%;}
+
+  nav{padding:0 10px;height:auto;flex-wrap:wrap;gap:0;}
+  .nav-logo{font-size:16px;padding:10px 0;}
+  .nav-tabs{overflow-x:auto;-webkit-overflow-scrolling:touch;width:100%;border-top:1px solid var(--border);scrollbar-width:none;}
+  .nav-tabs::-webkit-scrollbar{display:none;}
+  .nt{padding:0 10px;height:40px;font-size:9px;white-space:nowrap;flex-shrink:0;}
+  .nav-r{display:none;}
+  .nav-season{display:none;}
+
+  .hero{grid-template-columns:1fr;gap:10px;padding:14px 12px;}
+  .hero-title{font-size:22px;}
+  .h-stats{flex-direction:row;flex-wrap:wrap;gap:6px;}
+  .stat-c{min-width:80px;padding:8px 10px;}
+  .main-wrap{grid-template-columns:1fr;}
+  .side-panel{display:none;}
+  .mode-bar{overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
+  .mode-bar::-webkit-scrollbar{display:none;}
+  .mb{font-size:9px;padding:0 8px;white-space:nowrap;flex-shrink:0;}
+  .table-wrap{max-height:calc(100vh - 220px);}
+  td,th{padding:7px 10px;}
+
+  .sw2{padding:14px 12px;}
+  .stop{flex-direction:column;align-items:stretch;}
+  .lid-row{flex-direction:column;}
+  .lid-row input,.sbtn{width:100%;}
+  .lov{flex-direction:column;align-items:flex-start;gap:10px;}
+  .kpis{flex-wrap:wrap;}
+  .kpi{flex:1;min-width:70px;}
+  .tgrid{grid-template-columns:1fr;}
+  .tctop{grid-template-columns:40px 1fr auto;}
+  .tcrn{font-size:15px;}
+  .tcv{min-width:70px;}
+  .tcvn{font-size:17px;}
+
+  .modal{width:96vw;max-width:96vw;max-height:88vh;}
+  .modal-player-row{padding:8px 14px;gap:10px;}
+
+  .record-grid{grid-template-columns:1fr 1fr;}
+  .h2h-row{grid-template-columns:90px 1fr 54px;}
+  .season-standings{grid-template-columns:1fr 1fr;}
+  .season-stat{min-width:60px;padding:6px 8px;}
+  .season-stat-val{font-size:13px;}
+
+  .bar-row{grid-template-columns:90px 1fr 40px;}
+  .trade-sides-row{grid-template-columns:1fr;}
+  .tsp{display:none;}
+  .vt2{grid-template-columns:1fr 1fr;}
+  .impact-grid{grid-template-columns:1fr 1fr;}
+
+  footer{flex-direction:column;gap:6px;text-align:center;padding:10px;}
+}
+
+@media(max-width:480px){
+  .hero-title{font-size:18px;}
+  .nt{padding:0 7px;font-size:8px;}
+  .record-grid{grid-template-columns:1fr;}
+  .season-standings{grid-template-columns:1fr;}
+  .h2h-row{grid-template-columns:70px 1fr 46px;font-size:11px;}
+  .tctop{grid-template-columns:34px 1fr auto;}
+  .tcrn{font-size:13px;}
+  .tcvn{font-size:15px;}
+  .tcp2{font-size:9px;padding:2px 5px;}
+  .modal-player-name{font-size:12px;}
+  .kpiv{font-size:16px;}
+}
 </style>
 </head>
 <body>
@@ -478,13 +552,13 @@ tbody tr.sel{background:rgba(192,120,72,0.13);}
 <div class="page" id="page-trade">
   <div style="max-width:900px;margin:0 auto;padding:24px 20px;">
     <div style="margin-bottom:20px;"><div class="hero-ey">Trade Evaluator</div><div class="hero-title" style="font-size:26px;">Build · Analyze · <em>Decide</em></div><div class="hero-desc">Add players and picks to both sides. The formula scores the deal instantly.</div></div>
-    <div style="display:grid;grid-template-columns:1fr auto 1fr;gap:16px;align-items:start;margin-bottom:20px;">
+    <div class="trade-sides-row" style="margin-bottom:20px;">
       <div><div style="font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:0.18em;text-transform:uppercase;color:var(--text3);margin-bottom:8px;">You Give</div><div id="glf" style="min-height:60px;"></div><div style="font-size:11px;color:var(--text3);font-style:italic;margin-top:6px;">Search below → click +Give</div></div>
-      <div style="text-align:center;padding-top:20px;"><div style="font-family:'Russo One',sans-serif;font-size:22px;color:var(--text3);">VS</div><div style="margin-top:12px;font-family:'Oswald',sans-serif;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;color:var(--text3);cursor:pointer;" onclick="clearTrade()">Clear All</div></div>
+      <div class="tsp" style="text-align:center;padding-top:20px;"><div style="font-family:'Russo One',sans-serif;font-size:22px;color:var(--text3);">VS</div><div style="margin-top:12px;font-family:'Oswald',sans-serif;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;color:var(--text3);cursor:pointer;" onclick="clearTrade()">Clear All</div></div>
       <div><div style="font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:0.18em;text-transform:uppercase;color:var(--text3);margin-bottom:8px;">You Receive</div><div id="rlf" style="min-height:60px;"></div><div style="font-size:11px;color:var(--text3);font-style:italic;margin-top:6px;">Search below → click +Recv</div></div>
     </div>
     <div style="background:var(--panel);border:1px solid var(--border);padding:16px 20px;margin-bottom:20px;">
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">
+      <div class="vt2" style="margin-bottom:14px;">
         <div style="text-align:center;background:var(--bg3);border:1px solid var(--border);padding:10px;border-radius:6px;"><div style="font-family:'Oswald',sans-serif;font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--text3);margin-bottom:4px;">Give Total</div><div style="font-family:'Russo One',sans-serif;font-size:26px;color:var(--red);" id="gtf">—</div></div>
         <div style="text-align:center;background:var(--bg3);border:1px solid var(--border);padding:10px;border-radius:6px;"><div style="font-family:'Oswald',sans-serif;font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--text3);margin-bottom:4px;">Receive Total</div><div style="font-family:'Russo One',sans-serif;font-size:26px;color:var(--green);" id="rtf">—</div></div>
       </div>
@@ -957,23 +1031,19 @@ async function loadLeague(){
     let sp={};
     try{const pr=await fetch('https://api.sleeper.app/v1/players/nfl');sp=await pr.json();}catch(e){}
 
-    // Draft capital — no seeding, no assumptions.
-    // traded_picks contains every pick in the league with roster_id = current owner.
-    // We just read it and assign. If a pick isn't in traded_picks, it doesn't exist yet.
+    // Draft capital — use transaction history with timestamps.
+    // Algorithm: seed every team with their own picks. Then scan ALL transactions
+    // across all historical seasons. For each future pick involved in a trade,
+    // track the most recent transaction. Most recent transaction's adds[] tells
+    // us exactly who ended up with that pick. Move it there.
     document.getElementById('llod').textContent='Fetching draft capital...';
-    const allTradedPicks=[];
-    try{
-      let scanId=id;
-      for(let s=0;s<8;s++){
-        const [tp,lr]=await Promise.all([
-          fetch(`https://api.sleeper.app/v1/league/${scanId}/traded_picks`).then(r=>r.json()).catch(()=>[]),
-          fetch(`https://api.sleeper.app/v1/league/${scanId}`).then(r=>r.json()).catch(()=>null)
-        ]);
-        if(Array.isArray(tp)) tp.forEach(p=>allTradedPicks.push(p));
-        if(!lr||!lr.previous_league_id) break;
-        scanId=lr.previous_league_id;
-      }
-    }catch(e){}
+
+    // Seed: every team starts with their own picks for 2027-2029 rounds 1-4
+    const rosterPicks={};
+    rosters.forEach(r=>{ rosterPicks[r.roster_id]=[]; });
+    [2027,2028,2029].forEach(yr=>[1,2,3,4].forEach(rd=>
+      rosters.forEach(r=>rosterPicks[r.roster_id].push({season:yr,round:rd,isOwn:true,_orig:r.roster_id}))
+    ));
 
     const userToRoster={};
     rosters.forEach(r=>{ if(r.owner_id) userToRoster[String(r.owner_id)]=r.roster_id; });
@@ -984,21 +1054,64 @@ async function loadLeague(){
       return userToRoster[String(v)]||null;
     }
 
-    // Build rosterPicks purely from traded_picks — roster_id IS the current owner
-    const rosterPicks={};
-    rosters.forEach(r=>{ rosterPicks[r.roster_id]=[]; });
+    // Collect all trade transactions across all historical seasons (with timestamps)
+    const allTxns=[];
+    try{
+      let scanId=id;
+      for(let s=0;s<8;s++){
+        const [lr]=await Promise.all([
+          fetch(`https://api.sleeper.app/v1/league/${scanId}`).then(r=>r.json()).catch(()=>null)
+        ]);
+        // Fetch all weeks of transactions for this season
+        const weekTxns=await Promise.all(
+          Array.from({length:18},(_,i)=>
+            fetch(`https://api.sleeper.app/v1/league/${scanId}/transactions/${i+1}`)
+              .then(r=>r.json()).catch(()=>[])
+          )
+        );
+        weekTxns.forEach(wk=>{ if(Array.isArray(wk)) wk.forEach(t=>{ if(t.type==='trade') allTxns.push(t); }); });
+        if(!lr||!lr.previous_league_id) break;
+        scanId=lr.previous_league_id;
+      }
+    }catch(e){}
 
-    allTradedPicks.forEach(pk=>{
-      const yr=parseInt(pk.season)||0;
-      const rd=parseInt(pk.round)||0;
-      if(yr<=2026||!rd) return;
-      const cur=toRid(pk.roster_id);
-      if(!cur||!rosterPicks[cur]) return;
-      // Deduplicate: same year+round can appear multiple times (trade history),
-      // we only want one entry per unique pick. Use original_owner to distinguish.
-      const orig=toRid(pk.original_owner_id)||0;
-      const already=rosterPicks[cur].find(p=>p.season===yr&&p.round===rd&&p._orig===orig);
-      if(!already) rosterPicks[cur].push({season:yr,round:rd,isOwn:orig===cur,_orig:orig});
+    // Sort all trades by created timestamp ascending (oldest first)
+    // so that when we process them, later trades overwrite earlier ones
+    allTxns.sort((a,b)=>(a.created||0)-(b.created||0));
+
+    // For each unique pick (yr_rd_origTeam), track current owner using most-recent trade
+    // picks_traded[key] = current roster_id (updated each time that pick appears in a trade)
+    const pickCurrentOwner={}; // "yr_rd_origRid" -> current roster_id
+
+    allTxns.forEach(txn=>{
+      const picks=txn.draft_picks||[];
+      picks.forEach(pk=>{
+        const yr=parseInt(pk.season)||0;
+        const rd=parseInt(pk.round)||0;
+        if(yr<=2026||!rd) return;
+
+        // original owner of the pick — who the pick was originally created for
+        const orig=toRid(pk.previous_owner_id)||toRid(pk.original_roster_id)||toRid(pk.roster_id);
+        // who received this pick in this transaction
+        const cur=toRid(pk.roster_id);
+        if(!orig||!cur) return;
+
+        const key=`${yr}_${rd}_${orig}`;
+        // Overwrite with most recent — since we sorted ascending, last write wins
+        pickCurrentOwner[key]=cur;
+      });
+    });
+
+    // Apply the final ownership: move picks from their seeded location to actual owner
+    Object.entries(pickCurrentOwner).forEach(([key,cur])=>{
+      const parts=key.split('_');
+      const yr=Number(parts[0]),rd=Number(parts[1]),orig=Number(parts[2]);
+      // Remove from original owner's seed
+      if(rosterPicks[orig])
+        rosterPicks[orig]=rosterPicks[orig].filter(p=>!(p.season===yr&&p.round===rd&&p._orig===orig&&p.isOwn));
+      // Add to current owner if not already there
+      if(rosterPicks[cur]&&!rosterPicks[cur].find(p=>p.season===yr&&p.round===rd&&p._orig===orig))
+        rosterPicks[cur].push({season:yr,round:rd,isOwn:false,_orig:orig});
     });
 
     // Cache Sleeper player IDs for photo lookups — normalized name → sleeper_id
