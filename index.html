@@ -962,46 +962,59 @@ async function loadLeague(){
     let tradedPicks=[];
     try{const tp=await fetch(`https://api.sleeper.app/v1/league/${id}/traded_picks`);tradedPicks=await tp.json();}catch(e){}
 
-    // Build a map of roster_id -> picks they OWN
-    // traded_picks gives us the current owner after all trades
-    // Each entry: {season, round, roster_id (current owner), previous_owner_id, original_owner_id}
-    const rosterPicks={}; // roster_id -> [{season,round}]
-    rosters.forEach(r=>{ rosterPicks[r.roster_id]=[]; });
-
-    // Start with each team owning their own future picks (2027+)
-    // Sleeper traded_picks only tracks picks that have been traded at least once
-    // First give everyone their own picks for 2027-2029 rounds 1-4
+    // Build pick ownership map using traded_picks endpoint
+    // Strategy: start everyone with all their own picks,
+    // then for each traded pick: remove from original_owner, give to roster_id (current owner)
+    // traded_picks already reflects the FINAL state after all trades
     const pickYears=[2027,2028,2029];
     const pickRounds=[1,2,3,4];
+
+    // rosterPicks[rid] = Set of "season_round_originalRid" strings this team owns
+    // We track as objects for display: {season, round, originalRid, isOwn}
+    const rosterPicks={};
+    rosters.forEach(r=>{ rosterPicks[r.roster_id]=[]; });
+
+    // Seed everyone with their own picks
     rosters.forEach(r=>{
       pickYears.forEach(yr=>{
         pickRounds.forEach(rd=>{
-          rosterPicks[r.roster_id].push({season:yr,round:rd,fromRid:r.roster_id,isOwn:true});
+          rosterPicks[r.roster_id].push({season:yr,round:rd,originalRid:r.roster_id,isOwn:true});
         });
       });
     });
 
-    // Now apply traded picks — any traded pick overrides ownership
-    // If a pick appears in tradedPicks, the roster_id field is the CURRENT owner
-    // We need to remove the pick from the original owner and add to current owner
-    const tradedSet=new Set(); // "season_round_originalOwner" -> currentOwner
+    // traded_picks: each entry is ONE pick in its current state
+    // original_owner_id = who originally owned it (roster_id)
+    // roster_id = who currently owns it
+    // We collect all traded picks to know what has moved
+    // For each traded pick: remove from original_owner, add to current owner (if not already there)
+    const tradedAwayKeys=new Set(); // "season_round_originalRid" that have been traded away
+
     tradedPicks.forEach(pk=>{
-      const key=`${pk.season}_${pk.round}_${pk.original_owner_id}`;
-      tradedSet.add(key);
-      // Remove from original owner, give to current owner
-      const curOwner=pk.roster_id;
-      if(rosterPicks[curOwner]&&!rosterPicks[curOwner].find(p=>p.season==pk.season&&p.round==pk.round&&p.fromRid==pk.original_owner_id)){
-        rosterPicks[curOwner].push({season:pk.season,round:pk.round,fromRid:pk.original_owner_id,isOwn:false});
+      const orig=pk.original_owner_id;
+      const cur=pk.roster_id;
+      const yr=pk.season;
+      const rd=pk.round;
+      if(!yr||!rd) return;
+
+      // Mark original owner's pick as traded away
+      const key=`${yr}_${rd}_${orig}`;
+      tradedAwayKeys.add(key);
+
+      // Give to current owner if not already there
+      if(rosterPicks[cur]){
+        const already=rosterPicks[cur].find(p=>p.season==yr&&p.round==rd&&p.originalRid==orig);
+        if(!already) rosterPicks[cur].push({season:yr,round:rd,originalRid:orig,isOwn:orig===cur});
       }
     });
-    // Remove traded-away picks from original owners
+
+    // Remove any pick whose original key appears in tradedAwayKeys
     rosters.forEach(r=>{
-      const rid=r.roster_id;
-      rosterPicks[rid]=rosterPicks[rid].filter(pk=>{
-        if(!pk.isOwn) return true; // picks received via trade — keep
-        // Check if this own pick was traded away
-        const key=`${pk.season}_${pk.round}_${rid}`;
-        return !tradedSet.has(key);
+      rosterPicks[r.roster_id]=rosterPicks[r.roster_id].filter(pk=>{
+        const key=`${pk.season}_${pk.round}_${pk.originalRid}`;
+        // If this pick was traded away AND this team is the original owner, remove it
+        if(tradedAwayKeys.has(key)&&pk.isOwn) return false;
+        return true;
       });
     });
 
@@ -1202,7 +1215,6 @@ function showRoster(idx){
   });
   if(!sorted.length)html='<div style="padding:24px;text-align:center;color:var(--text3);font-size:13px;">No matched players found.</div>';
 
-  // Draft Capital section — show all picks currently owned by this team
   const picks=(r.picks||[]).slice().sort((a,b)=>a.season-b.season||a.round-b.round);
   if(picks.length){
     html+=`<div class="modal-section">Draft Capital</div>`;
@@ -1211,7 +1223,9 @@ function showRoster(idx){
       const val=match?match.score.toFixed(1):'—';
       const slotLabel=match?` · ${match.slot}`:'';
       const pickName=`${pk.season} Round ${pk.round}${slotLabel}`;
-      const origin=!pk.isOwn?`<span style="font-size:9px;color:var(--text3);font-family:Oswald,sans-serif;margin-left:4px;">acquired</span>`:'';
+      // isOwn=false OR originalRid != this team's rid means it was acquired via trade
+      const acquired=pk.originalRid&&pk.originalRid!==r.rid&&!pk.isOwn;
+      const origin=acquired?`<span style="font-size:9px;color:var(--text3);font-family:Oswald,sans-serif;margin-left:4px;">acquired</span>`:'';
       html+=`<div class="modal-player-row">
         <div style="width:36px;height:36px;border-radius:50%;background:rgba(155,138,191,0.12);border:1px solid var(--pick);display:flex;align-items:center;justify-content:center;font-family:Oswald,sans-serif;font-size:9px;font-weight:600;color:var(--pick);flex-shrink:0;">R${pk.round}</div>
         <div style="flex:1;"><div class="modal-player-name" style="color:var(--pick);">${pickName}${origin}</div><div class="modal-player-meta">${pk.season} Dynasty Pick</div></div>
