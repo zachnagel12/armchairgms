@@ -1076,12 +1076,20 @@ async function loadLeague(){
     }catch(e){}
 
     // Sort all trades by created timestamp ascending (oldest first)
-    // so that when we process them, later trades overwrite earlier ones
     allTxns.sort((a,b)=>(a.created||0)-(b.created||0));
 
-    // For each unique pick (yr_rd_origTeam), track current owner using most-recent trade
-    // picks_traded[key] = current roster_id (updated each time that pick appears in a trade)
-    const pickCurrentOwner={}; // "yr_rd_origRid" -> current roster_id
+    // DEBUG — open browser console (F12) to see this
+    console.log('=== PICK TRADE DEBUG ===');
+    console.log('Total trade txns:', allTxns.length);
+    allTxns.forEach((txn,i)=>{
+      const picks=txn.draft_picks||[];
+      if(picks.length) console.log(`Txn ${i} picks:`,JSON.stringify(picks),'roster_ids:',txn.roster_ids);
+    });
+    console.log('userToRoster:',JSON.stringify(userToRoster));
+    console.log('rosters:',rosters.map(r=>({rid:r.roster_id,uid:r.owner_id})));
+    console.log('========================');
+
+    const pickCurrentOwner={};
 
     allTxns.forEach(txn=>{
       const picks=txn.draft_picks||[];
@@ -1090,17 +1098,22 @@ async function loadLeague(){
         const rd=parseInt(pk.round)||0;
         if(yr<=2026||!rd) return;
 
-        // original owner of the pick — who the pick was originally created for
-        const orig=toRid(pk.previous_owner_id)||toRid(pk.original_roster_id)||toRid(pk.roster_id);
-        // who received this pick in this transaction
+        // original_roster_id = who the pick was ORIGINALLY created for (never changes)
+        // previous_owner_id = who sent it in THIS trade (changes each trade)
+        // roster_id = who RECEIVED it in THIS trade
+        const orig=toRid(pk.original_roster_id)||toRid(pk.previous_owner_id);
         const cur=toRid(pk.roster_id);
+
+        console.log(`  pick ${yr}R${rd}: original_roster_id=${pk.original_roster_id} previous_owner_id=${pk.previous_owner_id} roster_id=${pk.roster_id} → orig=${orig} cur=${cur}`);
+
         if(!orig||!cur) return;
 
         const key=`${yr}_${rd}_${orig}`;
-        // Overwrite with most recent — since we sorted ascending, last write wins
         pickCurrentOwner[key]=cur;
       });
     });
+
+    console.log('pickCurrentOwner:', JSON.stringify(pickCurrentOwner));
 
     // Apply the final ownership: move picks from their seeded location to actual owner
     Object.entries(pickCurrentOwner).forEach(([key,cur])=>{
