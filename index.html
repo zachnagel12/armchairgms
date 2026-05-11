@@ -2919,6 +2919,8 @@ async function loadLeague(){
         }
         rosterPicksRaw[receiver].push({...pick,isOwn:receiver===pick._orig,_id:pick._id});
         pickCurrentHolder[pick._id]=receiver;
+        if(receiver===2){window._r2adds=window._r2adds||[];window._r2adds.push(`+${pick._id} from:${actualGiver} ts:${txn.status_updated||txn.created||0} id:${txn.transaction_id}`);}
+        if(actualGiver===2){window._r2removes=window._r2removes||[];window._r2removes.push(`-${pick._id} to:${receiver} ts:${txn.status_updated||txn.created||0} id:${txn.transaction_id}`);}
         if(receiver===2){window._r2moves=window._r2moves||[];window._r2moves.push(`${pick._id} from:${actualGiver} ts:${txn.status_updated||txn.created||0} lid:${txn._leagueId} rawRostIds:${JSON.stringify(txn.roster_ids)} srmEntry:${JSON.stringify(seasonRidMap[txn._leagueId]||{})}`);}
 
       });
@@ -3285,8 +3287,10 @@ async function loadLeague(){
     setTimeout(()=>{
       const r2=MODAL_DATA?.find(r=>r.rid===2);
       const misses=window._pickMisses||[];
+      const adds=(window._r2adds||[]).join('<br>');
+      const removes=(window._r2removes||[]).join('<br>');
       const el=document.getElementById('lcon');
-      el.innerHTML=`<div style="background:#1a1a2e;border:2px solid red;padding:12px;margin-bottom:16px;font-family:monospace;font-size:10px;color:#f88;overflow:auto;max-height:300px;"><b>MISSES (${misses.length}):</b><br>${misses.map(m=>m+'<br>').join('')}<br><b>R2 FINAL:</b> ${(r2?.picks||[]).map(p=>p._id).join(' ')}</div>`+el.innerHTML;
+      el.innerHTML=`<div style="background:#1a1a2e;border:2px solid red;padding:12px;margin-bottom:16px;font-family:monospace;font-size:10px;color:#f88;overflow:auto;max-height:400px;"><b>MISSES:${misses.length} R2 FINAL:</b> ${(r2?.picks||[]).map(p=>p._id).join(' ')}<br><b>R2 ADDS:</b><br>${adds}<br><b>R2 REMOVES:</b><br>${removes}</div>`+el.innerHTML;
     },3000);
     renderLeague(league,scored,id);
     renderTargets();
