@@ -2736,7 +2736,8 @@ async function loadLeague(){
     let sp={};
     try{const pr=await fetch('https://api.sleeper.app/v1/players/nfl');sp=await pr.json();}catch(e){}
 
-    window._rawPickTxns=[];
+    // Debug: show raw roster draft_picks for roster 2
+    window._r2rawPicks=rosters.find(r=>r.roster_id===2)?.draft_picks||'none';
     loadStep(4);
 
     // Seed every team with their own picks for 2027-2029 rounds 1-4
@@ -3329,7 +3330,7 @@ async function loadLeague(){
       const adds=(window._r2adds||[]).join('<br>');
       const removes=(window._r2removes||[]).join('<br>');
       const el=document.getElementById('lcon');
-      el.innerHTML=`<div style="background:#1a1a2e;border:2px solid red;padding:12px;margin-bottom:16px;font-family:monospace;font-size:10px;color:#f88;overflow:auto;max-height:400px;"><b>MISSES:${misses.length} allTxns:${allTxns.length} deduped:${dedupedTxns.length}</b><br><b>LOOP ERR:</b> ${window._txnLoopErr||'none'}<br><b>LEAGUES:</b> ${(window._scannedLeagues||[]).join(' | ')}<br><b>TXN TYPES:</b> ${JSON.stringify(window._allTypes||{})}<br><b>OTHER TYPES WITH PICKS:</b> ${(window._otherTypes||[]).join(' | ')}<br><b>R2 FINAL:</b> ${(r2?.picks||[]).map(p=>p._id).join(' ')}<br><b>R2 REMOVES(${(window._r2removes||[]).length}):</b><br>${removes}</div>`+el.innerHTML;
+      el.innerHTML=`<div style="background:#1a1a2e;border:2px solid red;padding:12px;margin-bottom:16px;font-family:monospace;font-size:10px;color:#f88;overflow:auto;max-height:400px;"><b>R2 RAW ROSTER PICKS:</b> ${JSON.stringify(window._r2rawPicks)}<br><b>R2 FINAL:</b> ${(r2?.picks||[]).map(p=>p._id).join(' ')}</div>`+el.innerHTML;
     },3000);
     renderLeague(league,scored,id);
     renderTargets();
