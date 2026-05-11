@@ -3261,7 +3261,7 @@ async function loadLeague(){
         const el=document.getElementById('lcon');
         const html=`<div style="background:#1a1a2e;border:2px solid red;padding:12px;margin-bottom:16px;font-family:monospace;font-size:10px;color:#f88;overflow:auto;max-height:400px;">
           <b style="color:#faa;">PICK MISSES (${misses.length}) | allTxns:${allTxns.length} deduped:${dedupedTxns.length}</b><br>
-          <b style="color:#8af;">FIRST 10 TXN TS:</b> ${dedupedTxns.slice(0,10).map(t=>`${t.status_updated||t.created||0}(${t.draft_picks?.length||0}picks)`).join(' | ')}<br>
+          <b style="color:#8af;">FIRST 10 TXN TS:</b> ${dedupedTxns.slice(0,10).map(t=>`${t.status_updated||t.created||0}(${t.draft_picks?.length||0}picks${t.draft_picks?.length?':'+t.draft_picks.map(p=>`${p.season}_${p.round}_${p.original_roster_id}→${p.owner_id}`).join(','):''})`).join(' | ')}<br>
           ${misses.map(m=>`${m}<br>`).join('')}
         </div>`;
         el.innerHTML=html+el.innerHTML;
