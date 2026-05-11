@@ -2711,180 +2711,139 @@ async function loadLeague(){
 
 
     // ── PROJECTED PPG ─────────────────────────────────────────────────
-    // Use actual Sleeper weekly scoring data + roster value to project starter PPG
-    // Factor in: actual weekly avg, age decay, pick upside
-    const POS_STARTERS={QB:1,WR:3,RB:2,TE:1}; // typical SF roster
+    // Everything in PPG. One number drives contention windows.
+    // Core formula: sum starter PPG from trade scores, adjusted for age curves.
+    // 1st round picks = 22.5 PPG added to the FOLLOWING season's projection.
+    const POS_STARTERS={QB:1,WR:3,RB:2,TE:1};
     const AGE_PEAK={QB:30,WR:27,RB:25,TE:28};
-    const AGE_DECAY=0.035; // 3.5% value loss per year past peak
+    const AGE_DECAY=0.035; // 3.5% per year past peak
 
     scored.forEach(r=>{
-      // Actual PPG from matchup data this season
+      // Actual PPG this season from Sleeper matchup data
       const actualPPG = r.weeklyPts.length
         ? r.weeklyPts.reduce((s,p)=>s+p,0)/r.weeklyPts.length : 0;
 
-      // Roster-based projected PPG — sum top starters by position
-      let projectedPPG = 0;
+      // ── CURRENT projected PPG from roster trade scores + age decay ──
+      let rosterPPG = 0;
       const byPos={QB:[],WR:[],RB:[],TE:[]};
       r.all.forEach(p=>{ if(byPos[p.pos]) byPos[p.pos].push(p); });
       Object.entries(POS_STARTERS).forEach(([pos,slots])=>{
-        const sorted=(byPos[pos]||[]).sort((a,b)=>getScore(b)-getScore(a));
-        for(let i=0;i<slots&&i<sorted.length;i++){
-          const p=sorted[i];
+        const starters=(byPos[pos]||[]).sort((a,b)=>getScore(b)-getScore(a)).slice(0,slots);
+        starters.forEach(p=>{
           const peak=AGE_PEAK[pos]||27;
           const age=p.age||peak;
-          const decay=Math.max(0,(age-peak)*AGE_DECAY);
-          // Convert trade score to approximate PPG contribution
-          // Score ~100 ≈ 28ppg, Score ~50 ≈ 18ppg, Score ~20 ≈ 12ppg
+          // Age trajectory: climbing toward peak = small boost, past peak = decay
+          const yearsFromPeak=peak-age;
+          let ageFactor;
+          if(yearsFromPeak>0){
+            // Still climbing — modest upward trajectory, max +8%
+            ageFactor=1+Math.min(0.08,yearsFromPeak*0.02);
+          } else {
+            // Past peak — decay per year
+            ageFactor=Math.max(0.5,1+(yearsFromPeak*AGE_DECAY));
+          }
+          // Score → PPG: score 100≈28ppg, 50≈18ppg, 20≈12ppg, 5≈7ppg
           const basePPG=8+Math.sqrt(Math.max(0,getScore(p)))*2.0;
-          projectedPPG+=basePPG*(1-decay);
-        }
+          rosterPPG+=basePPG*ageFactor;
+        });
       });
 
-      // ── PICK-PROJECTED PPG ──────────────────────────────────────────
-      // For each 1st round pick, find the player ranked near that pick's overall value
-      // in our DATA, estimate position PPG from surrounding players, apply 8% discount
-      // (picks underperform their draft slot on average — development time, injury, bust rate)
-      let pickFuturePPG = 0;
-      (r.picks||[]).filter(pk=>pk.round===1).forEach(pk=>{
-        // Find the DATA player whose score is closest to this pick's matched score
-        const pickScore = pk.matchedScore || 20;
-        // Get players ranked near this score value
-        const nearby = DATA.filter(d=>d.type==='player'&&Math.abs(getScore(d)-pickScore)<8)
-                          .sort((a,b)=>Math.abs(getScore(a)-pickScore)-Math.abs(getScore(b)-pickScore))
-                          .slice(0,6);
-        if(nearby.length){
-          // Average the PPG contribution of those nearby players
-          const avgNearbyPPG = nearby.reduce((s,p)=>{
-            return s + (8 + Math.sqrt(Math.max(0,getScore(p)))*2.0);
-          },0) / nearby.length;
-          // Apply 8% rookie discount — development curve, not guaranteed to hit
-          pickFuturePPG += avgNearbyPPG * 0.92;
-        } else {
-          // Fallback estimate by slot
-          const slot = pk.slot||'Mid';
-          pickFuturePPG += slot==='Early'?14:slot==='Early-Mid'?11:slot==='Mid'?8:5;
-        }
-      });
-
-      // Pick upside for display (keep existing logic for UI badge)
-      const earlyPicks=(r.picks||[]).filter(pk=>pk.season<=2028&&pk.round===1);
-      const pickUpside=earlyPicks.reduce((s,pk)=>{
-        const slot=pk.slot||'Mid';
-        const val=slot==='Early'?14:slot==='Early-Mid'?11:slot==='Mid'?8:slot==='Mid-Late'?5:3;
-        return s+val;
-      },0);
-
-      // Blend actual (if available) with projected, add pick upside potential
+      // Blend actual (if we have it) with roster-based projection
       r.actualPPG = Math.round(actualPPG*10)/10;
       r.projPPG = actualPPG>0
-        ? Math.round((actualPPG*0.5 + projectedPPG*0.5)*10)/10
-        : Math.round(projectedPPG*10)/10;
-      r.pickUpside = Math.round(pickUpside*10)/10;
-      // futurePPG: current roster PPG + what 1st round picks are projected to add
-      // Pick PPG is weighted by how soon the pick lands (2027 picks count more than 2029)
-      const pickYearWeight = (r.picks||[]).filter(pk=>pk.round===1).reduce((s,pk)=>{
+        ? Math.round((actualPPG*0.55 + rosterPPG*0.45)*10)/10
+        : Math.round(rosterPPG*10)/10;
+
+      // ── FUTURE PPG: adds 1st round pick contributions by year ──
+      // Each 1st round pick = 22.5 PPG contributed the FOLLOWING season.
+      // Weight by proximity: 2027 picks are nearly certain; 2029 picks are distant.
+      // Multiple picks in the same year stack — a team with 3 firsts in 2027
+      // is adding ~67.5 PPG worth of talent for 2028.
+      const picks1st = (r.picks||[]).filter(pk=>pk.round===1);
+      // Picks only add value as an UPGRADE over the weakest current starter.
+      // Find the lowest-scoring starter at each position, then see if the pick beats them.
+      // If pick PPG > that starter's PPG, net gain = difference. Otherwise 0.
+      const PICK_PPG={1:13,2:7,3:2,4:2};
+      let pickPPGByYear={};
+      (r.picks||[]).forEach(pk=>{
         const yr=parseInt(pk.season)||2028;
-        const w = yr<=2027?1.0:yr===2028?0.75:yr===2029?0.5:0.3;
-        return s+w;
-      },0);
-      r.futurePPG = Math.round((r.projPPG + pickFuturePPG * Math.min(1, pickYearWeight))*10)/10;
+        const pickContrib=PICK_PPG[pk.round]||2;
+
+        // Find the weakest starter slot this pick might upgrade
+        // Assume picks go to weakest position need — find lowest starter PPG across all positions
+        let weakestStarterPPG=999;
+        Object.entries(POS_STARTERS).forEach(([pos,slots])=>{
+          const starters=(byPos[pos]||[]).sort((a,b)=>getScore(b)-getScore(a)).slice(0,slots);
+          if(starters.length<slots){
+            // Empty starter slot — any contribution is pure gain
+            weakestStarterPPG=Math.min(weakestStarterPPG,0);
+          } else if(starters.length>0){
+            const weakest=starters[starters.length-1];
+            const peak=AGE_PEAK[pos]||27;
+            const age=weakest.age||peak;
+            const ageFactor=Math.max(0.5,1+Math.min(0.08,(peak-age)*0.02));
+            const weakPPG=(8+Math.sqrt(Math.max(0,getScore(weakest)))*2.0)*ageFactor;
+            weakestStarterPPG=Math.min(weakestStarterPPG,weakPPG);
+          }
+        });
+
+        // Net gain = pick's projected PPG minus what it's replacing
+        const netGain=Math.max(0,pickContrib-weakestStarterPPG);
+        pickPPGByYear[yr]=(pickPPGByYear[yr]||0)+netGain;
+      });
+
+      // futurePPG = projPPG + picks landing next year (weighted by proximity)
+      // 2027 picks → full weight, 2028 → 0.8, 2029 → 0.6, beyond → 0.4
+      const yearWeights={2027:1.0,2028:0.8,2029:0.6};
+      let totalPickPPG=0;
+      Object.entries(pickPPGByYear).forEach(([yr,ppg])=>{
+        const w=yearWeights[parseInt(yr)]||0.4;
+        totalPickPPG+=ppg*w;
+      });
+
+      r.pickUpside = Math.round(totalPickPPG*10)/10;
+      r.futurePPG  = Math.round((r.projPPG + totalPickPPG)*10)/10;
     });
 
     // ── CHAMPIONSHIP ODDS ─────────────────────────────────────────────
-    // Use projPPG as primary driver — scoring is what wins titles
-    // Apply steep exponential so elite teams have dramatically better odds
     const ppgs = scored.map(r=>r.projPPG);
     const ppgMin = Math.min(...ppgs), ppgMax = Math.max(...ppgs);
     const ppgRange = ppgMax - ppgMin || 1;
-
     scored.forEach(r=>{
-      const norm = (r.projPPG - ppgMin) / ppgRange; // 0=worst, 1=best
-      // Very steep curve — top team should be 3-5x more likely than bottom
+      const norm = (r.projPPG - ppgMin) / ppgRange;
       r._champRaw = Math.pow(norm, 2.2) + 0.02;
     });
     const rawSum = scored.reduce((s,r)=>s+r._champRaw,0);
-    scored.forEach(r=>{
-      r.champOdds = Math.max(1, Math.round((r._champRaw/rawSum)*100));
-    });
-    // Re-normalize to exactly 100
+    scored.forEach(r=>{ r.champOdds = Math.max(1, Math.round((r._champRaw/rawSum)*100)); });
     const totalOdds = scored.reduce((s,r)=>s+r.champOdds,0);
     scored[0].champOdds += (100-totalOdds);
 
     // ── CONTENTION WINDOW ─────────────────────────────────────────────
-    const ppgLeagueAvg = ppgs.reduce((a,b)=>a+b,0)/ppgs.length;
-    const ppgLeagueTop = ppgMax;
-    // Use futurePPG for contention — this already bakes in projected pick contributions
+    // PURE PPG LOGIC. futurePPG already includes 1st round pick contributions.
+    // Thresholds relative to league futurePPG average and top.
     const futurePPGs = scored.map(r=>r.futurePPG);
-    const futureAvg = futurePPGs.reduce((a,b)=>a+b,0)/futurePPGs.length;
-    const futureTop = Math.max(...futurePPGs);
+    const futureAvg  = futurePPGs.reduce((a,b)=>a+b,0)/futurePPGs.length;
+    const futureTop  = Math.max(...futurePPGs);
 
     scored.forEach(r=>{
-      const top5=r.all.slice(0,5);
-      const avgAge=top5.length ? top5.reduce((s,p)=>s+(p.age||25),0)/top5.length : 28;
-
-      // Use futurePPG so pick capital is already factored in
       const fpg = r.futurePPG;
-      const isElitePPG  = fpg >= futureTop * 0.88;
-      const isGoodPPG   = fpg >= futureAvg * 1.05;
-      const isAvgPPG    = fpg >= futureAvg * 0.90;
-      const isBadPPG    = fpg < futureAvg * 0.82;
-      const isVeryBadPPG= fpg < futureAvg * 0.65;
-      const isYoung     = avgAge < 24.5;
-      const isMidAge    = avgAge < 27;
-      const isOld       = avgAge >= 28.5;
-      const hasAnyPicks = (r.picks||[]).filter(pk=>pk.round<=2).length>=1;
-      const picks1st    = (r.picks||[]).filter(pk=>pk.round===1);
-      const hasEarlyPicks = picks1st.filter(pk=>parseInt(pk.season)<=2028).length>=2;
+
+      // Pure PPG tiers — no age, no pick flags, just the number
+      const pct = fpg / futureTop; // 0→1 relative to best team
 
       let start, end;
-
-      if(isElitePPG && isYoung){
-        start=2026; end=2029;
-      } else if(isElitePPG && isMidAge){
-        start=2026; end=2028;
-      } else if(isElitePPG && isOld){
-        start=2026; end=2027;
-      } else if(isGoodPPG && isYoung){
-        start=2027; end=2030;
-      } else if(isGoodPPG && isMidAge){
-        start=2027; end=2028;
-      } else if(isGoodPPG && isOld){
-        start=2026; end=2027;
-      } else if(isAvgPPG && hasEarlyPicks && isYoung){
-        start=2028; end=2030;
-      } else if(isAvgPPG && isMidAge){
-        start=2028; end=2029;
-      } else if(isAvgPPG && isOld){
-        start=2027; end=2028;
-      } else if(isAvgPPG){
-        start=2028; end=2029;
-      } else if(isBadPPG && hasEarlyPicks && isYoung){
-        start=2029; end=2031;
-      } else if(isBadPPG && hasAnyPicks){
-        start=2029; end=2030;
-      } else if(isBadPPG && isYoung){
-        start=2030; end=2031;
-      } else if(isBadPPG && isOld){
-        start=2030; end=2031;
-      } else if(isBadPPG){
-        start=2029; end=2031;
-      } else {
-        start=2028; end=2030;
-      }
-
-      // Hard overrides for bad + old + no picks
-      if(isVeryBadPPG && isOld && !hasAnyPicks){
-        start=2031; end=2031;
-      } else if(isVeryBadPPG && !hasAnyPicks){
-        start=2030; end=2031;
-      } else if(isBadPPG && isOld && !hasAnyPicks){
-        start=2030; end=2031;
-      }
-
+      if     (pct >= 0.90){ start=2026; end=2028; }  // Top 10% — elite now
+      else if(pct >= 0.80){ start=2026; end=2027; }  // Solid contender now
+      else if(pct >= 0.72){ start=2027; end=2029; }  // Near-elite, window opening
+      else if(pct >= 0.63){ start=2027; end=2028; }  // Above average
+      else if(pct >= 0.55){ start=2028; end=2029; }  // Average+ — window near
+      else if(pct >= 0.46){ start=2028; end=2030; }  // Below average but picks inflating
+      else if(pct >= 0.36){ start=2029; end=2031; }  // Rebuilding
+      else if(pct >= 0.26){ start=2030; end=2031; }  // Deep rebuild
+      else                { start=2031; end=2031; }  // No real window visible
 
       start=Math.max(2026,Math.min(2031,start));
       end=Math.max(start,Math.min(2031,end));
-
       r.contention = start===end ? String(start) : `${start}–${end}`;
     });
 
