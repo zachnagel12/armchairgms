@@ -2738,91 +2738,35 @@ async function loadLeague(){
 
     loadStep(4);
 
-    // Seed every team with their own picks for 2027-2029 rounds 1-4
+    // 144 picks: 2027-2029 x rounds 1-4 x 12 teams
+    // pickId = "yr_rd_origRosterId" — never changes regardless of trades
     const rosterPicksRaw={};
     rosters.forEach(r=>{ rosterPicksRaw[r.roster_id]=[]; });
     [2027,2028,2029].forEach(yr=>[1,2,3,4].forEach(rd=>
-      rosters.forEach(r=>rosterPicksRaw[r.roster_id].push({season:yr,round:rd,isOwn:true,_orig:r.roster_id,_id:`${yr}_${rd}_${r.roster_id}`}))
+      rosters.forEach(r=>rosterPicksRaw[r.roster_id].push({
+        season:yr,round:rd,isOwn:true,_orig:r.roster_id,_id:`${yr}_${rd}_${r.roster_id}`
+      }))
     ));
 
+    // Build user_id → roster_id map (current season)
     const userToRoster={};
     rosters.forEach(r=>{ if(r.owner_id) userToRoster[String(r.owner_id)]=r.roster_id; });
-
-    // Build per-season roster_id → current roster_id translation maps
-    const seasonRidMap={};
-    try{
-      let scanId=id;
-      for(let s=0;s<8;s++){
-        const [lgRes,rostersRes]=await Promise.all([
-          fetch(`https://api.sleeper.app/v1/league/${scanId}`).then(r=>r.ok?r.json():null).catch(()=>null),
-          fetch(`https://api.sleeper.app/v1/league/${scanId}/rosters`).then(r=>r.ok?r.json():[]).catch(()=>[]),
-        ]);
-        const ridMap={};
-        rostersRes.forEach(r=>{
-          if(!r.owner_id) return;
-          if(!userToRoster[String(r.owner_id)]){
-            const curRoster=rosters.find(cr=>cr.owner_id===r.owner_id);
-            if(curRoster) userToRoster[String(r.owner_id)]=curRoster.roster_id;
-          }
-          const curRid=userToRoster[String(r.owner_id)];
-          if(curRid) ridMap[r.roster_id]=curRid;
-        });
-        seasonRidMap[scanId]=ridMap;
-        if(!lgRes?.previous_league_id) break;
-        scanId=lgRes.previous_league_id;
-      }
-    }catch(e){}
-
-    function toRid(v, leagueId){
+    function toRid(v){
       if(!v&&v!==0) return null;
       const n=parseInt(v);
       if(isNaN(n)||n<=0) return null;
-      if(leagueId&&seasonRidMap[leagueId]&&seasonRidMap[leagueId][n]!==undefined) return seasonRidMap[leagueId][n];
       if(rosters.find(r=>r.roster_id===n)) return n;
-      if(userToRoster[String(v)]) return userToRoster[String(v)];
-      return null;
+      return userToRoster[String(v)]||null;
     }
 
-    // STEP 1: /traded_picks — Sleeper's authoritative snapshot of every pick
-    // currently away from its original owner. Handles commissioner edits too.
+    // Fetch all transactions across all historical seasons
+    const allTxns=[];
     try{
       let scanId=id;
-      const seenLids=new Set();
+      const seen=new Set();
       for(let s=0;s<8;s++){
-        if(seenLids.has(scanId)) break;
-        seenLids.add(scanId);
-        const [tpRes,lgRes]=await Promise.all([
-          fetch(`https://api.sleeper.app/v1/league/${scanId}/traded_picks`).then(r=>r.ok?r.json():[]).catch(()=>[]),
-          fetch(`https://api.sleeper.app/v1/league/${scanId}`).then(r=>r.ok?r.json():null).catch(()=>null)
-        ]);
-        (tpRes||[]).forEach(pk=>{
-          const yr=parseInt(pk.season)||0;
-          const rd=parseInt(pk.round)||0;
-          if(yr<=2026||!rd) return;
-          const origRid=toRid(pk.original_roster_id,scanId);
-          const curOwner=toRid(pk.roster_id,scanId);
-          if(!origRid||!curOwner) return;
-          const pickId=`${yr}_${rd}_${origRid}`;
-          Object.values(rosterPicksRaw).forEach(arr=>{
-            const i=arr.findIndex(p=>p._id===pickId);
-            if(i>=0) arr.splice(i,1);
-          });
-          if(!rosterPicksRaw[curOwner]) rosterPicksRaw[curOwner]=[];
-          rosterPicksRaw[curOwner].push({season:yr,round:rd,isOwn:curOwner===origRid,_orig:origRid,_id:pickId});
-        });
-        if(!lgRes?.previous_league_id) break;
-        scanId=lgRes.previous_league_id;
-      }
-    }catch(e){}
-
-    // STEP 2: transactions — only to catch picks returned to original owner
-    // (/traded_picks omits these since the pick is back "home")
-    try{
-      let scanId=id;
-      const seenLids=new Set();
-      for(let s=0;s<8;s++){
-        if(seenLids.has(scanId)) break;
-        seenLids.add(scanId);
+        if(seen.has(scanId)) break;
+        seen.add(scanId);
         const [lgRes,weekTxns]=await Promise.all([
           fetch(`https://api.sleeper.app/v1/league/${scanId}`).then(r=>r.ok?r.json():null).catch(()=>null),
           Promise.all(Array.from({length:24},(_,i)=>
@@ -2830,34 +2774,66 @@ async function loadLeague(){
               .then(r=>r.json()).catch(()=>[])
           ))
         ]);
-        weekTxns.forEach(wk=>{
-          if(!Array.isArray(wk)) return;
-          wk.forEach(t=>{
-            if(t.type!=='trade'&&t.type!=='commissioner') return;
-            (t.draft_picks||[]).forEach(pk=>{
-              const yr=parseInt(pk.season)||0;
-              const rd=parseInt(pk.round)||0;
-              if(yr<=2026||!rd) return;
-              const origRid=toRid(pk.original_roster_id,scanId);
-              const curOwner=toRid(pk.owner_id,scanId);
-              if(!origRid||!curOwner) return;
-              if(curOwner!==origRid) return; // only handle returned picks
-              const pickId=`${yr}_${rd}_${origRid}`;
-              Object.values(rosterPicksRaw).forEach(arr=>{
-                const i=arr.findIndex(p=>p._id===pickId);
-                if(i>=0) arr.splice(i,1);
-              });
-              if(!rosterPicksRaw[curOwner]) rosterPicksRaw[curOwner]=[];
-              if(!rosterPicksRaw[curOwner].find(p=>p._id===pickId)){
-                rosterPicksRaw[curOwner].push({season:yr,round:rd,isOwn:true,_orig:origRid,_id:pickId});
-              }
-            });
-          });
-        });
+        weekTxns.forEach(wk=>{ if(Array.isArray(wk)) wk.forEach(t=>{
+          if(t.type==='trade'||t.type==='commissioner') allTxns.push(t);
+        }); });
         if(!lgRes?.previous_league_id) break;
         scanId=lgRes.previous_league_id;
       }
     }catch(e){}
+
+    // Deduplicate by transaction_id
+    const txnSeen=new Set();
+    const dedupedTxns=allTxns.filter(t=>{
+      const k=String(t.transaction_id||Math.random());
+      if(txnSeen.has(k)) return false;
+      txnSeen.add(k); return true;
+    });
+
+    // Sort oldest first — same timestamp uses transaction_id as tiebreaker
+    dedupedTxns.sort((a,b)=>{
+      const tsDiff=(a.status_updated||a.created||0)-(b.status_updated||b.created||0);
+      if(tsDiff!==0) return tsDiff;
+      const aId=String(a.transaction_id||'0').padStart(20,'0');
+      const bId=String(b.transaction_id||'0').padStart(20,'0');
+      return aId<bId?-1:aId>bId?1:0;
+    });
+
+    // Build finalOwner map: pickId → current owner roster_id
+    // Last transaction wins (oldest→newest sort means last write = most recent trade)
+    const finalOwner={};
+    dedupedTxns.forEach(txn=>{
+      const seenPks=new Set();
+      (txn.draft_picks||[]).forEach(pk=>{
+        const yr=parseInt(pk.season)||0;
+        const rd=parseInt(pk.round)||0;
+        if(yr<2027||!rd) return;
+        const origRid=toRid(pk.original_roster_id)||toRid(pk.previous_owner_id);
+        if(!origRid) return;
+        const pickId=`${yr}_${rd}_${origRid}`;
+        if(seenPks.has(pickId)) return; // skip dupes within same transaction
+        seenPks.add(pickId);
+        const newOwner=toRid(pk.owner_id);
+        if(newOwner) finalOwner[pickId]=newOwner;
+      });
+    });
+
+    // Apply finalOwner to rosterPicksRaw
+    Object.entries(finalOwner).forEach(([pickId,ownerRid])=>{
+      // Remove from all rosters
+      Object.values(rosterPicksRaw).forEach(arr=>{
+        const i=arr.findIndex(p=>p._id===pickId);
+        if(i>=0) arr.splice(i,1);
+      });
+      // Add to final owner
+      if(!rosterPicksRaw[ownerRid]) rosterPicksRaw[ownerRid]=[];
+      if(!rosterPicksRaw[ownerRid].find(p=>p._id===pickId)){
+        const parts=pickId.split('_');
+        const yr=parseInt(parts[0]),rd=parseInt(parts[1]),orig=parseInt(parts[2]);
+        rosterPicksRaw[ownerRid].push({season:yr,round:rd,isOwn:ownerRid===orig,_orig:orig,_id:pickId});
+      }
+    });
+
     Object.entries(sp).forEach(([pid,p])=>{
       if(!p.first_name&&!p.last_name) return;
       const key=normName(`${p.first_name||''} ${p.last_name||''}`);
