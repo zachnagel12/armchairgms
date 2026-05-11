@@ -2905,7 +2905,10 @@ async function loadLeague(){
     const rosterSlot={};
     draftOrder.forEach((r,i)=>{
       const pct=i/_n;
-      rosterSlot[r.rid]=pct<0.333?'Early':pct<0.667?'Mid':'Late';
+      const slot=pct<0.333?'Early':pct<0.667?'Mid':'Late';
+      // Store under both number and string versions of rid to handle type mismatches
+      rosterSlot[r.rid]=slot;
+      rosterSlot[String(r.rid)]=slot;
     });
 
     scored.forEach(r=>{
@@ -2916,7 +2919,8 @@ async function loadLeague(){
         const rd=pk.round;
         // Rd 1-2: use original owner's slot (same for all years)
         // Rd 3-4: always Mid
-        const slot=(rd<=2)?(rosterSlot[origRid]||rosterSlot[r.rid]||'Mid'):'Mid';
+        // Check both number and string versions of origRid
+        const slot=(rd<=2)?(rosterSlot[origRid]||rosterSlot[String(origRid)]||rosterSlot[parseInt(origRid)]||rosterSlot[r.rid]||'Mid'):'Mid';
         pk.slot=slot;
         let match=DATA.find(d=>d.type==='pick'&&d.year==yr&&d.round==rd&&d.slot===slot);
         if(!match) match=DATA.find(d=>d.type==='pick'&&d.year==yr&&d.round==rd);
