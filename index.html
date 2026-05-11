@@ -2910,7 +2910,13 @@ async function loadLeague(){
         }
 
         const pick=rosterPicksRaw[actualGiver][giverIdx];
+        // Remove from actual giver
         rosterPicksRaw[actualGiver].splice(giverIdx,1);
+        // Also remove from stated giver if different (can be left over from earlier chain)
+        if(giver!==actualGiver){
+          const statedIdx=rosterPicksRaw[giver]?.findIndex(p=>p._id===pick._id);
+          if(statedIdx>=0) rosterPicksRaw[giver].splice(statedIdx,1);
+        }
         rosterPicksRaw[receiver].push({...pick,isOwn:receiver===pick._orig,_id:pick._id});
         pickCurrentHolder[pick._id]=receiver;
         if(receiver===2){window._r2moves=window._r2moves||[];window._r2moves.push(`${pick._id} from:${actualGiver} ts:${txn.status_updated||txn.created||0} lid:${txn._leagueId} rawRostIds:${JSON.stringify(txn.roster_ids)} srmEntry:${JSON.stringify(seasonRidMap[txn._leagueId]||{})}`);}
