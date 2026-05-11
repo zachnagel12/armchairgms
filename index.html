@@ -120,7 +120,7 @@ td{padding:8px 16px;vertical-align:middle;}
 .rname{font-family:'Oswald',sans-serif;font-size:13px;font-weight:600;color:var(--text);}
 tbody tr:hover .rname{text-decoration:underline;text-decoration-color:rgba(176,96,48,0.4);text-underline-offset:2px;}
 /* Touch active feedback */
-tbody tr:active{background:rgba(192,120,72,0.18) !important;}
+tbody tr:active{background:rgba(192,120,72,0.08) !important;}
 .tc:active{opacity:0.92;}
 /* On touch devices (no hover support): show cues persistently */
 @media(hover:none){
@@ -3026,8 +3026,9 @@ function renderLeague(league,rosters,lid){
   const champBars=champSorted.map((r,i)=>{
     const pct=Math.round((r.champOdds/maxOdds)*100);
     const col=champColors[i%champColors.length];
+    const rIdx=rosters.findIndex(x=>x.owner===r.owner);
     return `<div class="champ-row">
-      <div class="champ-owner" title="${r.owner}">${r.owner.split(' ')[0]}</div>
+      <div class="champ-owner" onclick="showRosterBreakdown(${rIdx})" style="cursor:pointer;text-decoration:underline;text-decoration-color:rgba(176,96,48,0.4);text-underline-offset:3px;" title="Tap to see roster">${r.owner.split(' ')[0]} <span style="font-family:Oswald,sans-serif;font-size:10px;color:var(--accent);opacity:0.7;">→</span></div>
       <div class="champ-bar-outer"><div class="champ-bar-inner" style="width:${pct}%;background:${col};"></div></div>
       <div class="champ-pct">${r.champOdds}%</div>
     </div>`;
