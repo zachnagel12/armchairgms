@@ -1939,18 +1939,27 @@ function showRosterBreakdown(rosterIdx){
     playerHtml+=`<div class="modal-section">Draft Capital</div>`;
     // Build roster_id → owner name map from MODAL_DATA
     const ridToOwner={};
-    MODAL_DATA.forEach(md=>{ if(md.rid) ridToOwner[md.rid]=md.owner; });
+    MODAL_DATA.forEach(md=>{ 
+      if(md.rid!==undefined){ 
+        ridToOwner[md.rid]=md.owner;
+        ridToOwner[parseInt(md.rid)]=md.owner;
+        ridToOwner[String(md.rid)]=md.owner;
+      }
+    });
     picks.forEach(pk=>{
       const slot=pk.slot||'Mid';
       const val=(pk.matchedScore||0).toFixed(1);
       const rd=pk.round;
       const yr=pk.season;
       const rdLabel=rd===1?'1st':rd===2?'2nd':rd===3?'3rd':'4th';
-      // Determine original owner name
       const origRid=pk._orig;
-      const origOwnerName=origRid?ridToOwner[origRid]||ridToOwner[parseInt(origRid)]||ridToOwner[String(origRid)]:'';
-      const isOwn=!origRid||origRid===r.rid||parseInt(origRid)===r.rid;
-      const fromTag=!isOwn&&origOwnerName
+      // isOwn: true if _orig matches current roster's rid (pick was never traded away)
+      const isOwn=( origRid===undefined || origRid===null ||
+                    origRid===r.rid || parseInt(origRid)===parseInt(r.rid) );
+      const origOwnerName=!isOwn
+        ?(ridToOwner[origRid]||ridToOwner[parseInt(origRid)]||ridToOwner[String(origRid)]||`Team ${origRid}`)
+        :'';
+      const fromTag=!isOwn
         ?`<span style="font-family:Oswald,sans-serif;font-size:10px;color:var(--accent);margin-left:4px;">(${origOwnerName.split(' ')[0]})</span>`
         :'';
       const pickLabel=`${yr} ${rdLabel} · ${slot}`;
@@ -3208,7 +3217,7 @@ function showRoster(idx){
   if(picks.length){
     html+=`<div class="modal-section">Draft Capital</div>`;
     const ridToOwner2={};
-    MODAL_DATA.forEach(md=>{ if(md.rid){ ridToOwner2[md.rid]=md.owner; ridToOwner2[String(md.rid)]=md.owner; }});
+    MODAL_DATA.forEach(md=>{ if(md.rid!==undefined){ ridToOwner2[md.rid]=md.owner; ridToOwner2[parseInt(md.rid)]=md.owner; ridToOwner2[String(md.rid)]=md.owner; }});
     picks.forEach(pk=>{
       const slot=pk.slot||'Mid';
       const val=(pk.matchedScore||0).toFixed(1);
@@ -3216,8 +3225,8 @@ function showRoster(idx){
       const yr=pk.season;
       const rdLabel=rd===1?'1st':rd===2?'2nd':rd===3?'3rd':'4th';
       const origRid=pk._orig;
-      const isOwn=!origRid||origRid===r.rid||parseInt(origRid)===r.rid;
-      const origOwnerName=!isOwn?(ridToOwner2[origRid]||ridToOwner2[parseInt(origRid)]||''):'';
+      const isOwn=(origRid===undefined||origRid===null||origRid===r.rid||parseInt(origRid)===parseInt(r.rid));
+      const origOwnerName=!isOwn?(ridToOwner2[origRid]||ridToOwner2[parseInt(origRid)]||ridToOwner2[String(origRid)]||`Team ${origRid}`):'';
       const fromTag=origOwnerName?` <span style="font-family:Oswald,sans-serif;font-size:10px;color:var(--accent);">(${origOwnerName.split(' ')[0]})</span>`:'';
       html+=`<div class="modal-player-row">
         <div style="width:36px;height:36px;border-radius:50%;background:rgba(155,138,191,0.12);border:1px solid var(--pick);display:flex;align-items:center;justify-content:center;font-family:Oswald,sans-serif;font-size:9px;font-weight:600;color:var(--pick);flex-shrink:0;">R${rd}</div>
