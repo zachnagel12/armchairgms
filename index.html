@@ -2871,12 +2871,6 @@ async function loadLeague(){
         // Try exact _id match first
         let giverIdx=rosterPicksRaw[giver]?.findIndex(p=>p._id===pickId);
 
-        // Log miss for debugging
-        if(giverIdx<0){
-          window._pickMisses=window._pickMisses||[];
-          window._pickMisses.push({pickId,giver,receiver,origRid:origOwner,prevOwner:toRid(pk.previous_owner_id),ownerId:toRid(pk.owner_id),rosterIds:txn.roster_ids,giverPicks:rosterPicksRaw[giver]?.map(p=>p._id)});
-        }
-
         // _id miss: Sleeper sometimes stores different origRid across transactions for same pick.
         // Try alternative IDs using other fields on the pick object.
         if(giverIdx<0){
@@ -2896,7 +2890,11 @@ async function loadLeague(){
           }
         }
 
-        if(giverIdx<0) return;
+        if(giverIdx<0){
+          window._pickMisses=window._pickMisses||[];
+          window._pickMisses.push(`${pickId} g:${giver}→r:${receiver} ts:${txn.status_updated||txn.created||0} id:${txn.transaction_id} has:[${(rosterPicksRaw[giver]||[]).filter(p=>p.season===yr&&p.round===rd).map(p=>p._id).join(',')}]`);
+          return;
+        }
 
         const pick=rosterPicksRaw[giver][giverIdx];
         rosterPicksRaw[giver].splice(giverIdx,1);
@@ -3270,7 +3268,7 @@ async function loadLeague(){
         const el=document.getElementById('lcon');
         const html=`<div style="background:#1a1a2e;border:2px solid red;padding:12px;margin-bottom:16px;font-family:monospace;font-size:10px;color:#f88;overflow:auto;max-height:300px;">
           <b style="color:#faa;">PICK MISSES (${misses.length})</b><br>
-          ${misses.map(m=>`pickId:${m.pickId} giver:${m.giver} receiver:${m.receiver} orig:${m.origRid} prev:${m.prevOwner} owner:${m.ownerId}<br>giverHas:[${(m.giverPicks||[]).join(',')}]<hr>`).join('')}
+          ${misses.map(m=>`${m}<br>`).join('')}
         </div>`;
         el.innerHTML=html+el.innerHTML;
       }
