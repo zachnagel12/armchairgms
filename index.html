@@ -2779,7 +2779,7 @@ async function loadLeague(){
       if(isNaN(n)||n<=0) return null;
       if(rosters.find(r=>r.roster_id===n)) return n;
       if(userToRoster[String(v)]) return userToRoster[String(v)];
-      return n;
+      return null;
     }
 
     // Collect all trade + commissioner transactions across all historical seasons
@@ -2865,12 +2865,7 @@ async function loadLeague(){
 
         if(!giver||!receiver||giver===receiver) return;
 
-        let giverIdx=rosterPicksRaw[giver]?.findIndex(p=>p._id===pickId);
-        // If exact _id miss, try season+round — only if exactly one match (unambiguous)
-        if(giverIdx<0){
-          const matches=rosterPicksRaw[giver]?.reduce((acc,p,i)=>{if(p.season===yr&&p.round===rd)acc.push(i);return acc;},[]);
-          if(matches?.length===1) giverIdx=matches[0];
-        }
+        const giverIdx=rosterPicksRaw[giver]?.findIndex(p=>p._id===pickId);
         if(giverIdx<0) return;
 
         const pick=rosterPicksRaw[giver][giverIdx];
