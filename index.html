@@ -523,7 +523,12 @@ tbody tr.sel{background:rgba(192,120,72,0.13);border-left:3px solid var(--accent
 .modal-close{background:none;border:1px solid var(--border2);color:var(--text3);font-size:18px;cursor:pointer;width:30px;height:30px;display:flex;align-items:center;justify-content:center;border-radius:var(--r6);transition:all 0.15s;}
 .modal-close:hover{border-color:var(--accent);color:var(--accent);}
 .modal-body{overflow-y:auto;flex:1;}
-.modal-player-row{display:flex;align-items:center;gap:12px;padding:10px 20px;border-bottom:1px solid rgba(37,40,54,0.7);transition:background 0.1s;}
+.modal-player-row{display:flex;align-items:center;gap:12px;padding:10px 20px;border-bottom:1px solid var(--border);transition:background 0.1s;}
+.modal-player-row[onclick]{cursor:pointer;}
+.modal-player-row[onclick]:hover{background:var(--bg3);}
+.modal-player-row[onclick]:active{background:rgba(192,120,72,0.08);}
+.modal-player-row:hover{background:rgba(192,120,72,0.07);}
+.modal-player-row:active{background:rgba(192,120,72,0.14);}
 .modal-player-row:hover{background:rgba(192,120,72,0.05);}
 .modal-player-name{font-family:'Oswald',sans-serif;font-size:13px;font-weight:600;color:var(--text);flex:1;}
 .modal-player-meta{font-size:10px;color:var(--text3);margin-top:1px;}
@@ -1917,24 +1922,7 @@ function showRosterBreakdown(rosterIdx){
     return `<div style="margin-bottom:8px;"><span style="font-family:Oswald,sans-serif;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:${POS_COLORS[pos]};margin-right:6px;">${pos}</span>${top.map(p=>`${p.name} (${getScore(p).toFixed(1)})`).join(', ')}</div>`;
   }).join(''):'<div style="font-size:12px;color:var(--gt);">No major holes.</div>';
 
-  let html=posRankSection+`<div style="padding:16px 20px;border-bottom:1px solid var(--border);background:var(--bg3);">
-    <div style="font-family:Oswald,sans-serif;font-size:10px;letter-spacing:0.16em;text-transform:uppercase;color:var(--text3);margin-bottom:12px;">Positional Breakdown vs League Avg</div>
-    ${posRows}
-  </div>
-  <div style="padding:14px 20px;border-bottom:1px solid var(--border);">
-    <div style="display:flex;gap:10px;flex-wrap:wrap;">
-      <div style="text-align:center;background:var(--bg3);border:1px solid var(--border);padding:8px 14px;border-radius:var(--r6);"><div style="font-family:'Russo One',sans-serif;font-size:16px;color:var(--gt);">${ageCounts.young}</div><div style="font-family:Oswald,sans-serif;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;color:var(--text3);">Young</div></div>
-      <div style="text-align:center;background:var(--bg3);border:1px solid var(--border);padding:8px 14px;border-radius:var(--r6);"><div style="font-family:'Russo One',sans-serif;font-size:16px;color:var(--gold);">${ageCounts.peak}</div><div style="font-family:Oswald,sans-serif;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;color:var(--text3);">Prime</div></div>
-      <div style="text-align:center;background:var(--bg3);border:1px solid var(--border);padding:8px 14px;border-radius:var(--r6);"><div style="font-family:'Russo One',sans-serif;font-size:16px;color:var(--rt);">${ageCounts.old}</div><div style="font-family:Oswald,sans-serif;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;color:var(--text3);">Aging</div></div>
-      ${strengths.length?`<div style="flex:1;background:rgba(118,196,144,0.08);border:1px solid rgba(118,196,144,0.3);padding:8px 14px;border-radius:var(--r6);font-size:11px;color:var(--gt);">Surplus: ${strengths.join(', ')}</div>`:''}
-      ${holes.length?`<div style="flex:1;background:rgba(220,136,136,0.08);border:1px solid rgba(220,136,136,0.3);padding:8px 14px;border-radius:var(--r6);font-size:11px;color:var(--rt);">Holes: ${holes.join(', ')}</div>`:''}
-    </div>
-  </div>
-  <div style="padding:14px 20px;border-bottom:1px solid var(--border);">
-    <div style="font-family:Oswald,sans-serif;font-size:10px;letter-spacing:0.16em;text-transform:uppercase;color:var(--text3);margin-bottom:8px;">Trade targets to address holes</div>
-    ${tradeTargets}
-  </div>
-  <div style="padding:8px 20px 0;"><div style="font-family:Oswald,sans-serif;font-size:10px;letter-spacing:0.16em;text-transform:uppercase;color:var(--text3);margin-bottom:4px;">Full Roster</div></div>`;
+  let html=posRankSection+`<div style="padding:8px 20px 0;"><div style="font-family:Oswald,sans-serif;font-size:10px;letter-spacing:0.16em;text-transform:uppercase;color:var(--text3);margin-bottom:4px;">Full Roster</div></div>`;
 
   const posOrder={QB:0,WR:1,RB:2,TE:3};
   const sorted=[...r.all].sort((a,b)=>(posOrder[a.pos]??9)-(posOrder[b.pos]??9)||getScore(b)-getScore(a));
@@ -1944,7 +1932,7 @@ function showRosterBreakdown(rosterIdx){
     const pid=p.sleeper_id||SLEEPER_PID[normName(p.name)];
     const pc=POS_COLORS[p.pos]||'var(--text3)';
     const photo=pid?`<img style="width:36px;height:36px;border-radius:50%;object-fit:cover;object-position:top center;border:1px solid var(--border);" src="https://sleepercdn.com/content/nfl/players/${pid}.jpg" onerror="this.style.display='none'">`:`<div style="width:36px;height:36px;border-radius:50%;background:var(--bg3);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-family:Oswald,sans-serif;font-size:10px;color:${pc};">${p.pos}</div>`;
-    playerHtml+=`<div class="modal-player-row">${photo}<div style="flex:1;"><div class="modal-player-name">${p.name}</div><div class="modal-player-meta">${p.team==='FA'?'Free Agent':p.team}${p.age?' · Age '+p.age:''}</div></div><div class="modal-player-score">${getScore(p).toFixed(1)}</div></div>`;
+    playerHtml+=`<div class="modal-player-row" onclick="selectFromModal(${p.rank})" style="cursor:pointer;">${photo}<div style="flex:1;"><div class="modal-player-name" style="text-decoration:underline;text-decoration-color:rgba(176,96,48,0.3);text-underline-offset:2px;">${p.name}</div><div class="modal-player-meta">${p.team==='FA'?'Free Agent':p.team}${p.age?' · Age '+p.age:''}</div></div><div class="modal-player-score">${getScore(p).toFixed(1)}</div><div style="color:var(--border2);font-size:12px;margin-left:4px;">›</div></div>`;
   });
   const picks=(r.picks||[]).slice().sort((a,b)=>a.season-b.season||a.round-b.round);
   if(picks.length){
@@ -2908,22 +2896,37 @@ async function loadLeague(){
     });
 
     // Assign draft pick SLOTS based on projected finish order
-    // Worst projected record = earliest pick slot
+    // Worst projected record = earliest pick slot (Early = top 3 picks, Late = bottom 3)
+    // Only applies to 1st and 2nd round picks — 3rd/4th are always Mid
     const n=scored.length;
-    // Sort by pwr ascending (worst team picks first)
     const draftOrder=[...scored].sort((a,b)=>a.pwr-b.pwr);
-    // Slot assignment based on position in draft order
+
     function pickSlot(pos, total){
-      const pct=pos/total; // 0=first pick, 1=last pick
+      const pct=pos/total; // 0=worst(first pick), 1=best(last pick)
       if(pct<0.25)  return 'Early';
       if(pct<0.42)  return 'Early-Mid';
       if(pct<0.58)  return 'Mid';
       if(pct<0.75)  return 'Mid-Late';
       return 'Late';
     }
-    // Map roster_id -> slot label
+
+    // Current year slot (tight projection from current pwr)
     const rosterSlot={};
     draftOrder.forEach((r,i)=>{ rosterSlot[r.rid]=pickSlot(i,draftOrder.length); });
+
+    // Following year slot — regression toward mean by 1 step
+    // Bad teams tend to improve, good teams tend to regress slightly
+    const slotSteps=['Early','Early-Mid','Mid','Mid-Late','Late'];
+    function regressSlot(slot){
+      const idx=slotSteps.indexOf(slot);
+      if(idx<0) return 'Mid';
+      // Push toward middle (index 2)
+      if(idx<2) return slotSteps[idx+1]; // bad teams regress toward mid
+      if(idx>2) return slotSteps[idx-1]; // good teams regress toward mid
+      return 'Mid';
+    }
+    const rosterSlotY2={};
+    Object.entries(rosterSlot).forEach(([rid,slot])=>{ rosterSlotY2[rid]=regressSlot(slot); });
 
     // Now rescore picks using slot-aware DATA lookup and attach slot to each pick object
     // r.picks already reflects correct ownership — own picks that were never traded,
@@ -2932,10 +2935,17 @@ async function loadLeague(){
       let pickVal=0;
       (r.picks||[]).forEach(pk=>{
         const origRid=pk._orig||r.rid;
-        const slot=rosterSlot[origRid]||rosterSlot[r.rid]||'Mid';
-        pk.slot=slot;
-        const yr=pk.season;
+        const yr=parseInt(pk.season)||2027;
         const rd=pk.round;
+        // Only 1st and 2nd round picks get projected slots
+        // 3rd/4th always Mid — too hard to predict that far
+        let slot='Mid';
+        if(rd<=2){
+          const isY2=yr>=2028; // picks 2+ years out get regressed slot
+          const baseSlot=rosterSlot[origRid]||rosterSlot[r.rid]||'Mid';
+          slot=isY2?rosterSlotY2[origRid]||rosterSlotY2[r.rid]||'Mid':baseSlot;
+        }
+        pk.slot=slot;
         let match=DATA.find(d=>d.type==='pick'&&d.year==yr&&d.round==rd&&d.slot===slot);
         if(!match) match=DATA.find(d=>d.type==='pick'&&d.year==yr&&d.round==rd);
         if(match){
@@ -3265,6 +3275,46 @@ function showRoster(idx){
   document.getElementById('modal-total').textContent=displayTotal;
   document.getElementById('roster-modal').style.display='flex';
 }
+function selectFromModal(rank){
+  // Close the roster modal
+  document.getElementById('roster-modal').style.display='none';
+  // Select the player and show their card
+  selItem(rank);
+  // Switch to rankings tab so the card is visible
+  const rankTab=document.querySelectorAll('.nt')[0];
+  showPg('rankings',rankTab);
+}
+
+function selectFromModal(rank){
+  // Select the player
+  SEL=DATA.find(d=>d.rank===rank);
+  if(!SEL) return;
+  // Close roster modal
+  document.getElementById('roster-modal').style.display='none';
+  // Switch to rankings tab and render
+  const rankTab=document.querySelector('.nt.active')||document.querySelectorAll('.nt')[0];
+  showPg('rankings', document.querySelectorAll('.nt')[0]);
+  renderTable();
+  renderCard();
+  // On mobile pop the player modal
+  if(window.innerWidth<=768){
+    const modal=document.getElementById('player-modal');
+    const body=document.getElementById('player-modal-body');
+    const title=document.getElementById('player-modal-title');
+    if(modal&&body){
+      title.textContent=SEL.name;
+      body.innerHTML=document.getElementById('ac').innerHTML;
+      modal.style.display='flex';
+    }
+  } else {
+    // On desktop scroll the selected row into view
+    setTimeout(()=>{
+      const sel=document.querySelector('tbody tr.sel');
+      if(sel) sel.scrollIntoView({behavior:'smooth',block:'center'});
+    },100);
+  }
+}
+
 function closeModal(){document.getElementById('roster-modal').style.display='none';}
 
 function renderLeague(league,rosters,lid){
