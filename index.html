@@ -2899,6 +2899,8 @@ async function loadLeague(){
           const byRound=rosterPicksRaw[giver]?.filter(p=>p.season===yr&&p.round===rd)||[];
           if(byRound.length===1){
             giverIdx=rosterPicksRaw[giver].indexOf(byRound[0]);
+            window._fallbackMoves=window._fallbackMoves||[];
+            window._fallbackMoves.push(`FALLBACK: ${pickId}→stored:${byRound[0]._id} g:${giver}→r:${receiver} ts:${txn.status_updated||txn.created||0}`);
           }
         }
 
@@ -3278,9 +3280,11 @@ async function loadLeague(){
       const misses=window._pickMisses||[];
       if(misses.length){
         const el=document.getElementById('lcon');
-        const html=`<div style="background:#1a1a2e;border:2px solid red;padding:12px;margin-bottom:16px;font-family:monospace;font-size:10px;color:#f88;overflow:auto;max-height:300px;">
+        const html=`<div style="background:#1a1a2e;border:2px solid red;padding:12px;margin-bottom:16px;font-family:monospace;font-size:10px;color:#f88;overflow:auto;max-height:400px;">
           <b style="color:#faa;">PICK MISSES (${misses.length}) | allTxns:${allTxns.length} deduped:${dedupedTxns.length}</b><br>
           ${misses.map(m=>`${m}<br>`).join('')}
+          <br><b style="color:#fa8;">FALLBACK MOVES (${(window._fallbackMoves||[]).length})</b><br>
+          ${(window._fallbackMoves||[]).map(m=>`${m}<br>`).join('')}
         </div>`;
         el.innerHTML=html+el.innerHTML;
       }
