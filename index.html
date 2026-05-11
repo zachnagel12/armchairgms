@@ -199,18 +199,18 @@ td{padding:8px 16px;vertical-align:middle;overflow:hidden;text-overflow:ellipsis
 .tco{font-family:'Oswald',sans-serif;font-size:15px;font-weight:600;color:var(--text);line-height:1.2;letter-spacing:0.02em;}
 .tcr{font-family:'Oswald',sans-serif;font-size:10px;color:var(--text3);letter-spacing:0.05em;margin-top:2px;}
 .tcp{font-family:'Oswald',sans-serif;font-size:10px;color:var(--accent2);letter-spacing:0.05em;margin-top:2px;}
-.tcv{padding:12px 14px;text-align:right;border-left:1px solid var(--border);min-width:88px;background:var(--bg2);}
+.tcv{padding:12px 14px;text-align:right;border-left:1px solid var(--border);min-width:88px;background:rgba(13,15,20,0.4);}
 .tcvn{font-family:'Russo One',sans-serif;font-size:20px;color:var(--text);line-height:1;}
 .tcvl{font-family:'Oswald',sans-serif;font-size:9px;letter-spacing:0.12em;text-transform:uppercase;color:var(--text3);margin-top:2px;}
 .tcpp{font-size:10px;color:var(--text3);font-family:'Oswald',sans-serif;margin-top:3px;}
-.tcb{padding:10px 14px;border-top:1px solid var(--border);background:var(--bg3);}
+.tcb{padding:10px 14px;border-top:1px solid var(--border);background:rgba(13,15,20,0.2);}
 .tcpills{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:6px;}
 .tcp2{font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:0.04em;padding:3px 8px;border:1px solid;border-radius:4px;}
 .tcp2.pos-QB{border-color:rgba(136,170,220,0.5);color:var(--qb);background:rgba(136,170,220,0.06);}
 .tcp2.pos-WR{border-color:rgba(118,196,144,0.5);color:var(--wr);background:rgba(118,196,144,0.06);}
 .tcp2.pos-RB{border-color:rgba(220,136,136,0.5);color:var(--rb);background:rgba(220,136,136,0.06);}
 .tcp2.pos-TE{border-color:rgba(200,168,108,0.5);color:var(--te);background:rgba(200,168,108,0.06);}
-.team-blurb{font-size:12px;color:var(--text2);line-height:1.65;padding:10px 14px;border-top:1px solid var(--border);background:var(--bg2);font-weight:300;font-style:italic;}
+.team-blurb{font-size:12px;color:var(--text2);line-height:1.65;padding:10px 14px;border-top:1px solid rgba(37,40,54,0.5);background:rgba(13,15,20,0.3);font-weight:300;font-style:italic;}
 .tc,.stat-c,.kpi,.pstat,.modal,.lov,.auth-box,.a-tabs{border-radius:var(--r8);}
 footer{background:var(--bg2);border-top:1px solid var(--border);padding:12px 20px;display:flex;align-items:center;justify-content:space-between;}
 .fl2{font-family:'Russo One',sans-serif;font-size:13px;color:var(--text2);}
@@ -702,21 +702,6 @@ tbody tr.sel{background:rgba(192,120,72,0.13);}
 </nav>
 <!-- RANKINGS -->
 <div class="page active" id="page-rankings">
-  <div class="hero">
-    <div>
-      <div class="hero-ey">Dynasty + PPR Redraft · 2026 Season · Source: Flock Fantasy</div>
-      <div class="hero-title">Know Your <em>Trade Value.</em><br>Win Your League.</div>
-      <div class="hero-desc">Trade scores built on production, age curves, positional importance, health, and consistency. 369 players + 2027–2029 dynasty picks.</div>
-    </div>
-    <div class="h-stats">
-      <div class="stat-c"><div class="stat-v">369</div><div class="stat-l">Players</div></div>
-      <div class="stat-c"><div class="stat-v">19</div><div class="stat-l">Draft Picks</div></div>
-      <div class="stat-c" style="cursor:pointer;" onclick="showFlockRefresh()">
-        <div class="stat-v" style="font-size:14px;color:var(--accent2);">↻ Refresh</div>
-        <div class="stat-l">Flock Rankings</div>
-      </div>
-    </div>
-  </div>
   <!-- FLOCK REFRESH PANEL -->
   <div id="flock-panel" style="display:none;background:var(--bg2);border-bottom:2px solid var(--accent);padding:14px 20px;">
     <div style="font-family:Oswald,sans-serif;font-size:10px;letter-spacing:0.16em;text-transform:uppercase;color:var(--text3);margin-bottom:10px;">Update Rankings from Flock Fantasy</div>
@@ -834,15 +819,10 @@ tbody tr.sel{background:rgba(192,120,72,0.13);}
       <div id="dynasty-impact" style="display:none;"></div>
     </div>
 
-    <!-- ROSTER NEEDS CONTEXT — collapsible dropdown -->
-    <div id="roster-needs-ctx" style="display:none;margin-bottom:16px;">
-      <button onclick="toggleRosterNeeds()" id="roster-needs-btn" style="width:100%;display:flex;align-items:center;justify-content:space-between;background:var(--panel);border:1px solid var(--border);border-radius:var(--r8);padding:11px 16px;cursor:pointer;font-family:Oswald,sans-serif;font-size:10px;letter-spacing:0.16em;text-transform:uppercase;color:var(--text3);">
-        <span>League Roster Needs & Surplus</span>
-        <span id="roster-needs-arrow" style="font-size:12px;transition:transform 0.2s;">▼</span>
-      </button>
-      <div id="roster-needs-body" style="display:none;background:var(--panel);border:1px solid var(--border);border-top:none;border-radius:0 0 var(--r8) var(--r8);padding:12px 16px;">
-        <div id="roster-needs-rows"></div>
-      </div>
+    <!-- ROSTER NEEDS CONTEXT -->
+    <div id="roster-needs-ctx" style="display:none;background:var(--panel);border:1px solid var(--border);padding:14px 18px;margin-bottom:16px;border-radius:var(--r8);">
+      <div style="font-family:Oswald,sans-serif;font-size:10px;letter-spacing:0.16em;text-transform:uppercase;color:var(--text3);margin-bottom:8px;">League roster needs & surplus</div>
+      <div id="roster-needs-rows"></div>
     </div>
 
     <!-- FAIR VALUE SUGGESTION -->
@@ -1808,17 +1788,6 @@ function showRosterBreakdown(rosterIdx){
 }
 
 // ── ROSTER NEEDS CONTEXT (Trade Page) ────────────────────────────────
-function toggleRosterNeeds(){
-  const body=document.getElementById('roster-needs-body');
-  const arrow=document.getElementById('roster-needs-arrow');
-  const btn=document.getElementById('roster-needs-btn');
-  if(!body) return;
-  const open=body.style.display==='none';
-  body.style.display=open?'block':'none';
-  if(arrow) arrow.style.transform=open?'rotate(180deg)':'';
-  if(btn) btn.style.borderRadius=open?'var(--r8) var(--r8) 0 0':'var(--r8)';
-}
-
 function renderRosterNeedsContext(){
   const wrap=document.getElementById('roster-needs-ctx');
   const el=document.getElementById('roster-needs-rows');
@@ -2747,11 +2716,11 @@ async function loadLeague(){
       const top5=r.all.slice(0,5);
       const avgAge=top5.length ? top5.reduce((s,p)=>s+(p.age||25),0)/top5.length : 28;
 
-      const isElitePPG  = r.projPPG >= ppgLeagueTop * 0.90;
-      const isGoodPPG   = r.projPPG >= ppgLeagueAvg * 1.08;
-      const isAvgPPG    = r.projPPG >= ppgLeagueAvg * 0.92;
-      const isBadPPG    = r.projPPG < ppgLeagueAvg * 0.85;
-      const isVeryBadPPG= r.projPPG < ppgLeagueAvg * 0.70;
+      const isElitePPG  = r.projPPG >= ppgLeagueTop * 0.88;
+      const isGoodPPG   = r.projPPG >= ppgLeagueAvg * 1.05;
+      const isAvgPPG    = r.projPPG >= ppgLeagueAvg * 0.90;
+      const isBadPPG    = r.projPPG < ppgLeagueAvg * 0.82;
+      const isVeryBadPPG= r.projPPG < ppgLeagueAvg * 0.65;
       const isYoung     = avgAge < 24.5;
       const isMidAge    = avgAge < 27;
       const isOld       = avgAge >= 28.5;
@@ -2760,60 +2729,57 @@ async function loadLeague(){
 
       let start, end;
 
-      // Only truly elite teams get a 2026 window
       if(isElitePPG && isYoung){
+        // Dynasty powerhouse — window is NOW and stays open
         start=2026; end=2030;
       } else if(isElitePPG && isMidAge){
-        start=2026; end=2028;
+        // Peak now, 3-4 year window
+        start=2026; end=2029;
       } else if(isElitePPG && isOld){
-        // Win now — window closes fast
+        // Win now or never
         start=2026; end=2027;
       } else if(isGoodPPG && isYoung){
+        // Building to a strong window
         start=2027; end=2030;
       } else if(isGoodPPG && isMidAge){
-        start=2027; end=2028;
+        start=2026; end=2028;
       } else if(isGoodPPG && isOld){
         start=2026; end=2027;
       } else if(isAvgPPG && hasEarlyPicks && isYoung){
+        // Investing for future
         start=2028; end=2030;
       } else if(isAvgPPG && isMidAge){
-        start=2028; end=2029;
-      } else if(isAvgPPG && isOld){
         start=2027; end=2028;
       } else if(isAvgPPG){
-        start=2028; end=2030;
+        start=2027; end=2029;
       } else if(isBadPPG && hasEarlyPicks && isYoung){
-        start=2029; end=2031;
+        // Clear rebuild with assets
+        start=2028; end=2030;
       } else if(isBadPPG && hasAnyPicks){
-        start=2029; end=2031;
+        start=2028; end=2030;
       } else if(isBadPPG && isYoung){
-        start=2030; end=2032;
-      } else if(isBadPPG && isOld){
-        // Bad and aging — no real window
-        start=2031; end=2033;
+        start=2029; end=2031;
       } else if(isBadPPG){
-        start=2030; end=2032;
-      } else if(isVeryBadPPG && hasEarlyPicks){
-        start=2030; end=2032;
+        // Bad PPG, no picks, not young
+        start=2029; end=2031;
       } else if(isVeryBadPPG){
-        start=2031; end=2033;
+        start=2030; end=2032;
       } else {
         start=2029; end=2031;
       }
 
-      // Harsher overrides — no picks + bad + old = deep rebuild
+      // If very bad: no picks + bad PPG + old = push to 2030+
       if(isVeryBadPPG && isOld && !hasAnyPicks){
-        start=2032; end=2033;
-      } else if(isVeryBadPPG && !hasAnyPicks){
         start=2031; end=2033;
-      } else if(isBadPPG && isOld && !hasAnyPicks){
+      } else if(isVeryBadPPG && !hasAnyPicks){
         start=2030; end=2032;
       }
 
-      start=Math.max(2026,Math.min(2033,start));
-      end=Math.max(start+1,Math.min(2033,end));
+      // Cap to reasonable range
+      start=Math.max(2026,Math.min(2031,start));
+      end=Math.max(start,Math.min(2033,end));
 
-      r.contention = `${start}–${end}`;
+      r.contention = start===end ? String(start) : `${start}–${end}`;
     });
 
 
@@ -2920,8 +2886,7 @@ function renderLeague(league,rosters,lid){
   // ── CHAMPIONSHIP ODDS BAR ──
   const maxOdds=Math.max(...rosters.map(r=>r.champOdds));
   const champColors=['#c07848','#d4985a','#e0aa6a','#8aafe0','#88c4a0','#a898cc','#dc8888','#c8a86c','#7a9aaa','#9a8888','#aab090','#8899a8'];
-  const champSorted=[...rosters].sort((a,b)=>b.champOdds-a.champOdds);
-  const champBars=champSorted.map((r,i)=>{
+  const champBars=rosters.map((r,i)=>{
     const pct=Math.round((r.champOdds/maxOdds)*100);
     const col=champColors[i%champColors.length];
     return `<div class="champ-row">
@@ -2932,8 +2897,8 @@ function renderLeague(league,rosters,lid){
   }).join('');
 
   // ── CONTENTION TIMELINE 2026–2031 ──
-  const YEARS=['2026','2027','2028','2029','2030','2031','2032','2033'];
-  const START=2026, END=2033, SPAN=END-START;
+  const YEARS=['2026','2027','2028','2029','2030','2031'];
+  const START=2026, END=2031, SPAN=END-START;
   const contRows=rosters.map((r,i)=>{
     const win=r.contention||'2028–2029';
     let ws=parseInt(win.split('–')[0]||win)||2028;
@@ -3839,6 +3804,12 @@ function renderTrades(){
   }).join('');
 
   el.innerHTML=`
+    <!-- MANAGER ARCHETYPES -->
+    <div class="hist-section">
+      <div class="hist-section-title">Manager Archetypes</div>
+      ${archetypeHtml||'<div class="no-data">Load league and trade history first</div>'}
+    </div>
+
     <!-- BEST TRADES EVER -->
     <div class="hist-section">
       <div class="hist-section-title">🏆 Biggest Steals (All-Time)</div>
