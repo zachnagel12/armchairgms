@@ -2753,12 +2753,12 @@ async function loadLeague(){
       scanLid=lgRes.previous_league_id;
     }
 
-    // Now fetch transactions for ALL seasons
+    // Now fetch transactions for ALL seasons including week 0 (offseason trades)
     const allPickTxns=[];
     for(const lid of allSeasonIds){
       const weekTxns=await Promise.all(
-        Array.from({length:18},(_,i)=>
-          fetch(`https://api.sleeper.app/v1/league/${lid}/transactions/${i+1}`)
+        Array.from({length:19},(_,i)=>
+          fetch(`https://api.sleeper.app/v1/league/${lid}/transactions/${i}`)
             .then(r=>r.ok?r.json():[]).catch(()=>[])
         )
       );
