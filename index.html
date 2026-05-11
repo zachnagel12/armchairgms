@@ -2805,7 +2805,12 @@ async function loadLeague(){
               .then(r=>r.json()).catch(()=>[])
           )
         );
-        weekTxns.forEach(wk=>{ if(Array.isArray(wk)) wk.forEach(t=>{ if(t.type==='trade'||t.type==='commissioner'){t._leagueId=scanId;allTxns.push(t);} }); });
+        weekTxns.forEach(wk=>{ if(Array.isArray(wk)) wk.forEach(t=>{ 
+          window._allTypes=window._allTypes||{};
+          window._allTypes[t.type]=(window._allTypes[t.type]||0)+1;
+          if(t.type==='trade'||t.type==='commissioner'){t._leagueId=scanId;allTxns.push(t);} 
+          else if(t.draft_picks?.length){window._otherTypes=window._otherTypes||[];window._otherTypes.push(`${t.type}:picks=${t.draft_picks.length}`);}
+        }); });
         window._scannedLeagues=window._scannedLeagues||[];
         window._scannedLeagues.push(`${scanId}:${allTxns.length}txns`);
         if(!lr||!lr.previous_league_id) break;
@@ -3292,7 +3297,7 @@ async function loadLeague(){
       const adds=(window._r2adds||[]).join('<br>');
       const removes=(window._r2removes||[]).join('<br>');
       const el=document.getElementById('lcon');
-      el.innerHTML=`<div style="background:#1a1a2e;border:2px solid red;padding:12px;margin-bottom:16px;font-family:monospace;font-size:10px;color:#f88;overflow:auto;max-height:400px;"><b>MISSES:${misses.length} allTxns:${allTxns.length} deduped:${dedupedTxns.length}</b><br><b>LEAGUES:</b> ${(window._scannedLeagues||[]).join(' | ')}<br><b>R2 FINAL:</b> ${(r2?.picks||[]).map(p=>p._id).join(' ')}<br><b>R2 ADDS(${(window._r2adds||[]).length}):</b><br>${adds}<br><b>R2 REMOVES(${(window._r2removes||[]).length}):</b><br>${removes}</div>`+el.innerHTML;
+      el.innerHTML=`<div style="background:#1a1a2e;border:2px solid red;padding:12px;margin-bottom:16px;font-family:monospace;font-size:10px;color:#f88;overflow:auto;max-height:400px;"><b>MISSES:${misses.length} allTxns:${allTxns.length} deduped:${dedupedTxns.length}</b><br><b>LEAGUES:</b> ${(window._scannedLeagues||[]).join(' | ')}<br><b>TXN TYPES:</b> ${JSON.stringify(window._allTypes||{})}<br><b>OTHER TYPES WITH PICKS:</b> ${(window._otherTypes||[]).join(' | ')}<br><b>R2 FINAL:</b> ${(r2?.picks||[]).map(p=>p._id).join(' ')}<br><b>R2 REMOVES(${(window._r2removes||[]).length}):</b><br>${removes}</div>`+el.innerHTML;
     },3000);
     renderLeague(league,scored,id);
     renderTargets();
