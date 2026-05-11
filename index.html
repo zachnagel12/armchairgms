@@ -2812,7 +2812,14 @@ async function loadLeague(){
     console.log(`[AGM] allTxns:${allTxns.length} dedupedTxns:${dedupedTxns.length}`);
 
     dedupedTxns.forEach(txn=>{
-      const picks=txn.draft_picks||[];
+      // Deduplicate picks within this transaction (Sleeper sometimes lists same pick twice)
+      const seenPks=new Set();
+      const picks=(txn.draft_picks||[]).filter(pk=>{
+        const key=`${pk.season}_${pk.round}_${pk.original_roster_id||pk.previous_owner_id}`;
+        if(seenPks.has(key)) return false;
+        seenPks.add(key);
+        return true;
+      });
       if(!picks.length) return;
       let sides=(txn.roster_ids||[]).map(v=>toRid(v)).filter(Boolean);
 
