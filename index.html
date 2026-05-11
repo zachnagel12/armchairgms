@@ -2812,7 +2812,7 @@ async function loadLeague(){
           else if(t.draft_picks?.length){window._otherTypes=window._otherTypes||[];window._otherTypes.push(`${t.type}:picks=${t.draft_picks.length}`);}
         }); });
         window._scannedLeagues=window._scannedLeagues||[];
-        window._scannedLeagues.push(`${scanId}:${allTxns.length}txns`);
+        window._scannedLeagues.push(`${scanId}:${allTxns.length}txns prevId:${lgRes?.previous_league_id||'none'}`);
         if(!lr||!lr.previous_league_id) break;
         scanId=lr.previous_league_id;
       }
