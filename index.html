@@ -2800,8 +2800,8 @@ async function loadLeague(){
       for(let s=0;s<8;s++){
         const lr=await fetch(`https://api.sleeper.app/v1/league/${scanId}`).then(r=>r.json()).catch(()=>null);
         const weekTxns=await Promise.all(
-          Array.from({length:18},(_,i)=>
-            fetch(`https://api.sleeper.app/v1/league/${scanId}/transactions/${i+1}`)
+          Array.from({length:19},(_,i)=>
+            fetch(`https://api.sleeper.app/v1/league/${scanId}/transactions/${i}`)
               .then(r=>r.json()).catch(()=>[])
           )
         );
