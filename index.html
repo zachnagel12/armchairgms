@@ -1935,6 +1935,7 @@ function showRosterBreakdown(rosterIdx){
     playerHtml+=`<div class="modal-player-row" onclick="selectFromModal(${p.rank})" style="cursor:pointer;">${photo}<div style="flex:1;"><div class="modal-player-name" style="text-decoration:underline;text-decoration-color:rgba(176,96,48,0.3);text-underline-offset:2px;">${p.name}</div><div class="modal-player-meta">${p.team==='FA'?'Free Agent':p.team}${p.age?' · Age '+p.age:''}</div></div><div class="modal-player-score">${getScore(p).toFixed(1)}</div><div style="color:var(--border2);font-size:12px;margin-left:4px;">›</div></div>`;
   });
   const picks=(r.picks||[]).slice().sort((a,b)=>a.season-b.season||a.round-b.round);
+  playerHtml+=`<div style="font-size:10px;color:var(--accent);padding:4px 12px;">DEBUG: ${(r.picks||[]).length} picks | txns:${(window._rawPickTxns||[]).length} | rid:${r.rid}</div>`;
   if(picks.length){
     playerHtml+=`<div class="modal-section">Draft Capital</div>`;
     // Build roster_id → owner name map from MODAL_DATA
