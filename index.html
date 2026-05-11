@@ -193,24 +193,24 @@ td{padding:8px 16px;vertical-align:middle;overflow:hidden;text-overflow:ellipsis
 .tc{background:var(--panel);border:1px solid var(--border);overflow:hidden;transition:box-shadow 0.2s,border-color 0.2s;}
 .tc:hover{box-shadow:0 6px 28px rgba(0,0,0,0.45);border-color:var(--border2);}
 .tctop{display:grid;grid-template-columns:46px 1fr auto;align-items:stretch;}
-.tcrank{background:var(--bg2);display:flex;align-items:center;justify-content:center;border-right:1px solid var(--border);padding:0 4px;}
-.tcrn{font-family:'Russo One',sans-serif;font-size:18px;color:var(--accent);}
-.tci{padding:12px 14px;}
-.tco{font-family:'Oswald',sans-serif;font-size:15px;font-weight:600;color:var(--text);line-height:1.2;letter-spacing:0.02em;}
+.tcrank{background:var(--bg3);display:flex;align-items:center;justify-content:center;border-right:1px solid var(--border);padding:0 10px;min-width:52px;}
+.tcrn{font-family:'Russo One',sans-serif;font-size:16px;color:var(--accent);letter-spacing:0.02em;}
+.tci{padding:14px 16px;flex:1;}
+.tco{font-family:'Russo One',sans-serif;font-size:15px;color:var(--text);line-height:1.2;letter-spacing:0.02em;}
 .tcr{font-family:'Oswald',sans-serif;font-size:10px;color:var(--text3);letter-spacing:0.05em;margin-top:2px;}
 .tcp{font-family:'Oswald',sans-serif;font-size:10px;color:var(--accent2);letter-spacing:0.05em;margin-top:2px;}
-.tcv{padding:12px 14px;text-align:right;border-left:1px solid var(--border);min-width:88px;background:rgba(13,15,20,0.4);}
-.tcvn{font-family:'Russo One',sans-serif;font-size:20px;color:var(--text);line-height:1;}
+.tcv{padding:12px 16px;text-align:right;border-left:1px solid var(--border);min-width:96px;background:var(--bg2);}
+.tcvn{font-family:'Russo One',sans-serif;font-size:22px;color:var(--accent);line-height:1;}
 .tcvl{font-family:'Oswald',sans-serif;font-size:9px;letter-spacing:0.12em;text-transform:uppercase;color:var(--text3);margin-top:2px;}
 .tcpp{font-size:10px;color:var(--text3);font-family:'Oswald',sans-serif;margin-top:3px;}
-.tcb{padding:10px 14px;border-top:1px solid var(--border);background:rgba(13,15,20,0.2);}
+.tcb{padding:12px 16px;border-top:1px solid var(--border);background:var(--bg3);}
 .tcpills{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:6px;}
 .tcp2{font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:0.04em;padding:3px 8px;border:1px solid;border-radius:4px;}
 .tcp2.pos-QB{border-color:rgba(136,170,220,0.5);color:var(--qb);background:rgba(136,170,220,0.06);}
 .tcp2.pos-WR{border-color:rgba(118,196,144,0.5);color:var(--wr);background:rgba(118,196,144,0.06);}
 .tcp2.pos-RB{border-color:rgba(220,136,136,0.5);color:var(--rb);background:rgba(220,136,136,0.06);}
 .tcp2.pos-TE{border-color:rgba(200,168,108,0.5);color:var(--te);background:rgba(200,168,108,0.06);}
-.team-blurb{font-size:12px;color:var(--text2);line-height:1.65;padding:10px 14px;border-top:1px solid rgba(37,40,54,0.5);background:rgba(13,15,20,0.3);font-weight:300;font-style:italic;}
+.team-blurb{font-size:12px;color:var(--text2);line-height:1.65;padding:12px 16px;border-top:1px solid var(--border);background:var(--bg2);font-weight:300;font-style:italic;}
 .tc,.stat-c,.kpi,.pstat,.modal,.lov,.auth-box,.a-tabs{border-radius:var(--r8);}
 footer{background:var(--bg2);border-top:1px solid var(--border);padding:12px 20px;display:flex;align-items:center;justify-content:space-between;}
 .fl2{font-family:'Russo One',sans-serif;font-size:13px;color:var(--text2);}
@@ -2910,27 +2910,7 @@ function renderLeague(league,rosters,lid){
     </div>`;
   }).join('');
 
-  // ── NET TRADE VALUE LEADERBOARD ──
-  let ntlHtml='';
-  if(window._tradesData&&window._tradesData.netTradeValue){
-    const ntv=window._tradesData.netTradeValue;
-    const sorted=Object.entries(ntv).sort((a,b)=>b[1]-a[1]);
-    const maxAbs=Math.max(...sorted.map(([,v])=>Math.abs(v)),1);
-    ntlHtml=`<div class="ntl-wrap">
-      <div class="champ-bar-title">Net Trade Value — All Time</div>
-      ${sorted.map(([name,val],i)=>{
-        const pct=Math.round((Math.abs(val)/maxAbs)*100);
-        const col=val>=0?'var(--gt)':'var(--rt)';
-        const sign=val>=0?'+':'';
-        return `<div class="ntl-row">
-          <div class="ntl-rank">${i+1}</div>
-          <div class="ntl-owner">${name}</div>
-          <div class="ntl-bar"><div class="ntl-fill" style="width:${pct}%;background:${col};"></div></div>
-          <div class="ntl-val" style="color:${col};">${sign}${Math.round(val)}</div>
-        </div>`;
-      }).join('')}
-    </div>`;
-  }
+  // ── NET TRADE LEADERBOARD — removed ──
 
   document.getElementById('lemp').style.display='none';
   document.getElementById('lcon').innerHTML=`
@@ -2956,10 +2936,7 @@ function renderLeague(league,rosters,lid){
       ${contRows}
     </div>
 
-    <!-- NET TRADE LEADERBOARD (if trade data loaded) -->
-    ${ntlHtml}
-
-    <div style="font-family:Oswald,sans-serif;font-size:10px;letter-spacing:0.18em;text-transform:uppercase;color:var(--text3);margin-bottom:12px;">Power Rankings · Tap team name for full breakdown</div>
+    <div style="font-family:Oswald,sans-serif;font-size:10px;letter-spacing:0.18em;text-transform:uppercase;color:var(--text3);margin-bottom:12px;padding-top:4px;">Power Rankings · Tap team name for full breakdown</div>
     <div class="tgrid">${rosters.map((r,i)=>{
       const tier = valueTier(r.totalScore, leagueAvg);
       const blurb = buildBlurb(r, leagueAvg);
@@ -2967,45 +2944,61 @@ function renderLeague(league,rosters,lid){
       const spark = buildSparkline(r.weeklyPts||[]);
       const sosCls = r.sos>=55?'sos-hard':r.sos<=45?'sos-easy':'sos-avg';
       const sosLbl = r.sos>=55?'Hard SOS':r.sos<=45?'Easy SOS':'Avg SOS';
+      const valueBarPct=Math.round((r.totalScore/(leagueAvg*1.5))*100);
+      const topPlayers=r.top.slice(0,5).map(p=>{
+        const pid=p.sleeper_id||SLEEPER_PID[normName(p.name)];
+        const img=pid?`<img src="https://sleepercdn.com/content/nfl/players/${pid}.jpg" style="width:28px;height:28px;border-radius:50%;object-fit:cover;object-position:top center;border:2px solid var(--border);flex-shrink:0;" onerror="this.style.display='none'">`:`<div style="width:28px;height:28px;border-radius:50%;background:var(--bg3);border:2px solid var(--border);display:flex;align-items:center;justify-content:center;font-family:Oswald,sans-serif;font-size:8px;color:var(--text3);flex-shrink:0;">${p.pos}</div>`;
+        return `<div style="display:flex;align-items:center;gap:5px;background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:4px 8px 4px 4px;">
+          ${img}
+          <div>
+            <div style="font-family:Oswald,sans-serif;font-size:11px;font-weight:600;color:var(--text);line-height:1.1;">${p.name.split(' ').pop()}</div>
+            <div style="font-size:10px;color:var(--accent);font-family:'Russo One',sans-serif;">${getScore(p).toFixed(1)}</div>
+          </div>
+        </div>`;
+      }).join('');
       return `
       <div class="tc" id="tc${i}">
-        <div class="tctop">
-          <div class="tcrank"><div class="tcrn">#${i+1}</div></div>
-          <div class="tci">
-            <div class="tco" onclick="showRosterBreakdown(${i})" style="cursor:pointer;text-decoration:underline;text-decoration-color:rgba(192,122,74,0.4);text-underline-offset:3px;">${r.owner}</div>
-            <div class="tcr">${r.wins}W – ${r.losses}L${r.ties>0?' – '+r.ties+'T':''} &nbsp;·&nbsp; Proj: ${r.pw}–${r.pl}</div>
-            <div style="font-family:Oswald,sans-serif;font-size:10px;color:var(--text2);margin-top:2px;">
-              ${r.actualPPG>0?`<span style="color:var(--gt);">▲ ${r.actualPPG} PPG actual</span> &nbsp;·&nbsp; `:''}
-              <span>Proj: ${r.projPPG} PPG</span>
-              ${r.pickUpside>0?` &nbsp;·&nbsp; <span style="color:var(--pick);">+${r.pickUpside} pick upside</span>`:''}
+        <!-- Card header: rank stripe + main info + value -->
+        <div style="display:grid;grid-template-columns:52px 1fr auto;align-items:stretch;">
+          <!-- Rank -->
+          <div style="background:var(--bg3);border-right:1px solid var(--border);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:16px 8px;border-radius:var(--r12) 0 0 0;">
+            <div style="font-family:'Russo One',sans-serif;font-size:11px;color:var(--text3);letter-spacing:0.08em;">#</div>
+            <div style="font-family:'Russo One',sans-serif;font-size:22px;color:var(--accent);line-height:1;">${i+1}</div>
+          </div>
+          <!-- Main info -->
+          <div style="padding:14px 16px;">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:3px;">
+              <div class="tco" onclick="showRosterBreakdown(${i})" style="cursor:pointer;">${r.owner}</div>
+              <div class="grade-badge ${grade.cls}" title="${grade.detail}" style="font-size:11px;padding:1px 7px;">${grade.letter}</div>
             </div>
-            <div style="display:flex;gap:8px;align-items:center;margin-top:4px;flex-wrap:wrap;">
+            <div style="font-family:Oswald,sans-serif;font-size:10px;color:var(--text3);letter-spacing:0.05em;margin-bottom:6px;">
+              ${r.wins}W – ${r.losses}L${r.ties>0?' – '+r.ties+'T':''}
+              ${r.actualPPG>0?` &nbsp;·&nbsp; <span style="color:var(--gt);">${r.actualPPG} PPG</span>`:''}
+              &nbsp;·&nbsp; Proj ${r.pw}–${r.pl}
+            </div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
               <span class="tier-badge ${tier.cls}">${tier.label}</span>
               <span style="font-family:Oswald,sans-serif;font-size:10px;color:var(--accent2);">🏆 ${r.champOdds}%</span>
-              <span style="font-family:Oswald,sans-serif;font-size:10px;color:var(--text3);">Window: ${r.contention}</span>
-              ${r.sos!==undefined?`<span class="sos-badge ${sosCls}" title="SOS: ${r.sos}%">${sosLbl}</span>`:''}
+              <span style="font-family:Oswald,sans-serif;font-size:10px;color:var(--text3);">${r.contention}</span>
+              ${r.sos!==undefined?`<span class="sos-badge ${sosCls}">${sosLbl}</span>`:''}
             </div>
           </div>
-          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;">
-            <div class="grade-badge ${grade.cls}" title="${grade.detail}">${grade.letter}</div>
-            <div class="tcv">
-              <div class="tcvn">${r.totalScore.toFixed(1)}</div>
-              <div class="tcvl">Roster Value</div>
-              ${r.pf>0?`<div class="tcpp">${r.pf.toFixed(0)} PF · ${r.pa.toFixed(0)} PA</div>`:''}
-            </div>
+          <!-- Value -->
+          <div style="background:var(--bg2);border-left:1px solid var(--border);min-width:92px;padding:14px 14px;text-align:right;display:flex;flex-direction:column;justify-content:center;border-radius:0 var(--r12) 0 0;">
+            <div style="font-family:'Russo One',sans-serif;font-size:22px;color:var(--accent);line-height:1;">${r.totalScore.toFixed(0)}</div>
+            <div style="font-family:Oswald,sans-serif;font-size:9px;letter-spacing:0.12em;text-transform:uppercase;color:var(--text3);margin-top:2px;">Roster Val</div>
+            ${r.pf>0?`<div style="font-size:10px;color:var(--text3);font-family:Oswald,sans-serif;margin-top:4px;">${r.pf.toFixed(0)} PF</div>`:''}
           </div>
         </div>
-        <div class="tcb">
-          <div class="tcpills">
-            ${r.top.map(p=>{
-              const pid=p.sleeper_id||SLEEPER_PID[normName(p.name)];
-              const img=pid?`<img src="https://sleepercdn.com/content/nfl/players/${pid}.jpg" style="width:20px;height:20px;border-radius:50%;object-fit:cover;object-position:top center;border:1px solid var(--border);vertical-align:middle;margin-right:3px;" onerror="this.style.display='none'">`:'';
-              return `<div class="tcp2 pos-${p.pos}">${img}${p.name.split(' ').pop()} <span style="opacity:0.5;font-size:9px;">${getScore(p).toFixed(1)}</span></div>`;
-            }).join('')}
+        <!-- Player pills row -->
+        <div style="padding:12px 16px;border-top:1px solid var(--border);background:var(--bg3);">
+          <div style="display:flex;flex-wrap:wrap;gap:6px;">
+            ${topPlayers}
             ${!r.all.length?'<span style="font-size:11px;color:var(--text3);font-style:italic;">No matched players</span>':''}
           </div>
-          ${spark?`<div style="padding:6px 0 2px;"><div style="font-family:Oswald,sans-serif;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;color:var(--text3);margin-bottom:4px;">Scoring Trend</div>${spark}</div>`:''}
+          ${spark?`<div style="margin-top:8px;"><div style="font-family:Oswald,sans-serif;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;color:var(--text3);margin-bottom:4px;">Scoring Trend</div>${spark}</div>`:''}
         </div>
+        <!-- Blurb -->
         <div class="team-blurb">${blurb}</div>
       </div>`;
     }).join('')}
