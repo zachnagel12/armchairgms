@@ -107,14 +107,17 @@ nav{background:var(--bg2);border-bottom:2px solid var(--accent);display:flex;ali
 .sw input{width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);font-family:'Barlow Condensed',sans-serif;font-size:14px;padding:7px 11px;outline:none;border-radius:var(--r6);transition:border-color 0.15s;}
 .sw input::placeholder{color:var(--text3);}
 .sw input:focus{border-color:var(--accent);}
-.tw{max-height:calc(100vh - 300px);overflow-y:auto;}
-table{width:100%;border-collapse:collapse;table-layout:fixed;}
+.tw{max-height:calc(100vh - 300px);overflow-y:auto;will-change:scroll-position;-webkit-overflow-scrolling:touch;overflow-anchor:none;}
+table{width:100%;border-collapse:collapse;table-layout:fixed;contain:layout style;}
 thead{position:sticky;top:0;z-index:10;}
 thead th{font-family:'Oswald',sans-serif;font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:var(--text3);padding:7px 16px;text-align:left;border-bottom:1px solid var(--border);background:var(--bg2);font-weight:400;}
-tbody tr{border-bottom:1px solid rgba(42,47,61,0.5);cursor:pointer;transition:background 0.12s,border-left 0.12s;}
+tbody tr{border-bottom:1px solid rgba(42,47,61,0.5);cursor:pointer;}
 tbody tr:hover{background:var(--panel);border-left:3px solid var(--border2);}
 tbody tr.sel{background:rgba(176,106,58,0.1);border-left:3px solid var(--accent);}
 tbody tr.pr{opacity:0.88;}
+tbody tr:not(.tier-sep) td{height:48px;}
+.tier-sep td{padding:0;height:auto;border:none;}
+.tier-sep{pointer-events:none;}
 td{padding:8px 16px;vertical-align:middle;}
 .rn{font-family:'Russo One',sans-serif;font-size:13px;color:var(--accent);width:42px;text-align:center;white-space:nowrap;overflow:visible;}
 .rname{font-family:'Oswald',sans-serif;font-size:13px;font-weight:600;color:var(--text);}
@@ -753,6 +756,7 @@ tbody tr.sel{background:rgba(192,120,72,0.13);border-left:3px solid var(--accent
       <div class="pb"><span class="pt" id="rc">All assets</span><span style="font-size:9px;color:var(--text3);font-family:'Oswald',sans-serif;letter-spacing:0.1em;">CLICK ROW TO SELECT</span></div>
       <div class="tw">
         <table>
+          <colgroup><col style="width:42px;"><col><col style="width:72px;"><col style="width:60px;"></colgroup>
           <thead><tr><th style="width:42px;">#</th><th>Player / Pick</th><th style="width:72px;text-align:right;">Score</th><th style="width:60px;text-align:right;">Value</th></tr></thead>
           <tbody id="tbody"></tbody>
         </table>
