@@ -3202,6 +3202,17 @@ async function loadLeague(){
     });
     window._lastLeague=league;
     window._lastLeagueId=id;
+
+    // DEBUG: show pick transaction summary on league page
+    window._pickDebug={txns:allTxns.length,allocations:{}};
+    scored.forEach(r=>{
+      window._pickDebug.allocations[r.owner]=(r.picks||[]).map(p=>`${p.season}R${p.round}(orig:${p._orig})`).join(', ');
+    });
+    const debugHtml=`<div style="background:#1a1a2e;border:1px solid #444;padding:12px 16px;margin-bottom:16px;font-family:monospace;font-size:11px;color:#aaa;">
+      <div style="color:#c07848;font-weight:bold;margin-bottom:8px;">PICK DEBUG — ${allTxns.length} transactions found</div>
+      ${scored.map(r=>`<div style="margin-bottom:4px;"><span style="color:#e8e0d4;">${r.owner}:</span> ${(r.picks||[]).map(p=>`<span style="color:${p._orig===r.rid?'#78c492':'#c07848'}">${p.season}R${p.round}(${p._orig})</span>`).join(' ')}</div>`).join('')}
+    </div>`;
+    document.getElementById('lcon').innerHTML=debugHtml;
     renderLeague(league,scored,id);
     renderTargets();
     renderRosterNeedsContext();
