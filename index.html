@@ -2723,55 +2723,52 @@ async function loadLeague(){
 
       let start, end;
 
+      // Harsher, realistic windows — only truly elite teams get 2026
       if(isElitePPG && isYoung){
-        // Dynasty powerhouse — window is NOW and stays open
-        start=2026; end=2030;
-      } else if(isElitePPG && isMidAge){
-        // Peak now, 3-4 year window
         start=2026; end=2029;
+      } else if(isElitePPG && isMidAge){
+        start=2026; end=2028;
       } else if(isElitePPG && isOld){
-        // Win now or never
         start=2026; end=2027;
       } else if(isGoodPPG && isYoung){
-        // Building to a strong window
         start=2027; end=2030;
       } else if(isGoodPPG && isMidAge){
-        start=2026; end=2028;
+        start=2027; end=2028;
       } else if(isGoodPPG && isOld){
         start=2026; end=2027;
       } else if(isAvgPPG && hasEarlyPicks && isYoung){
-        // Investing for future
         start=2028; end=2030;
       } else if(isAvgPPG && isMidAge){
+        start=2028; end=2029;
+      } else if(isAvgPPG && isOld){
         start=2027; end=2028;
       } else if(isAvgPPG){
-        start=2027; end=2029;
+        start=2028; end=2029;
       } else if(isBadPPG && hasEarlyPicks && isYoung){
-        // Clear rebuild with assets
-        start=2028; end=2030;
+        start=2029; end=2031;
       } else if(isBadPPG && hasAnyPicks){
-        start=2028; end=2030;
+        start=2029; end=2030;
       } else if(isBadPPG && isYoung){
-        start=2029; end=2031;
+        start=2030; end=2031;
+      } else if(isBadPPG && isOld){
+        start=2030; end=2031;
       } else if(isBadPPG){
-        // Bad PPG, no picks, not young
         start=2029; end=2031;
-      } else if(isVeryBadPPG){
-        start=2030; end=2032;
       } else {
-        start=2029; end=2031;
+        start=2028; end=2030;
       }
 
-      // If very bad: no picks + bad PPG + old = push to 2030+
+      // Hard overrides for bad + old + no picks
       if(isVeryBadPPG && isOld && !hasAnyPicks){
-        start=2031; end=2033;
+        start=2031; end=2031;
       } else if(isVeryBadPPG && !hasAnyPicks){
-        start=2030; end=2032;
+        start=2030; end=2031;
+      } else if(isBadPPG && isOld && !hasAnyPicks){
+        start=2030; end=2031;
       }
 
-      // Cap to reasonable range
       start=Math.max(2026,Math.min(2031,start));
-      end=Math.max(start,Math.min(2033,end));
+      end=Math.max(start,Math.min(2031,end));
 
       r.contention = start===end ? String(start) : `${start}–${end}`;
     });
@@ -2880,7 +2877,8 @@ function renderLeague(league,rosters,lid){
   // ── CHAMPIONSHIP ODDS BAR ──
   const maxOdds=Math.max(...rosters.map(r=>r.champOdds));
   const champColors=['#c07848','#d4985a','#e0aa6a','#8aafe0','#88c4a0','#a898cc','#dc8888','#c8a86c','#7a9aaa','#9a8888','#aab090','#8899a8'];
-  const champBars=rosters.map((r,i)=>{
+  const champSorted=[...rosters].sort((a,b)=>b.champOdds-a.champOdds);
+  const champBars=champSorted.map((r,i)=>{
     const pct=Math.round((r.champOdds/maxOdds)*100);
     const col=champColors[i%champColors.length];
     return `<div class="champ-row">
@@ -3798,12 +3796,6 @@ function renderTrades(){
   }).join('');
 
   el.innerHTML=`
-    <!-- BEST TRADES EVER -->
-    <div class="hist-section">
-      <div class="hist-section-title">🏆 Biggest Steals (All-Time)</div>
-      ${biggestSteals.length?biggestSteals.map(tradeGradeCard).join(''):'<div class="no-data">Not enough trade data to grade</div>'}
-    </div>
-
     <!-- ACTIVITY CHARTS -->
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:28px;">
       <div class="hist-section" style="margin-bottom:0;"><div class="hist-section-title">🔄 Trades Per Team</div>${barChart(teamTrades||{},'var(--accent)')}</div>
