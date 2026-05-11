@@ -116,20 +116,34 @@ tbody tr:hover{background:var(--panel);}
 tbody tr.sel{background:rgba(176,106,58,0.1);border-left:2px solid var(--accent);}
 tbody tr.pr{opacity:0.88;}
 td{padding:8px 16px;vertical-align:middle;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.rn{font-family:'Oswald',sans-serif;font-size:11px;color:var(--text3);width:30px;}
+.rn{font-family:'Russo One',sans-serif;font-size:13px;color:var(--accent);width:34px;text-align:center;}
 .rname{font-family:'Oswald',sans-serif;font-size:13px;font-weight:600;color:var(--text);}
 .rmeta{font-size:10px;color:var(--text3);margin-top:1px;}
+.rposrank{font-family:'Russo One',sans-serif;font-size:10px;color:var(--text3);margin-top:1px;}
 .pb2{display:inline-block;font-family:'Oswald',sans-serif;font-size:8px;letter-spacing:0.06em;padding:1px 5px;border:1px solid;margin-left:4px;vertical-align:middle;border-radius:3px;}
 .pos-QB{color:var(--qb);border-color:var(--qb);}
 .pos-WR{color:var(--wr);border-color:var(--wr);}
 .pos-RB{color:var(--rb);border-color:var(--rb);}
 .pos-TE{color:var(--te);border-color:var(--te);}
 .pos-PICK{color:var(--pick);border-color:var(--pick);}
-.rs{text-align:right;font-family:'Russo One',sans-serif;font-size:13px;color:var(--text);width:56px;}
+.rs{text-align:right;font-family:'Russo One',sans-serif;font-size:16px;color:var(--accent);width:60px;}
 .rbc{text-align:right;width:70px;padding-right:16px;}
-.rbw{height:3px;background:var(--border);margin-top:2px;}
-.rb{height:100%;}
+.rbw{height:4px;background:var(--border);margin-top:2px;border-radius:2px;}
+.rb{height:100%;border-radius:2px;}
 .ld{display:inline-block;width:4px;height:4px;border-radius:50%;background:var(--gold);margin-left:4px;vertical-align:middle;}
+/* TIER SEPARATORS */
+.tier-sep{pointer-events:none;}
+.tier-sep td{padding:0;border:none;}
+.tier-label-row{display:flex;align-items:center;gap:10px;padding:6px 16px 4px;}
+.tier-pill{font-family:'Russo One',sans-serif;font-size:11px;letter-spacing:0.08em;padding:3px 10px;border-radius:4px;white-space:nowrap;}
+.tier-S{background:rgba(180,130,20,0.15);color:#c8a030;border:1px solid rgba(180,130,20,0.3);}
+.tier-A{background:rgba(176,96,48,0.12);color:var(--accent);border:1px solid rgba(176,96,48,0.25);}
+.tier-B{background:rgba(100,160,100,0.1);color:#5a9a5a;border:1px solid rgba(100,160,100,0.25);}
+.tier-C{background:rgba(100,140,200,0.1);color:#5a80c0;border:1px solid rgba(100,140,200,0.25);}
+.tier-D{background:rgba(160,100,100,0.1);color:#a06060;border:1px solid rgba(160,100,100,0.25);}
+.tier-F{background:rgba(120,80,80,0.08);color:var(--text3);border:1px solid var(--border);}
+.tier-line{flex:1;height:1px;background:var(--border);}
+.tier-desc{font-family:'Oswald',sans-serif;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;color:var(--text3);}
 .sp{background:var(--bg2);border-left:1px solid var(--border);}
 .ss{border-bottom:1px solid var(--border);}
 .sh{padding:9px 16px;display:flex;align-items:center;justify-content:space-between;}
@@ -1874,38 +1888,91 @@ function getFilt(){
   const q=document.getElementById('search').value.toLowerCase().trim();
   return DATA.filter(d=>(MODE==='ALL'||d.pos===MODE)&&(!q||d.name.toLowerCase().includes(q)||(d.team&&d.team.toLowerCase().includes(q))));
 }
+function getTier(sc){
+  if(sc>=80) return {key:'S',label:'S Tier',desc:'Untouchable',cls:'tier-S'};
+  if(sc>=60) return {key:'A',label:'A Tier',desc:'Elite',cls:'tier-A'};
+  if(sc>=35) return {key:'B',label:'B Tier',desc:'Strong Starter',cls:'tier-B'};
+  if(sc>=18) return {key:'C',label:'C Tier',desc:'Solid Depth',cls:'tier-C'};
+  if(sc>=8)  return {key:'D',label:'D Tier',desc:'Borderline',cls:'tier-D'};
+  return            {key:'F',label:'F Tier',desc:'Stash / Drop',cls:'tier-F'};
+}
+
 function renderTable(){
   const f=getFilt();const tb=document.getElementById('tbody');const nr=document.getElementById('nr');
   document.getElementById('rc').textContent=`${f.length} asset${f.length!==1?'s':''}`;
   if(!f.length){tb.innerHTML='';nr.style.display='block';return;}
   nr.style.display='none';
-  // Update position counts on filter buttons
   const counts={ALL:DATA.length,QB:0,WR:0,RB:0,TE:0,PICK:0};
   DATA.forEach(d=>{if(counts[d.pos]!==undefined)counts[d.pos]++;});
   Object.entries(counts).forEach(([pos,n])=>{const el=document.getElementById('cnt-'+pos);if(el)el.textContent=n;});
   const sorted=[...f].sort((a,b)=>getScore(b)-getScore(a));
-  // Load snapshot silently for delta indicators
   let snap=null;try{snap=JSON.parse(localStorage.getItem(MOVERS_LS)||'null');}catch(e){}
-  tb.innerHTML=sorted.map((d,i)=>{
+
+  // Build positional rank maps
+  const posRankMap={};
+  ['QB','WR','RB','TE'].forEach(pos=>{
+    const posPlayers=DATA.filter(p=>p.type==='player'&&p.pos===pos).sort((a,b)=>getScore(b)-getScore(a));
+    posPlayers.forEach((p,i)=>{posRankMap[p.rank]=i+1;});
+  });
+
+  let lastTierKey='';
+  const rows=[];
+  sorted.forEach((d,i)=>{
+    const sc=getScore(d);
+    const tier=getTier(sc);
+
+    // Insert tier separator when tier changes
+    if(tier.key!==lastTierKey){
+      rows.push(`<tr class="tier-sep"><td colspan="4">
+        <div class="tier-label-row">
+          <span class="tier-pill ${tier.cls}">${tier.label}</span>
+          <span class="tier-desc">${tier.desc}</span>
+          <div class="tier-line"></div>
+        </div>
+      </td></tr>`);
+      lastTierKey=tier.key;
+    }
+
     const dr=i+1;
     const iS=SEL&&SEL.rank===d.rank;
     const iP=d.type==='pick';
-    const sc=getScore(d);
     const bc=BAR_COLORS[d.pos]||'#888';
     const bw=Math.min(100,Math.round(sc));
     const av=avatarHtml(d,28);
-    // Subtle delta badge — only show if change >= 1.0, no labels, just arrow + number
+
+    // Delta
     let delta='';
     if(snap&&snap.scores&&snap.scores[d.rank]!==undefined&&d.type==='player'){
       const diff=Math.round((sc-snap.scores[d.rank])*10)/10;
       if(diff>=1.0) delta=`<span style="font-family:Oswald,sans-serif;font-size:9px;color:var(--gt);margin-left:4px;">▲${diff.toFixed(1)}</span>`;
       else if(diff<=-1.0) delta=`<span style="font-family:Oswald,sans-serif;font-size:9px;color:var(--rt);margin-left:4px;">▼${Math.abs(diff).toFixed(1)}</span>`;
     }
+
+    // Positional rank
+    const posRank=(!iP&&posRankMap[d.rank])?`<div class="rposrank" style="color:${bc};">${d.pos}${posRankMap[d.rank]}</div>`:'';
+
     let nh='';
-    if(iP){nh=`<div style="display:flex;align-items:center;gap:9px;">${av}<div><div class="rname">${d.name}<span class="pb2 pos-PICK">PICK</span></div><div class="rmeta">${d.year} · Rd ${d.round} · ${d.slot}</div></div></div>`;}
-    else{const dot=d.hardcoded?'<span class="ld"></span>':'';nh=`<div style="display:flex;align-items:center;gap:9px;">${av}<div><div class="rname">${d.name}${dot}<span class="pb2 pos-${d.pos}">${d.pos}</span>${delta}</div><div class="rmeta">${d.team==='FA'?'Free Agent':d.team}${d.age?' · Age '+d.age:''}</div></div></div>`;}
-    return `<tr onclick="selItem(${d.rank})" class="${iS?'sel':''} ${iP?'pr':''}"><td class="rn">${dr}</td><td style="padding:5px 10px;">${nh}</td><td class="rs">${sc.toFixed(1)}</td><td class="rbc"><div class="rbw"><div class="rb" style="width:${bw}%;background:${bc};"></div></div></td></tr>`;
-  }).join('');
+    if(iP){
+      nh=`<div style="display:flex;align-items:center;gap:9px;">${av}<div><div class="rname">${d.name}<span class="pb2 pos-PICK">PICK</span></div><div class="rmeta">${d.year} · Rd ${d.round} · ${d.slot}</div></div></div>`;
+    } else {
+      const dot=d.hardcoded?'<span class="ld"></span>':'';
+      nh=`<div style="display:flex;align-items:center;gap:9px;">${av}<div>
+        <div class="rname">${d.name}${dot}<span class="pb2 pos-${d.pos}">${d.pos}</span>${delta}</div>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <div class="rmeta">${d.team==='FA'?'Free Agent':d.team}${d.age?' · Age '+d.age:''}</div>
+          ${posRank}
+        </div>
+      </div></div>`;
+    }
+
+    rows.push(`<tr onclick="selItem(${d.rank})" class="${iS?'sel':''} ${iP?'pr':''}">
+      <td class="rn">${dr}</td>
+      <td style="padding:5px 10px;">${nh}</td>
+      <td class="rs">${sc.toFixed(1)}</td>
+      <td class="rbc"><div class="rbw"><div class="rb" style="width:${bw}%;background:${bc};"></div></div></td>
+    </tr>`);
+  });
+  tb.innerHTML=rows.join('');
 }
 function selItem(rank){SEL=DATA.find(d=>d.rank===rank);renderTable();renderCard();}
 function renderCard(){
@@ -2673,7 +2740,33 @@ async function loadLeague(){
         }
       });
 
-      // Pick capital upside — early 1st round picks project +PPG for following season
+      // ── PICK-PROJECTED PPG ──────────────────────────────────────────
+      // For each 1st round pick, find the player ranked near that pick's overall value
+      // in our DATA, estimate position PPG from surrounding players, apply 8% discount
+      // (picks underperform their draft slot on average — development time, injury, bust rate)
+      let pickFuturePPG = 0;
+      (r.picks||[]).filter(pk=>pk.round===1).forEach(pk=>{
+        // Find the DATA player whose score is closest to this pick's matched score
+        const pickScore = pk.matchedScore || 20;
+        // Get players ranked near this score value
+        const nearby = DATA.filter(d=>d.type==='player'&&Math.abs(getScore(d)-pickScore)<8)
+                          .sort((a,b)=>Math.abs(getScore(a)-pickScore)-Math.abs(getScore(b)-pickScore))
+                          .slice(0,6);
+        if(nearby.length){
+          // Average the PPG contribution of those nearby players
+          const avgNearbyPPG = nearby.reduce((s,p)=>{
+            return s + (8 + Math.sqrt(Math.max(0,getScore(p)))*2.0);
+          },0) / nearby.length;
+          // Apply 8% rookie discount — development curve, not guaranteed to hit
+          pickFuturePPG += avgNearbyPPG * 0.92;
+        } else {
+          // Fallback estimate by slot
+          const slot = pk.slot||'Mid';
+          pickFuturePPG += slot==='Early'?14:slot==='Early-Mid'?11:slot==='Mid'?8:5;
+        }
+      });
+
+      // Pick upside for display (keep existing logic for UI badge)
       const earlyPicks=(r.picks||[]).filter(pk=>pk.season<=2028&&pk.round===1);
       const pickUpside=earlyPicks.reduce((s,pk)=>{
         const slot=pk.slot||'Mid';
@@ -2687,7 +2780,14 @@ async function loadLeague(){
         ? Math.round((actualPPG*0.5 + projectedPPG*0.5)*10)/10
         : Math.round(projectedPPG*10)/10;
       r.pickUpside = Math.round(pickUpside*10)/10;
-      r.futurePPG = Math.round((r.projPPG + pickUpside*0.4)*10)/10; // future = current + pick boost
+      // futurePPG: current roster PPG + what 1st round picks are projected to add
+      // Pick PPG is weighted by how soon the pick lands (2027 picks count more than 2029)
+      const pickYearWeight = (r.picks||[]).filter(pk=>pk.round===1).reduce((s,pk)=>{
+        const yr=parseInt(pk.season)||2028;
+        const w = yr<=2027?1.0:yr===2028?0.75:yr===2029?0.5:0.3;
+        return s+w;
+      },0);
+      r.futurePPG = Math.round((r.projPPG + pickFuturePPG * Math.min(1, pickYearWeight))*10)/10;
     });
 
     // ── CHAMPIONSHIP ODDS ─────────────────────────────────────────────
@@ -2711,30 +2811,33 @@ async function loadLeague(){
     scored[0].champOdds += (100-totalOdds);
 
     // ── CONTENTION WINDOW ─────────────────────────────────────────────
-    // Based on: projPPG (now), futurePPG (with picks), avg age of top-5 starters
-    // Bad teams with low PPG AND low picks AND old/no core → 2030+
-    // Good young teams with picks → sustained multi-year window
     const ppgLeagueAvg = ppgs.reduce((a,b)=>a+b,0)/ppgs.length;
     const ppgLeagueTop = ppgMax;
+    // Use futurePPG for contention — this already bakes in projected pick contributions
+    const futurePPGs = scored.map(r=>r.futurePPG);
+    const futureAvg = futurePPGs.reduce((a,b)=>a+b,0)/futurePPGs.length;
+    const futureTop = Math.max(...futurePPGs);
 
     scored.forEach(r=>{
       const top5=r.all.slice(0,5);
       const avgAge=top5.length ? top5.reduce((s,p)=>s+(p.age||25),0)/top5.length : 28;
 
-      const isElitePPG  = r.projPPG >= ppgLeagueTop * 0.88;
-      const isGoodPPG   = r.projPPG >= ppgLeagueAvg * 1.05;
-      const isAvgPPG    = r.projPPG >= ppgLeagueAvg * 0.90;
-      const isBadPPG    = r.projPPG < ppgLeagueAvg * 0.82;
-      const isVeryBadPPG= r.projPPG < ppgLeagueAvg * 0.65;
+      // Use futurePPG so pick capital is already factored in
+      const fpg = r.futurePPG;
+      const isElitePPG  = fpg >= futureTop * 0.88;
+      const isGoodPPG   = fpg >= futureAvg * 1.05;
+      const isAvgPPG    = fpg >= futureAvg * 0.90;
+      const isBadPPG    = fpg < futureAvg * 0.82;
+      const isVeryBadPPG= fpg < futureAvg * 0.65;
       const isYoung     = avgAge < 24.5;
       const isMidAge    = avgAge < 27;
       const isOld       = avgAge >= 28.5;
-      const hasEarlyPicks=(r.picks||[]).filter(pk=>pk.round===1&&parseInt(pk.season)<=2028).length>=2;
-      const hasAnyPicks =(r.picks||[]).filter(pk=>pk.round<=2).length>=1;
+      const hasAnyPicks = (r.picks||[]).filter(pk=>pk.round<=2).length>=1;
+      const picks1st    = (r.picks||[]).filter(pk=>pk.round===1);
+      const hasEarlyPicks = picks1st.filter(pk=>parseInt(pk.season)<=2028).length>=2;
 
       let start, end;
 
-      // Harsher, realistic windows — only truly elite teams get 2026
       if(isElitePPG && isYoung){
         start=2026; end=2029;
       } else if(isElitePPG && isMidAge){
@@ -2777,6 +2880,7 @@ async function loadLeague(){
       } else if(isBadPPG && isOld && !hasAnyPicks){
         start=2030; end=2031;
       }
+
 
       start=Math.max(2026,Math.min(2031,start));
       end=Math.max(start,Math.min(2031,end));
