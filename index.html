@@ -2783,92 +2783,45 @@ async function loadLeague(){
     // Sort oldest first — later trades overwrite earlier ones
     allTxns.sort((a,b)=>(a.created||0)-(b.created||0));
 
+    // Simple approach: for each pick in each transaction,
+    // original_roster_id = who originally owned it (never changes)
+    // owner_id = who owns it AFTER this transaction
+    // Process oldest→newest so final state wins.
+    // Build a map: pickId → current owner rid
+    const pickOwner={}; // "yr_rd_origRid" → current owner rid
     allTxns.forEach(txn=>{
-      const picks=txn.draft_picks||[];
-
-      // For commissioner moves, roster_ids may only have 1 entry (the recipient).
-      // Derive the full two sides from adds/drops instead.
-      let sides=(txn.roster_ids||[]).map(v=>toRid(v)).filter(Boolean);
-      if(sides.length<2){
-        // adds = {playerId: roster_id_receiver}, drops = {playerId: roster_id_giver}
-        const addRids=new Set(Object.values(txn.adds||{}).map(v=>toRid(v)).filter(Boolean));
-        const dropRids=new Set(Object.values(txn.drops||{}).map(v=>toRid(v)).filter(Boolean));
-        const allRids=[...new Set([...addRids,...dropRids,...sides])];
-        if(allRids.length>=2) sides=allRids;
-        else if(allRids.length===1) sides=allRids;
-      }
-      if(!sides.length||!picks.length) return;
-      const [teamA,teamB]=sides;
-
-      picks.forEach(pk=>{
+      (txn.draft_picks||[]).forEach(pk=>{
         const yr=parseInt(pk.season)||0;
         const rd=parseInt(pk.round)||0;
         if(yr<=2026||!rd) return;
-
-        const origOwner=toRid(pk.original_roster_id)||toRid(pk.previous_owner_id);
-        const pickId=origOwner?`${yr}_${rd}_${origOwner}`:`${yr}_${rd}_${pk.original_roster_id||pk.previous_owner_id||'?'}`;
-
-        const receiverFromPk=toRid(pk.owner_id);
-        // drops = {playerId: roster_id} — values are the givers
-        const dropVals=Object.values(txn.drops||{});
-        const giverFromDrops=dropVals.length?toRid(dropVals[0]):null;
-        const giverFromPk=toRid(pk.previous_owner_id)||toRid(pk.roster_id)||giverFromDrops;
-
-        let giver,receiver;
-        if(giverFromPk&&receiverFromPk&&giverFromPk!==receiverFromPk){
-          giver=giverFromPk;receiver=receiverFromPk;
-        } else if(giverFromPk===teamA||giverFromPk===teamB){
-          giver=giverFromPk;receiver=sides.find(s=>s!==giver);
-        } else if(receiverFromPk===teamA||receiverFromPk===teamB){
-          receiver=receiverFromPk;giver=sides.find(s=>s!==receiver);
-        } else {
-          const aHas=rosterPicksRaw[teamA]?.some(p=>p._id===pickId);
-          const bHas=rosterPicksRaw[teamB]?.some(p=>p._id===pickId);
-          if(aHas){giver=teamA;receiver=teamB;}
-          else if(bHas){giver=teamB;receiver=teamA;}
-          else{
-            const orig=origOwner||teamA;
-            if(rosterPicksRaw[orig]&&!rosterPicksRaw[orig].find(p=>p._id===pickId)){
-              rosterPicksRaw[orig].push({season:yr,round:rd,isOwn:true,_orig:orig,_id:pickId});
-            }
-          }
+        const origRid=toRid(pk.original_roster_id)||toRid(pk.previous_owner_id);
+        if(!origRid) return;
+        const pickId=`${yr}_${rd}_${origRid}`;
+        const prevOwner=toRid(pk.previous_owner_id)||toRid(pk.roster_id);
+        let newOwner=toRid(pk.owner_id);
+        // If owner_id missing, infer receiver as whichever roster_ids entry is NOT the previous owner
+        if(!newOwner&&prevOwner){
+          const txnSides=(txn.roster_ids||[]).map(v=>toRid(v)).filter(Boolean);
+          newOwner=txnSides.find(r=>r!==prevOwner)||null;
         }
-
-        if(!giver||!receiver||giver===receiver) return;
-
-        // Ensure both giver and receiver have buckets (handles historical roster IDs)
-        if(!rosterPicksRaw[giver]) rosterPicksRaw[giver]=[];
-        if(!rosterPicksRaw[receiver]) rosterPicksRaw[receiver]=[];
-
-        const giverIdx=rosterPicksRaw[giver].findIndex(p=>p._id===pickId);
-        if(giverIdx<0) return;
-
-        const pick=rosterPicksRaw[giver][giverIdx];
-        rosterPicksRaw[giver].splice(giverIdx,1);
-        rosterPicksRaw[receiver].push({...pick,isOwn:false,_id:pickId});
+        if(newOwner) pickOwner[pickId]=newOwner;
       });
     });
 
-    // Dedup: each unique pickId must exist on exactly one roster.
-    // If a pick appears on multiple rosters (can happen when giver lookup fails
-    // but receiver still got added), remove it from all except the one with isOwn:false
-    // (traded copy) or the last one found.
-    const pickIdSeen={};
-    Object.values(rosterPicksRaw).forEach(arr=>{
-      arr.forEach(pk=>{ pickIdSeen[pk._id]=(pickIdSeen[pk._id]||0)+1; });
-    });
-    Object.keys(pickIdSeen).forEach(pid=>{
-      if(pickIdSeen[pid]<=1) return;
-      // Find all rosters that have this pick
-      const holders=Object.entries(rosterPicksRaw).filter(([,arr])=>arr.some(p=>p._id===pid));
-      if(holders.length<=1) return;
-      // Keep the one where isOwn===false (traded), or the last holder — remove from rest
-      const keeper=holders.find(([,arr])=>arr.find(p=>p._id===pid&&p.isOwn===false))||holders[holders.length-1];
-      holders.forEach(([rid,arr])=>{
-        if(rid===keeper[0]) return;
-        const i=arr.findIndex(p=>p._id===pid);
+    // Apply: for every pick that was traded, move it to final owner
+    Object.entries(pickOwner).forEach(([pickId,ownerRid])=>{
+      // Remove from all rosters
+      Object.values(rosterPicksRaw).forEach(arr=>{
+        const i=arr.findIndex(p=>p._id===pickId);
         if(i>=0) arr.splice(i,1);
       });
+      // Add to final owner
+      if(!rosterPicksRaw[ownerRid]) rosterPicksRaw[ownerRid]=[];
+      if(!rosterPicksRaw[ownerRid].find(p=>p._id===pickId)){
+        const parts=pickId.split('_');
+        const yr=parseInt(parts[0]),rd=parseInt(parts[1]),origRid=parseInt(parts[2]);
+        rosterPicksRaw[ownerRid].push({season:yr,round:rd,isOwn:ownerRid===origRid,_orig:origRid,_id:pickId});
+      }
     });
 
     // Cache Sleeper player IDs for photo lookups — normalized name → sleeper_id
