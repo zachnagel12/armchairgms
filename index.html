@@ -3764,6 +3764,11 @@ async function loadTradeHistory(leagueId, userMap, sleeperPlayers){
         r.pickVal=Math.round(pickVal*10)/10;
         r.totalScore=Math.round((r.all.reduce((s,p)=>s+getScore(p),0)+pickVal)*10)/10;
       });
+
+      // Re-render league so power rankings and roster modals reflect correct picks
+      if(window._lastLeague&&window._lastLeagueId){
+        renderLeague(window._lastLeague,MODAL_DATA,window._lastLeagueId);
+      }
     }
 
     // ── RECONCILE PICK OWNERSHIP from trade history ───────────────────────────
