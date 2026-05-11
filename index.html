@@ -2737,21 +2737,47 @@ async function loadLeague(){
 
     loadStep(4);
 
-    // Build a rid→slot map AFTER scoring — slot based on projected record
-    // We need scored first, so we compute picks AFTER scored is built below.
-    // For now just store the raw draft_picks from each Sleeper roster directly.
-    // Sleeper already knows which picks are on each roster — treat them like players.
+    // Fetch traded_picks — snapshot of every pick that changed hands
+    let tradedPicksSnap=[];
+    try{
+      const tp=await fetch(`https://api.sleeper.app/v1/league/${id}/traded_picks`);
+      if(tp.ok) tradedPicksSnap=await tp.json();
+    }catch(e){}
+
+    // Build pick ownership map:
+    // 1. Every team owns their own picks for 2027-2029 rd 1-4 by default
+    // 2. traded_picks overrides: if a pick appears there, roster_id = current owner
     const rosterPicksRaw={};
-    rosters.forEach(r=>{
-      rosterPicksRaw[r.roster_id]=(r.draft_picks||[]).filter(pk=>{
-        const yr=parseInt(pk.season)||0;
-        return yr>=2027&&pk.round;
-      }).map(pk=>({
-        season:parseInt(pk.season),
-        round:parseInt(pk.round),
-        _orig:parseInt(pk.original_roster_id)||parseInt(pk.roster_id)||r.roster_id,
-        _id:`${pk.season}_${pk.round}_${parseInt(pk.original_roster_id)||r.roster_id}`
-      }));
+    rosters.forEach(r=>{ rosterPicksRaw[r.roster_id]=[]; });
+
+    // Seed all picks as own
+    [2027,2028,2029].forEach(yr=>[1,2,3,4].forEach(rd=>{
+      rosters.forEach(r=>{
+        rosterPicksRaw[r.roster_id].push({
+          season:yr, round:rd,
+          _orig:r.roster_id,
+          _id:`${yr}_${rd}_${r.roster_id}`
+        });
+      });
+    }));
+
+    // Apply traded picks — remove from original owner, place on current owner
+    tradedPicksSnap.forEach(pk=>{
+      const yr=parseInt(pk.season)||0;
+      const rd=parseInt(pk.round)||0;
+      const origRid=parseInt(pk.original_roster_id)||0;
+      const curOwner=parseInt(pk.roster_id)||0;
+      if(yr<2027||!rd||!origRid||!curOwner||origRid===curOwner) return;
+      const pickId=`${yr}_${rd}_${origRid}`;
+      // Remove from original owner
+      if(rosterPicksRaw[origRid]){
+        const i=rosterPicksRaw[origRid].findIndex(p=>p._id===pickId);
+        if(i>=0) rosterPicksRaw[origRid].splice(i,1);
+      }
+      // Add to current owner
+      if(rosterPicksRaw[curOwner]&&!rosterPicksRaw[curOwner].find(p=>p._id===pickId)){
+        rosterPicksRaw[curOwner].push({season:yr,round:rd,_orig:origRid,_id:pickId});
+      }
     });
 
     // Cache Sleeper player IDs for photo lookups — normalized name → sleeper_id
