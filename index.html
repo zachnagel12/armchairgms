@@ -2746,28 +2746,50 @@ async function loadLeague(){
       return userToRoster[String(v)]||null;
     }
 
-    // Fetch traded_picks directly — this is the most reliable source
-    // It returns every future pick that has changed hands
+    // Fetch traded_picks from current AND all historical seasons
+    // traded_picks endpoint gives definitive final ownership per season
     let tradedPicks=[];
     try{
-      const tpRes=await fetch(`https://api.sleeper.app/v1/league/${id}/traded_picks`);
-      if(tpRes.ok) tradedPicks=await tpRes.json();
+      let scanId=id;
+      const seenIds=new Set();
+      for(let s=0;s<8;s++){
+        if(seenIds.has(scanId)) break;
+        seenIds.add(scanId);
+        const [tpRes,lrRes]=await Promise.all([
+          fetch(`https://api.sleeper.app/v1/league/${scanId}/traded_picks`).then(r=>r.ok?r.json():[]).catch(()=>[]),
+          fetch(`https://api.sleeper.app/v1/league/${scanId}`).then(r=>r.ok?r.json():null).catch(()=>null)
+        ]);
+        if(Array.isArray(tpRes)) tradedPicks.push(...tpRes);
+        if(!lrRes||!lrRes.previous_league_id) break;
+        scanId=lrRes.previous_league_id;
+      }
     }catch(e){}
 
-    // Apply traded picks — roster_id = current owner, original_roster_id = original owner
+    // Deduplicate — same pick may appear across seasons as it moves hands
+    // Keep only the most recent entry per unique pick (yr_rd_origOwner)
+    // Sort oldest first so latest overwrites
     tradedPicks.sort((a,b)=>(parseInt(a.season)||0)-(parseInt(b.season)||0));
+    const latestTradedPick={};
     tradedPicks.forEach(pk=>{
       const yr=parseInt(pk.season)||0;
       const rd=parseInt(pk.round)||0;
-      if(yr<2027||!rd) return;
+      const orig=pk.original_roster_id;
+      if(yr>=2027&&rd&&orig){
+        latestTradedPick[`${yr}_${rd}_${orig}`]=pk;
+      }
+    });
 
+    // Apply final traded pick state
+    Object.values(latestTradedPick).forEach(pk=>{
+      const yr=parseInt(pk.season);
+      const rd=parseInt(pk.round);
       const origRid=toRid(pk.original_roster_id);
       const currentOwner=toRid(pk.roster_id);
       if(!origRid||!currentOwner) return;
 
       const pickId=`${yr}_${rd}_${origRid}`;
 
-      // Remove from ALL rosters (use integer keys)
+      // Remove from ALL rosters
       rosters.forEach(r=>{
         const arr=rosterPicks[r.roster_id];
         if(!arr) return;
@@ -2775,7 +2797,7 @@ async function loadLeague(){
         if(idx>=0) arr.splice(idx,1);
       });
 
-      // Place on current owner only
+      // Place only on final owner
       rosterPicks[currentOwner].push({
         season:yr, round:rd,
         isOwn: currentOwner===origRid,
