@@ -1144,6 +1144,8 @@ function launch(u){
   document.getElementById('nu').textContent=u.em;
   try{renderTable();}catch(e){console.error('renderTable error:',e);}
   try{renderTA();}catch(e){console.error('renderTA error:',e);}
+  // Auto-select the #1 ranked player on load
+  try{const top=DATA.find(d=>d.rank===1);if(top){SEL=top;renderCard();}}catch(e){}
   // Auto-save a daily snapshot if none exists or last one is >23hrs old
   try{
     const existing=JSON.parse(localStorage.getItem(MOVERS_LS)||'null');
@@ -1888,6 +1890,7 @@ function showPg(id,el){
   if(id==='trade') renderRosterNeedsContext();
   if(id==='startsit'){SS_A=null;SS_B=null;document.getElementById('ss-a-search').value='';document.getElementById('ss-b-search').value='';document.getElementById('ss-a-card').innerHTML='';document.getElementById('ss-b-card').innerHTML='';document.getElementById('ss-verdict').style.display='none';}
   if(id==='rookies') renderRookies();
+  if(id==='rankings'){try{const top=DATA.find(d=>d.rank===1);if(top){SEL=top;renderTable();renderCard();}}catch(e){}}
 }
 
 function setMode(m,btn){MODE=m;document.querySelectorAll('.mb').forEach(b=>b.classList.remove('active'));btn.classList.add('active');renderTable();}
