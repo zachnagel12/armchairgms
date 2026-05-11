@@ -2754,8 +2754,7 @@ async function loadLeague(){
       if(tpRes.ok) tradedPicks=await tpRes.json();
     }catch(e){}
 
-    // Apply traded picks — each entry has {season, round, roster_id (current owner), previous_owner_id, original_roster_id}
-    // Process sorted by season ascending so earlier picks are handled first
+    // Apply traded picks — roster_id = current owner, original_roster_id = original owner
     tradedPicks.sort((a,b)=>(parseInt(a.season)||0)-(parseInt(b.season)||0));
     tradedPicks.forEach(pk=>{
       const yr=parseInt(pk.season)||0;
@@ -2763,23 +2762,25 @@ async function loadLeague(){
       if(yr<2027||!rd) return;
 
       const origRid=toRid(pk.original_roster_id);
-      const currentOwner=toRid(pk.roster_id); // current owner per Sleeper
-      const pickId=origRid?`${yr}_${rd}_${origRid}`:null;
+      const currentOwner=toRid(pk.roster_id);
       if(!origRid||!currentOwner) return;
 
-      // Remove this pick from wherever it currently sits
-      Object.keys(rosterPicks).forEach(rid=>{
-        if(!rosterPicks[rid]) return;
-        const idx=pickId
-          ?rosterPicks[rid].findIndex(p=>p._id===pickId)
-          :rosterPicks[rid].findIndex(p=>p.season===yr&&p.round===rd&&p._orig===origRid);
-        if(idx>=0) rosterPicks[rid].splice(idx,1);
+      const pickId=`${yr}_${rd}_${origRid}`;
+
+      // Remove from ALL rosters (use integer keys)
+      rosters.forEach(r=>{
+        const arr=rosterPicks[r.roster_id];
+        if(!arr) return;
+        const idx=arr.findIndex(p=>p._id===pickId);
+        if(idx>=0) arr.splice(idx,1);
       });
 
-      // Place it on current owner's roster
+      // Place on current owner only
       rosterPicks[currentOwner].push({
-        season:yr,round:rd,isOwn:currentOwner===origRid,
-        _orig:origRid,_id:pickId||`${yr}_${rd}_${origRid}`
+        season:yr, round:rd,
+        isOwn: currentOwner===origRid,
+        _orig: origRid,
+        _id: pickId
       });
     });
 
