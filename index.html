@@ -2780,8 +2780,8 @@ async function loadLeague(){
       }
     }catch(e){}
 
-    // Sort oldest first — later trades overwrite earlier ones
-    allTxns.sort((a,b)=>(a.created||0)-(b.created||0));
+    // Sort oldest first — use status_updated (trade completion time) with created as fallback
+    allTxns.sort((a,b)=>(a.status_updated||a.created||0)-(b.status_updated||b.created||0));
 
     // Simple approach: for each pick in each transaction,
     // original_roster_id = who originally owned it (never changes)
