@@ -3276,7 +3276,7 @@ async function loadLeague(){
       const r2=MODAL_DATA?.find(r=>r.rid===2);
       if(moves.length){
         const el=document.getElementById('lcon');
-        el.innerHTML=`<div style="background:#1a1a2e;border:2px solid orange;padding:12px;margin-bottom:16px;font-family:monospace;font-size:10px;color:#fa8;overflow:auto;max-height:300px;"><b>ROSTER 2 = ${r2?.owner||'?'} | INCOMING (${moves.length})</b><br>${moves.slice(0,5).map(m=>m.split(' lid:')[0]+'<br>').join('')}</div>`+el.innerHTML;
+        el.innerHTML=`<div style="background:#1a1a2e;border:2px solid orange;padding:12px;margin-bottom:16px;font-family:monospace;font-size:10px;color:#fa8;overflow:auto;max-height:300px;"><b>ROSTER 2 = ${r2?.owner||'?'} FINAL PICKS:</b><br>${(r2?.picks||[]).map(p=>p._id+'<br>').join('')}</div>`+el.innerHTML;
       }
     },3000);
     renderLeague(league,scored,id);
