@@ -3274,9 +3274,10 @@ async function loadLeague(){
     setTimeout(()=>{
       const moves=window._r2moves||[];
       const r2=MODAL_DATA?.find(r=>r.rid===2);
-      if(moves.length){
+      const allRosters=(MODAL_DATA||[]).map(r=>`rid:${r.rid}=${r.owner}`).join(' | ');
+      if(moves.length||true){
         const el=document.getElementById('lcon');
-        el.innerHTML=`<div style="background:#1a1a2e;border:2px solid orange;padding:12px;margin-bottom:16px;font-family:monospace;font-size:10px;color:#fa8;overflow:auto;max-height:300px;"><b>ROSTER 2 = ${r2?.owner||'?'} FINAL PICKS:</b><br>${(r2?.picks||[]).map(p=>p._id+'<br>').join('')}</div>`+el.innerHTML;
+        el.innerHTML=`<div style="background:#1a1a2e;border:2px solid orange;padding:12px;margin-bottom:16px;font-family:monospace;font-size:10px;color:#fa8;overflow:auto;max-height:200px;"><b>ROSTERS:</b> ${allRosters}<br><b>R2 FINAL:</b> ${(r2?.picks||[]).map(p=>p._id).join(' ')}</div>`+el.innerHTML;
       }
     },3000);
     renderLeague(league,scored,id);
