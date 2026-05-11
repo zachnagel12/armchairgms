@@ -1964,7 +1964,7 @@ function showRosterBreakdown(rosterIdx){
         ?`<span style="font-family:Oswald,sans-serif;font-size:10px;color:var(--accent);margin-left:4px;">(${origOwnerName.split(' ')[0]})</span>`
         :'';
       const pickLabel=`${yr} ${rdLabel} · ${slot}`;
-      playerHtml+=`<div class="modal-player-row"><div style="width:36px;height:36px;border-radius:50%;background:rgba(155,138,191,0.12);border:1px solid var(--pick);display:flex;align-items:center;justify-content:center;font-family:Oswald,sans-serif;font-size:9px;font-weight:600;color:var(--pick);flex-shrink:0;">R${rd}</div><div style="flex:1;"><div class="modal-player-name" style="color:var(--pick);">${pickLabel}${fromTag} <span style="font-size:9px;color:var(--text3);">[${pk._id}]</span></div><div class="modal-player-meta">Dynasty Pick · ${val} pts</div></div><div class="modal-player-score" style="color:var(--pick);">${val}</div></div>`;
+      playerHtml+=`<div class="modal-player-row"><div style="width:36px;height:36px;border-radius:50%;background:rgba(155,138,191,0.12);border:1px solid var(--pick);display:flex;align-items:center;justify-content:center;font-family:Oswald,sans-serif;font-size:9px;font-weight:600;color:var(--pick);flex-shrink:0;">R${rd}</div><div style="flex:1;"><div class="modal-player-name" style="color:var(--pick);">${pickLabel}${fromTag}</div><div class="modal-player-meta">Dynasty Pick · ${val} pts</div></div><div class="modal-player-score" style="color:var(--pick);">${val}</div></div>`;
     });
   }
   body.innerHTML=html+playerHtml;
@@ -2808,8 +2808,14 @@ async function loadLeague(){
       txnMap[key||`_${Math.random()}`]=t;
     });
     const dedupedTxns=Object.values(txnMap);
-    dedupedTxns.sort((a,b)=>(a.status_updated||a.created||0)-(b.status_updated||b.created||0));
-    console.log(`[AGM] allTxns:${allTxns.length} dedupedTxns:${dedupedTxns.length}`);
+    dedupedTxns.sort((a,b)=>{
+      const tsDiff=(a.status_updated||a.created||0)-(b.status_updated||b.created||0);
+      if(tsDiff!==0) return tsDiff;
+      // Same timestamp — use transaction_id as tiebreaker (higher ID = later)
+      const aId=parseFloat(a.transaction_id||0);
+      const bId=parseFloat(b.transaction_id||0);
+      return aId-bId;
+    });
 
     // Track current holder of each pick as we process transactions
     // This handles cases where Sleeper records the same trade twice with different IDs
@@ -2883,20 +2889,12 @@ async function loadLeague(){
         // Try exact _id match only — fallbacks cause wrong picks to move
         const giverIdx=rosterPicksRaw[actualGiver]?.findIndex(p=>p._id===pickId);
 
-        if(giverIdx<0){
-          window._pickMisses=window._pickMisses||[];
-          const hasSameRound=(rosterPicksRaw[actualGiver]||[]).filter(p=>p.season===yr&&p.round===rd).map(p=>p._id).join(',');
-          const ts=txn.status_updated||txn.created||0;
-          window._pickMisses.push(pickId+' g:'+actualGiver+'→r:'+receiver+' ts:'+ts+' id:'+txn.transaction_id+' has:['+hasSameRound+']');
-          return;
-        }
+        if(giverIdx<0) return;
 
         const pick=rosterPicksRaw[actualGiver][giverIdx];
         rosterPicksRaw[actualGiver].splice(giverIdx,1);
         rosterPicksRaw[receiver].push({...pick,isOwn:receiver===pick._orig,_id:pick._id});
         pickCurrentHolder[pick._id]=receiver;
-        window._successMoves=window._successMoves||[];
-        window._successMoves.push(`OK: ${pick._id}→${receiver} ts:${txn.status_updated||txn.created||0} id:${txn.transaction_id}`);
       });
     });
 
@@ -3258,21 +3256,6 @@ async function loadLeague(){
     });
     window._lastLeague=league;
     window._lastLeagueId=id;
-
-    // Show pick miss debug on page
-    setTimeout(()=>{
-      const misses=window._pickMisses||[];
-      if(misses.length){
-        const el=document.getElementById('lcon');
-        const html=`<div style="background:#1a1a2e;border:2px solid red;padding:12px;margin-bottom:16px;font-family:monospace;font-size:10px;color:#f88;overflow:auto;max-height:400px;">
-          <b style="color:#faa;">PICK MISSES (${misses.length}) | allTxns:${allTxns.length} deduped:${dedupedTxns.length}</b><br>
-          <b style="color:#8af;">FIRST 10 TXN TS:</b> ${dedupedTxns.slice(0,10).map(t=>`${t.status_updated||t.created||0}(${t.draft_picks?.length||0}picks${t.draft_picks?.length?':'+t.draft_picks.map(p=>`${p.season}_${p.round}_${p.original_roster_id}→${p.owner_id}`).join(','):''})`).join(' | ')}<br>
-          <b style="color:#8fa;">2027_3_2 MOVES:</b> ${(window._successMoves||[]).filter(m=>m.includes('2027_3_2')).join(' | ')}<br>
-          ${misses.map(m=>`${m}<br>`).join('')}
-        </div>`;
-        el.innerHTML=html+el.innerHTML;
-      }
-    },3000);
     renderLeague(league,scored,id);
     renderTargets();
     renderRosterNeedsContext();
