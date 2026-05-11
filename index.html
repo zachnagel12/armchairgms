@@ -2774,53 +2774,42 @@ async function loadLeague(){
       }
     }catch(e){}
 
-    // Build final recipient map: pickId → { finalOwner, origRid }
-    // For each unique pick, the entry with the highest roster_id confidence = final state.
-    // Sleeper's /traded_picks returns the CURRENT state of each pick directly —
-    // roster_id IS the final owner, original_roster_id IS the original owner.
-    // Multiple entries for same pick = it was traded multiple times; take the one
-    // where roster_id is a valid current roster member.
-    const finalRecipient={}; // pickId → roster_id of final owner
+    // Build final recipient map: for each unique pick, find the MOST RECENT trade
+    // Sort by created timestamp descending — first entry per pick = most recent state
+    rawTradedPicks.sort((a,b)=>(parseInt(b.created)||0)-(parseInt(a.created)||0));
+    const finalRecipient={}; // pickId → final owner roster_id (integer)
     rawTradedPicks.forEach(pk=>{
       const yr=parseInt(pk.season)||0;
       const rd=parseInt(pk.round)||0;
       const origRid=parseInt(pk.original_roster_id)||0;
-      const currentOwner=toRid(pk.roster_id);
       if(yr<2027||!rd||!origRid) return;
       const pickId=`${yr}_${rd}_${origRid}`;
-      // Only update if current owner resolves to a valid roster
-      if(currentOwner){
-        finalRecipient[pickId]=currentOwner;
-      } else if(!finalRecipient[pickId]){
-        // Can't resolve owner — mark as traded away from original at minimum
-        finalRecipient[pickId]=null;
-      }
+      if(finalRecipient.hasOwnProperty(pickId)) return; // already have most recent
+      // roster_id = current/final owner per Sleeper
+      const owner=parseInt(pk.roster_id)||0;
+      if(owner) finalRecipient[pickId]=owner;
+      else finalRecipient[pickId]=null; // traded but can't resolve owner — still remove from orig
     });
 
     // ── STEP 3: ALLOCATE ─────────────────────────────────────────────────────
-    // For every flagged pick: remove from original owner, give to final recipient.
-    // Picks not flagged stay exactly where they were seeded.
     Object.entries(finalRecipient).forEach(([pickId,finalOwner])=>{
       const parts=pickId.split('_'); // "2027_1_3"
       if(parts.length<3) return;
+      const yr=parseInt(parts[0]);
+      const rd=parseInt(parts[1]);
       const origRid=parseInt(parts[2]);
 
-      // Remove from original owner regardless
+      // Remove from original owner (pick was traded away)
       const origArr=rosterPicks[origRid];
       if(origArr){
         const i=origArr.findIndex(p=>p._id===pickId);
         if(i>=0) origArr.splice(i,1);
       }
 
-      // Add to final recipient if valid and different from original
+      // Add to final recipient if they are a valid current roster and not the original owner
       if(finalOwner&&finalOwner!==origRid&&rosterPicks[finalOwner]){
         if(!rosterPicks[finalOwner].find(p=>p._id===pickId)){
-          rosterPicks[finalOwner].push({
-            season:parseInt(parts[0]),
-            round:parseInt(parts[1]),
-            _orig:origRid,
-            _id:pickId
-          });
+          rosterPicks[finalOwner].push({season:yr,round:rd,_orig:origRid,_id:pickId});
         }
       }
     });
