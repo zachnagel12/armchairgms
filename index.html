@@ -2866,7 +2866,22 @@ async function loadLeague(){
         if(!giver||!receiver||giver===receiver) return;
 
         const giverIdx=rosterPicksRaw[giver]?.findIndex(p=>p._id===pickId);
-        if(giverIdx<0) return;
+        // _id miss: origRid may resolve differently across transactions (Sleeper inconsistency).
+        // Find by season+round where _orig is NOT the giver (it's a traded pick, not own)
+        // and where no other pick with same season+round has the same _orig (unambiguous).
+        if(giverIdx<0){
+          const byRound=rosterPicksRaw[giver]?.filter(p=>p.season===yr&&p.round===rd)||[];
+          // If only one pick of this season+round on giver — safe to move
+          if(byRound.length===1){
+            const idx=rosterPicksRaw[giver].indexOf(byRound[0]);
+            if(idx>=0){
+              const pick=rosterPicksRaw[giver][idx];
+              rosterPicksRaw[giver].splice(idx,1);
+              rosterPicksRaw[receiver].push({...pick,isOwn:receiver===pick._orig,_id:pick._id});
+            }
+          }
+          return;
+        }
 
         const pick=rosterPicksRaw[giver][giverIdx];
         rosterPicksRaw[giver].splice(giverIdx,1);
