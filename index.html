@@ -2800,10 +2800,13 @@ async function loadLeague(){
       }
     }catch(e){}
 
-    // Sort oldest first so later trades overwrite earlier ones
-    allTxns.sort((a,b)=>(a.created||0)-(b.created||0));
+    // Deduplicate by transaction_id, sort oldest first by status_updated
+    const txnMap={};
+    allTxns.forEach(t=>{ if(t.transaction_id) txnMap[t.transaction_id]=t; else txnMap[Math.random()]=t; });
+    const dedupedTxns=Object.values(txnMap);
+    dedupedTxns.sort((a,b)=>(a.status_updated||a.created||0)-(b.status_updated||b.created||0));
 
-    allTxns.forEach(txn=>{
+    dedupedTxns.forEach(txn=>{
       const picks=txn.draft_picks||[];
       if(!picks.length) return;
       let sides=(txn.roster_ids||[]).map(v=>toRid(v)).filter(Boolean);
