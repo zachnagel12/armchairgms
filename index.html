@@ -2880,29 +2880,8 @@ async function loadLeague(){
 
         if(!giver||!receiver||giver===receiver) return;
 
-        // Try exact _id match first
-        let giverIdx=rosterPicksRaw[giver]?.findIndex(p=>p._id===pickId);
-
-        // _id miss: Sleeper sometimes stores different origRid across transactions for same pick.
-        // Try alternative IDs using other fields on the pick object.
-        if(giverIdx<0){
-          // Alt 1: maybe origRid resolved to previous_owner_id on the incoming transaction
-          const altOrigRid=toRid(pk.previous_owner_id)||toRid(pk.roster_id);
-          if(altOrigRid&&altOrigRid!==origOwner){
-            const altPickId=`${yr}_${rd}_${altOrigRid}`;
-            giverIdx=rosterPicksRaw[giver]?.findIndex(p=>p._id===altPickId);
-          }
-        }
-
-        // Alt 2: only one pick of this season+round on giver — unambiguous
-        if(giverIdx<0){
-          const byRound=rosterPicksRaw[giver]?.filter(p=>p.season===yr&&p.round===rd)||[];
-          if(byRound.length===1){
-            giverIdx=rosterPicksRaw[giver].indexOf(byRound[0]);
-            window._fallbackMoves=window._fallbackMoves||[];
-            window._fallbackMoves.push(`FALLBACK: ${pickId}→stored:${byRound[0]._id} g:${giver}→r:${receiver} ts:${txn.status_updated||txn.created||0}`);
-          }
-        }
+        // Try exact _id match only — fallbacks cause wrong picks to move
+        const giverIdx=rosterPicksRaw[giver]?.findIndex(p=>p._id===pickId);
 
         if(giverIdx<0){
           window._pickMisses=window._pickMisses||[];
