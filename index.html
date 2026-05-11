@@ -140,8 +140,12 @@ td{padding:8px 16px;vertical-align:middle;overflow:hidden;text-overflow:ellipsis
 .tier-A{background:rgba(176,96,48,0.12);color:var(--accent);border:1px solid rgba(176,96,48,0.25);}
 .tier-B{background:rgba(100,160,100,0.1);color:#5a9a5a;border:1px solid rgba(100,160,100,0.25);}
 .tier-C{background:rgba(100,140,200,0.1);color:#5a80c0;border:1px solid rgba(100,140,200,0.25);}
-.tier-D{background:rgba(160,100,100,0.1);color:#a06060;border:1px solid rgba(160,100,100,0.25);}
-.tier-F{background:rgba(120,80,80,0.08);color:var(--text3);border:1px solid var(--border);}
+.tier-D{background:rgba(140,100,180,0.1);color:#8060b0;border:1px solid rgba(140,100,180,0.25);}
+.tier-E{background:rgba(160,100,100,0.1);color:#a06060;border:1px solid rgba(160,100,100,0.25);}
+.tier-F{background:rgba(140,100,60,0.1);color:#8a6040;border:1px solid rgba(140,100,60,0.2);}
+.tier-G{background:rgba(100,120,100,0.08);color:#607060;border:1px solid rgba(100,120,100,0.2);}
+.tier-H{background:rgba(120,100,80,0.08);color:#706050;border:1px solid rgba(120,100,80,0.18);}
+.tier-I,.tier-J,.tier-K,.tier-L,.tier-M,.tier-N,.tier-O,.tier-P,.tier-Q,.tier-R{background:rgba(100,100,100,0.06);color:var(--text3);border:1px solid var(--border);}
 .tier-line{flex:1;height:1px;background:var(--border);}
 .tier-desc{font-family:'Oswald',sans-serif;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;color:var(--text3);}
 .sp{background:var(--bg2);border-left:1px solid var(--border);}
@@ -1889,12 +1893,25 @@ function getFilt(){
   return DATA.filter(d=>(MODE==='ALL'||d.pos===MODE)&&(!q||d.name.toLowerCase().includes(q)||(d.team&&d.team.toLowerCase().includes(q))));
 }
 function getTier(sc){
-  if(sc>=80) return {key:'S',label:'S Tier',desc:'Untouchable',cls:'tier-S'};
-  if(sc>=60) return {key:'A',label:'A Tier',desc:'Elite',cls:'tier-A'};
-  if(sc>=35) return {key:'B',label:'B Tier',desc:'Strong Starter',cls:'tier-B'};
-  if(sc>=18) return {key:'C',label:'C Tier',desc:'Solid Depth',cls:'tier-C'};
-  if(sc>=8)  return {key:'D',label:'D Tier',desc:'Borderline',cls:'tier-D'};
-  return            {key:'F',label:'F Tier',desc:'Stash / Drop',cls:'tier-F'};
+  if(sc>=92)   return {key:'S',label:'S Tier',desc:'Untouchable',cls:'tier-S'};
+  if(sc>=84)   return {key:'A',label:'A Tier',desc:'Elite',cls:'tier-A'};
+  if(sc>=78)   return {key:'B',label:'B Tier',desc:'Franchise',cls:'tier-B'};
+  if(sc>=66)   return {key:'C',label:'C Tier',desc:'Strong Starter',cls:'tier-C'};
+  if(sc>=60)   return {key:'D',label:'D Tier',desc:'Solid Starter',cls:'tier-D'};
+  if(sc>=38)   return {key:'E',label:'E Tier',desc:'Starter',cls:'tier-E'};
+  if(sc>=36)   return {key:'F',label:'F Tier',desc:'Flex',cls:'tier-F'};
+  if(sc>=28)   return {key:'G',label:'G Tier',desc:'Depth',cls:'tier-G'};
+  if(sc>=25)   return {key:'H',label:'H Tier',desc:'Roster Spot',cls:'tier-H'};
+  if(sc>=23)   return {key:'I',label:'I Tier',desc:'Fringe',cls:'tier-I'};
+  if(sc>=22)   return {key:'J',label:'J Tier',desc:'Stash',cls:'tier-J'};
+  if(sc>=19)   return {key:'K',label:'K Tier',desc:'Deep Stash',cls:'tier-K'};
+  if(sc>=17)   return {key:'L',label:'L Tier',desc:'Lottery',cls:'tier-L'};
+  if(sc>=14)   return {key:'M',label:'M Tier',desc:'Speculative',cls:'tier-M'};
+  if(sc>=12)   return {key:'N',label:'N Tier',desc:'Flier',cls:'tier-N'};
+  if(sc>=9.5)  return {key:'O',label:'O Tier',desc:'Bench',cls:'tier-O'};
+  if(sc>=7)    return {key:'P',label:'P Tier',desc:'Droppable',cls:'tier-P'};
+  if(sc>=2)    return {key:'Q',label:'Q Tier',desc:'Cut',cls:'tier-Q'};
+  return               {key:'R',label:'R Tier',desc:'Drop',cls:'tier-R'};
 }
 
 function renderTable(){
@@ -2819,32 +2836,97 @@ async function loadLeague(){
     scored[0].champOdds += (100-totalOdds);
 
     // ── CONTENTION WINDOW ─────────────────────────────────────────────
-    // PURE PPG LOGIC. futurePPG already includes 1st round pick contributions.
-    // Thresholds relative to league futurePPG average and top.
-    const futurePPGs = scored.map(r=>r.futurePPG);
-    const futureAvg  = futurePPGs.reduce((a,b)=>a+b,0)/futurePPGs.length;
-    const futureTop  = Math.max(...futurePPGs);
+    // A team is "in contention" for a season if their projected PPG for that season
+    // ranks in the top 4 of the league. We project PPG for each year 2026-2031
+    // by applying age decay to current roster + pick upgrades landing that year.
+    const CONTENTION_YEARS=[2026,2027,2028,2029,2030,2031];
+    const TOP_N=Math.min(4,Math.floor(scored.length/3)); // top 4 or top 1/3 for small leagues
+
+    // Build per-year PPG projections for every team
+    // Year 2026 = projPPG (current). Each subsequent year applies further age decay
+    // and folds in pick upgrades that land in that year.
+    const EXTRA_DECAY=0.04; // additional 4% roster PPG loss per year (aging, attrition)
 
     scored.forEach(r=>{
-      const fpg = r.futurePPG;
+      r._yearPPG={};
+      CONTENTION_YEARS.forEach(yr=>{
+        const yearsOut=yr-2026;
+        // Base: current rosterPPG decays each year
+        let base=r.projPPG*Math.pow(1-EXTRA_DECAY,yearsOut);
+        // Add net pick upgrade PPG for picks landing in THIS year
+        // (picks land the year they're drafted, contribute from that year onward)
+        CONTENTION_YEARS.forEach(pickYr=>{
+          if(pickYr<=yr){
+            // picks from pickYr have been on roster for (yr-pickYr) seasons
+            const pickNet=(r._pickNetByYear||{})[pickYr]||0;
+            // picks contribute fully for the year they land, decay after
+            const pickAge=yr-pickYr;
+            base+=pickNet*Math.pow(1-EXTRA_DECAY,pickAge);
+          }
+        });
+        r._yearPPG[yr]=Math.round(base*10)/10;
+      });
+    });
 
-      // Pure PPG tiers — no age, no pick flags, just the number
-      const pct = fpg / futureTop; // 0→1 relative to best team
+    // Store pick net by year on roster object for the loop above
+    // (Need to pre-compute before the loop — do it now)
+    scored.forEach(r=>{
+      r._pickNetByYear={};
+      (r.picks||[]).forEach(pk=>{
+        const yr=parseInt(pk.season)||2028;
+        const pickContrib={1:13,2:7,3:2,4:2}[pk.round]||2;
+        // Net upgrade over weakest starter (already computed as totalPickPPG partial)
+        // Re-derive: use same weakest-starter logic
+        let weakestPPG=999;
+        const byPosLocal={QB:[],WR:[],RB:[],TE:[]};
+        r.all.forEach(p=>{if(byPosLocal[p.pos])byPosLocal[p.pos].push(p);});
+        Object.entries(POS_STARTERS).forEach(([pos,slots])=>{
+          const starters=(byPosLocal[pos]||[]).sort((a,b)=>getScore(b)-getScore(a)).slice(0,slots);
+          if(starters.length<slots){weakestPPG=Math.min(weakestPPG,0);}
+          else if(starters.length>0){
+            const w=starters[starters.length-1];
+            const peak=AGE_PEAK[pos]||27;
+            const ageFactor=Math.max(0.5,1+Math.min(0.08,((peak-(w.age||peak))*0.02)));
+            weakestPPG=Math.min(weakestPPG,(8+Math.sqrt(Math.max(0,getScore(w)))*2.0)*ageFactor);
+          }
+        });
+        const net=Math.max(0,pickContrib-(weakestPPG===999?0:weakestPPG));
+        r._pickNetByYear[yr]=(r._pickNetByYear[yr]||0)+net;
+      });
+      // Now recompute _yearPPG with the correct pick data
+      CONTENTION_YEARS.forEach(yr=>{
+        const yearsOut=yr-2026;
+        let base=r.projPPG*Math.pow(1-EXTRA_DECAY,yearsOut);
+        CONTENTION_YEARS.forEach(pickYr=>{
+          if(pickYr<=yr){
+            const pickNet=(r._pickNetByYear[pickYr])||0;
+            const pickAge=yr-pickYr;
+            base+=pickNet*Math.pow(1-EXTRA_DECAY,pickAge);
+          }
+        });
+        r._yearPPG[yr]=Math.round(base*10)/10;
+      });
+    });
 
-      let start, end;
-      if     (pct >= 0.90){ start=2026; end=2028; }  // Top 10% — elite now
-      else if(pct >= 0.80){ start=2026; end=2027; }  // Solid contender now
-      else if(pct >= 0.72){ start=2027; end=2029; }  // Near-elite, window opening
-      else if(pct >= 0.63){ start=2027; end=2028; }  // Above average
-      else if(pct >= 0.55){ start=2028; end=2029; }  // Average+ — window near
-      else if(pct >= 0.46){ start=2028; end=2030; }  // Below average but picks inflating
-      else if(pct >= 0.36){ start=2029; end=2031; }  // Rebuilding
-      else if(pct >= 0.26){ start=2030; end=2031; }  // Deep rebuild
-      else                { start=2031; end=2031; }  // No real window visible
+    // For each year, rank teams by that year's projected PPG
+    // Top 4 = in contention for that year
+    scored.forEach(r=>{ r._contentionYears=[]; });
+    CONTENTION_YEARS.forEach(yr=>{
+      const ranked=[...scored].sort((a,b)=>b._yearPPG[yr]-a._yearPPG[yr]);
+      ranked.slice(0,TOP_N).forEach(r=>{ r._contentionYears.push(yr); });
+    });
 
-      start=Math.max(2026,Math.min(2031,start));
-      end=Math.max(start,Math.min(2031,end));
-      r.contention = start===end ? String(start) : `${start}–${end}`;
+    // Convert contention years list to a window string
+    scored.forEach(r=>{
+      const yrs=r._contentionYears.sort((a,b)=>a-b);
+      if(!yrs.length){
+        r.contention='—';
+        return;
+      }
+      // Find the first and last contiguous or near-contiguous block
+      // Allow 1-year gap (a team might dip out in 2028 but be back in 2029)
+      let start=yrs[0], end=yrs[yrs.length-1];
+      r.contention=start===end?String(start):`${start}–${end}`;
     });
 
 
