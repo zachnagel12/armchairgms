@@ -372,14 +372,7 @@ tbody tr.sel{background:rgba(192,120,72,0.13);}
 .champ-bar-outer{flex:1;height:14px;background:var(--border);border-radius:7px;overflow:hidden;}
 .champ-bar-inner{height:100%;border-radius:7px;transition:width 0.6s cubic-bezier(.4,0,.2,1);}
 .champ-pct{font-family:'Russo One',sans-serif;font-size:11px;min-width:36px;text-align:right;color:var(--text2);}
-/* CONTENTION TIMELINE */
-.cont-wrap{background:var(--panel);border:1px solid var(--border);border-radius:var(--r8);padding:16px 18px;margin-bottom:16px;}
-.cont-title{font-family:Oswald,sans-serif;font-size:10px;letter-spacing:0.16em;text-transform:uppercase;color:var(--text3);margin-bottom:12px;}
-.cont-years{display:flex;justify-content:space-between;font-family:Oswald,sans-serif;font-size:9px;color:var(--text3);margin-bottom:6px;letter-spacing:0.06em;}
-.cont-row{display:flex;align-items:center;gap:10px;margin-bottom:6px;}
-.cont-owner{font-family:Oswald,sans-serif;font-size:11px;color:var(--text);min-width:110px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.cont-track{flex:1;height:10px;background:var(--border);border-radius:5px;position:relative;}
-.cont-bar{position:absolute;height:100%;border-radius:5px;transition:all 0.5s ease;}
+
 /* NET TRADE LEADERBOARD */
 .ntl-wrap{background:var(--panel);border:1px solid var(--border);border-radius:var(--r8);padding:16px 18px;margin-bottom:16px;}
 .ntl-row{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid rgba(37,40,54,0.4);}
@@ -1011,7 +1004,7 @@ tbody tr.sel{background:rgba(192,120,72,0.13);}
     <div id="lemp" style="text-align:center;padding:60px 20px;">
       <div style="font-size:48px;margin-bottom:16px;">🏈</div>
       <div style="font-family:'Russo One',sans-serif;font-size:20px;color:var(--text);margin-bottom:8px;">Connect Your Sleeper League</div>
-      <div style="font-size:13px;color:var(--text3);line-height:1.7;max-width:360px;margin:0 auto 16px;">Power rankings, championship odds, contention windows, and full roster breakdowns — all scored by the Armchair GMs formula.</div>
+      <div style="font-size:13px;color:var(--text3);line-height:1.7;max-width:360px;margin:0 auto 16px;">Power rankings, championship odds, and full roster breakdowns — all scored by the Armchair GMs formula.</div>
       <div style="font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:0.14em;text-transform:uppercase;color:var(--text3);">Sleeper → League → Settings → League ID</div>
     </div>
   </div>
@@ -1893,25 +1886,25 @@ function getFilt(){
   return DATA.filter(d=>(MODE==='ALL'||d.pos===MODE)&&(!q||d.name.toLowerCase().includes(q)||(d.team&&d.team.toLowerCase().includes(q))));
 }
 function getTier(sc){
-  if(sc>=92)   return {key:'S',label:'S Tier',desc:'Untouchable',cls:'tier-S'};
-  if(sc>=84)   return {key:'A',label:'A Tier',desc:'Elite',cls:'tier-A'};
-  if(sc>=78)   return {key:'B',label:'B Tier',desc:'Franchise',cls:'tier-B'};
-  if(sc>=66)   return {key:'C',label:'C Tier',desc:'Strong Starter',cls:'tier-C'};
-  if(sc>=60)   return {key:'D',label:'D Tier',desc:'Solid Starter',cls:'tier-D'};
-  if(sc>=38)   return {key:'E',label:'E Tier',desc:'Starter',cls:'tier-E'};
-  if(sc>=36)   return {key:'F',label:'F Tier',desc:'Flex',cls:'tier-F'};
-  if(sc>=28)   return {key:'G',label:'G Tier',desc:'Depth',cls:'tier-G'};
-  if(sc>=25)   return {key:'H',label:'H Tier',desc:'Roster Spot',cls:'tier-H'};
-  if(sc>=23)   return {key:'I',label:'I Tier',desc:'Fringe',cls:'tier-I'};
-  if(sc>=22)   return {key:'J',label:'J Tier',desc:'Stash',cls:'tier-J'};
-  if(sc>=19)   return {key:'K',label:'K Tier',desc:'Deep Stash',cls:'tier-K'};
-  if(sc>=17)   return {key:'L',label:'L Tier',desc:'Lottery',cls:'tier-L'};
-  if(sc>=14)   return {key:'M',label:'M Tier',desc:'Speculative',cls:'tier-M'};
-  if(sc>=12)   return {key:'N',label:'N Tier',desc:'Flier',cls:'tier-N'};
-  if(sc>=9.5)  return {key:'O',label:'O Tier',desc:'Bench',cls:'tier-O'};
-  if(sc>=7)    return {key:'P',label:'P Tier',desc:'Droppable',cls:'tier-P'};
-  if(sc>=2)    return {key:'Q',label:'Q Tier',desc:'Cut',cls:'tier-Q'};
-  return               {key:'R',label:'R Tier',desc:'Drop',cls:'tier-R'};
+  if(sc>=92)   return {key:'S',label:'S Tier',cls:'tier-S'};
+  if(sc>=84)   return {key:'A',label:'A Tier',cls:'tier-A'};
+  if(sc>=78)   return {key:'B',label:'B Tier',cls:'tier-B'};
+  if(sc>=66)   return {key:'C',label:'C Tier',cls:'tier-C'};
+  if(sc>=60)   return {key:'D',label:'D Tier',cls:'tier-D'};
+  if(sc>=38)   return {key:'E',label:'E Tier',cls:'tier-E'};
+  if(sc>=36)   return {key:'F',label:'F Tier',cls:'tier-F'};
+  if(sc>=28)   return {key:'G',label:'G Tier',cls:'tier-G'};
+  if(sc>=25)   return {key:'H',label:'H Tier',cls:'tier-H'};
+  if(sc>=23)   return {key:'I',label:'I Tier',cls:'tier-I'};
+  if(sc>=22)   return {key:'J',label:'J Tier',cls:'tier-J'};
+  if(sc>=19)   return {key:'K',label:'K Tier',cls:'tier-K'};
+  if(sc>=17)   return {key:'L',label:'L Tier',cls:'tier-L'};
+  if(sc>=14)   return {key:'M',label:'M Tier',cls:'tier-M'};
+  if(sc>=12)   return {key:'N',label:'N Tier',cls:'tier-N'};
+  if(sc>=9.5)  return {key:'O',label:'O Tier',cls:'tier-O'};
+  if(sc>=7)    return {key:'P',label:'P Tier',cls:'tier-P'};
+  if(sc>=2)    return {key:'Q',label:'Q Tier',cls:'tier-Q'};
+  return               {key:'R',label:'R Tier',cls:'tier-R'};
 }
 
 function renderTable(){
@@ -1943,7 +1936,6 @@ function renderTable(){
       rows.push(`<tr class="tier-sep"><td colspan="4">
         <div class="tier-label-row">
           <span class="tier-pill ${tier.cls}">${tier.label}</span>
-          <span class="tier-desc">${tier.desc}</span>
           <div class="tier-line"></div>
         </div>
       </td></tr>`);
@@ -2042,14 +2034,6 @@ function renderCard(){
     ?comps.map(p=>`<span style="font-size:11px;color:var(--text2);font-family:Oswald,sans-serif;">${p.name.split(' ').pop()} (${getScore(p).toFixed(1)})</span>`).join('<span style="color:var(--text3);margin:0 4px;">·</span>')
     :'<span style="font-size:11px;color:var(--text3);">No close comps</span>';
 
-  // ── CONTRACT CONTEXT ──
-  // Approximate from age — younger players typically have more contract time
-  const contractCtx=age<24?'Rookie deal — 4 yrs of control':
-    age<27?'Prime contract years':
-    age<30?'Likely on extension or new deal':
-    age<32?'Final contract territory — watch restructures':
-    'Year-to-year risk';
-
   // ── DYNASTY WINDOW ──
   const windowStart=Math.max(2026,Math.round(2026+Math.max(0,peakAge-age-1)));
   const windowEnd=windowStart+Math.max(1,Math.round((34-age)/2));
@@ -2089,12 +2073,6 @@ function renderCard(){
         <span style="font-size:10px;color:var(--text3);font-family:Oswald,sans-serif;">Peak age: ${peakAge}</span>
       </div>
       <div class="age-cliff-bar"><div class="age-cliff-fill ${cliffCls}" style="width:${cliffPct}%;"></div></div>
-    </div>
-
-    <!-- Contract context -->
-    <div class="pc-section">
-      <div class="pc-section-title">Contract Context</div>
-      <div style="font-size:11px;color:var(--text2);font-family:Oswald,sans-serif;">${contractCtx}</div>
     </div>
 
     <!-- Comparable players -->
@@ -3044,28 +3022,6 @@ function renderLeague(league,rosters,lid){
     </div>`;
   }).join('');
 
-  // ── CONTENTION TIMELINE 2026–2031 ──
-  const YEARS=['2026','2027','2028','2029','2030','2031'];
-  const START=2026, END=2031, SPAN=END-START;
-  const contRows=rosters.map((r,i)=>{
-    const win=r.contention||'2028–2029';
-    let ws=parseInt(win.split('–')[0]||win)||2028;
-    let we=parseInt(win.split('–')[1]||win)||ws;
-    ws=Math.max(START,Math.min(END,ws));
-    we=Math.max(ws,Math.min(END,we));
-    const left=Math.round(((ws-START)/SPAN)*100);
-    const width=Math.max(4,Math.round(((we-ws)/SPAN)*100));
-    const col=champColors[i%champColors.length];
-    const isCurrent=ws<=2026&&we>=2026;
-    return `<div class="cont-row">
-      <div class="cont-owner" title="${r.owner}">${r.owner.split(' ')[0]}</div>
-      <div class="cont-track">
-        <div class="cont-bar" style="left:${left}%;width:${width+8}%;background:${col};opacity:${isCurrent?1:0.7};"></div>
-      </div>
-      <div style="font-family:Oswald,sans-serif;font-size:10px;color:var(--text3);min-width:56px;text-align:right;">${win}</div>
-    </div>`;
-  }).join('');
-
   // ── NET TRADE LEADERBOARD — removed ──
 
   document.getElementById('lemp').style.display='none';
@@ -3083,13 +3039,6 @@ function renderLeague(league,rosters,lid){
     <div class="champ-bar-wrap">
       <div class="champ-bar-title">🏆 Championship Odds</div>
       ${champBars}
-    </div>
-
-    <!-- CONTENTION WINDOW TIMELINE -->
-    <div class="cont-wrap">
-      <div class="cont-title">Contention Window · 2026–2031</div>
-      <div class="cont-years">${YEARS.map(y=>`<span>${y}</span>`).join('')}</div>
-      ${contRows}
     </div>
 
     <div style="font-family:Oswald,sans-serif;font-size:10px;letter-spacing:0.18em;text-transform:uppercase;color:var(--text3);margin-bottom:12px;padding-top:4px;">Power Rankings · Tap team name for full breakdown</div>
@@ -3135,8 +3084,7 @@ function renderLeague(league,rosters,lid){
             <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
               <span class="tier-badge ${tier.cls}">${tier.label}</span>
               <span style="font-family:Oswald,sans-serif;font-size:10px;color:var(--accent2);">🏆 ${r.champOdds}%</span>
-              <span style="font-family:Oswald,sans-serif;font-size:10px;color:var(--text3);">${r.contention}</span>
-              ${r.sos!==undefined?`<span class="sos-badge ${sosCls}">${sosLbl}</span>`:''}
+${r.sos!==undefined?`<span class="sos-badge ${sosCls}">${sosLbl}</span>`:''}
             </div>
           </div>
           <!-- Value -->
