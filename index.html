@@ -14,14 +14,14 @@
   --text:#e8e0d4;--text2:#a89880;--text3:#6a5e52;
   --qb:#8aacdc;--wr:#78c492;--rb:#dc8a80;--te:#c8a86c;--pick:#aca0cc;
   --green:#3a7a4a;--red:#7a3030;--gt:#78c492;--rt:#dc8a80;
-  --r6:6px;--r8:8px;--r10:10px;--r12:12px;
+  --r6:8px;--r8:12px;--r10:14px;--r12:16px;
   --shadow:0 2px 12px rgba(0,0,0,0.3);
   --shadow-lg:0 4px 24px rgba(0,0,0,0.45);
   --player-name:#8a9dbf;
 }
 body.light{
   --bg:#f0ece4;--bg2:#faf9f7;--bg3:#f4f2ee;--panel:#faf9f7;
-  --border:#d0c8bc;--border2:#bbb0a4;
+  --border:#ddd6cc;--border2:#c8beb4;
   --accent:#b06030;--accent2:#c87040;--gold:#9a7830;
   --text:#1a1610;--text2:#50453a;--text3:#8a7e72;
   --qb:#2860a8;--wr:#1a7a3a;--rb:#a03030;--te:#805020;--pick:#5040a0;
@@ -817,12 +817,6 @@ tbody tr.sel{background:rgba(192,120,72,0.13);}
       <div class="vbw" style="height:8px;margin-bottom:12px;"><div class="vbg" id="vgf" style="width:50%"></div><div class="vbr" id="vrf" style="width:50%"></div></div>
       <div style="font-family:Oswald,sans-serif;font-size:16px;letter-spacing:0.06em;text-align:center;" id="vtf"><span style="color:var(--text3)">Add players to both sides</span></div>
       <div id="dynasty-impact" style="display:none;"></div>
-    </div>
-
-    <!-- ROSTER NEEDS CONTEXT -->
-    <div id="roster-needs-ctx" style="display:none;background:var(--panel);border:1px solid var(--border);padding:14px 18px;margin-bottom:16px;border-radius:var(--r8);">
-      <div style="font-family:Oswald,sans-serif;font-size:10px;letter-spacing:0.16em;text-transform:uppercase;color:var(--text3);margin-bottom:8px;">League roster needs & surplus</div>
-      <div id="roster-needs-rows"></div>
     </div>
 
     <!-- FAIR VALUE SUGGESTION -->
@@ -3515,10 +3509,10 @@ function renderHistory(){
   }
 
   el.innerHTML=`
+    <div class="hist-section"><div class="hist-section-title">📅 Season-by-Season Recap</div>${seasonRecap(seasons)}</div>
     <div class="hist-section"><div class="hist-section-title">🏆 Championship Roll</div>${champRows||'<div class="no-data">No championship data found</div>'}</div>
     <div class="hist-section"><div class="hist-section-title">🚽 Whizzer's Court Bowl</div>${whizzRows||'<div class="no-data">No loser bracket data found</div>'}</div>
     <div class="hist-section"><div class="hist-section-title">All-Time Records</div><div class="record-grid">${recCards||'<div class="no-data">No records found</div>'}</div></div>
-    <div class="hist-section"><div class="hist-section-title">📅 Season-by-Season Recap</div>${seasonRecap(seasons)}</div>
     <div class="hist-section"><div class="hist-section-title">Head-to-Head Records</div>${h2hHtml}</div>`;
 }
 
@@ -3804,12 +3798,6 @@ function renderTrades(){
   }).join('');
 
   el.innerHTML=`
-    <!-- MANAGER ARCHETYPES -->
-    <div class="hist-section">
-      <div class="hist-section-title">Manager Archetypes</div>
-      ${archetypeHtml||'<div class="no-data">Load league and trade history first</div>'}
-    </div>
-
     <!-- BEST TRADES EVER -->
     <div class="hist-section">
       <div class="hist-section-title">🏆 Biggest Steals (All-Time)</div>
