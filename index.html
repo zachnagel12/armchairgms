@@ -2737,90 +2737,21 @@ async function loadLeague(){
 
     loadStep(4);
 
-    // ── STEP 1: SEED ─────────────────────────────────────────────────────────
-    // Every team gets exactly one pick per round per year. N teams × 3 years × 4 rounds picks total.
-    const rosterPicks={};
-    rosters.forEach(r=>{ rosterPicks[r.roster_id]=[]; });
-    [2027,2028,2029].forEach(yr=>{
-      [1,2,3,4].forEach(rd=>{
-        rosters.forEach(r=>{
-          rosterPicks[r.roster_id].push({
-            season:yr, round:rd,
-            _orig:r.roster_id,
-            _id:`${yr}_${rd}_${r.roster_id}`
-          });
-        });
-      });
-    });
-
-    const userToRoster={};
-    rosters.forEach(r=>{ if(r.owner_id) userToRoster[String(r.owner_id)]=r.roster_id; });
-    function toRid(v){
-      if(v===null||v===undefined) return null;
-      const n=parseInt(v);
-      if(rosters.find(r=>r.roster_id===n)) return n;
-      return userToRoster[String(v)]||null;
-    }
-
-    // ── STEP 2: FLAG TRADED PICKS & FIND FINAL RECIPIENT ─────────────────────
-    // Fetch traded_picks from current + all historical seasons.
-    // Each entry = one trade transaction involving a pick.
-    // We want the MOST RECENT transaction per unique pick to find final recipient.
-    let rawTradedPicks=[];
-    try{
-      let scanId=id;
-      const seen=new Set();
-      for(let s=0;s<8;s++){
-        if(seen.has(scanId)) break;
-        seen.add(scanId);
-        const [tp,lg]=await Promise.all([
-          fetch(`https://api.sleeper.app/v1/league/${scanId}/traded_picks`).then(r=>r.ok?r.json():[]).catch(()=>[]),
-          fetch(`https://api.sleeper.app/v1/league/${scanId}`).then(r=>r.ok?r.json():null).catch(()=>null)
-        ]);
-        if(Array.isArray(tp)) rawTradedPicks.push(...tp);
-        if(!lg||!lg.previous_league_id) break;
-        scanId=lg.previous_league_id;
-      }
-    }catch(e){}
-
-    // /traded_picks returns a snapshot of current pick ownership — not a transaction log.
-    // Each unique pick appears ONCE with its current owner in roster_id.
-    // No sorting needed. Just read roster_id = final owner directly.
-    const finalRecipient={}; // "yr_rd_origRid" → final owner roster_id (int)
-    rawTradedPicks.forEach(pk=>{
-      const yr=parseInt(pk.season)||0;
-      const rd=parseInt(pk.round)||0;
-      const origRid=parseInt(pk.original_roster_id)||0;
-      const currentOwner=parseInt(pk.roster_id)||0;
-      if(yr<2027||!rd||!origRid||!currentOwner) return;
-      const pickId=`${yr}_${rd}_${origRid}`;
-      // If same pick appears multiple times across historical seasons,
-      // only keep the entry where the owner differs from original (actually traded)
-      // or overwrite with latest known state
-      finalRecipient[pickId]=currentOwner;
-    });
-
-    // ── STEP 3: ALLOCATE ─────────────────────────────────────────────────────
-    Object.entries(finalRecipient).forEach(([pickId,finalOwner])=>{
-      const parts=pickId.split('_'); // "2027_1_3"
-      if(parts.length<3) return;
-      const yr=parseInt(parts[0]);
-      const rd=parseInt(parts[1]);
-      const origRid=parseInt(parts[2]);
-
-      // Remove from original owner (pick was traded away)
-      const origArr=rosterPicks[origRid];
-      if(origArr){
-        const i=origArr.findIndex(p=>p._id===pickId);
-        if(i>=0) origArr.splice(i,1);
-      }
-
-      // Add to final recipient if they are a valid current roster and not the original owner
-      if(finalOwner&&finalOwner!==origRid&&rosterPicks[finalOwner]){
-        if(!rosterPicks[finalOwner].find(p=>p._id===pickId)){
-          rosterPicks[finalOwner].push({season:yr,round:rd,_orig:origRid,_id:pickId});
-        }
-      }
+    // Build a rid→slot map AFTER scoring — slot based on projected record
+    // We need scored first, so we compute picks AFTER scored is built below.
+    // For now just store the raw draft_picks from each Sleeper roster directly.
+    // Sleeper already knows which picks are on each roster — treat them like players.
+    const rosterPicksRaw={};
+    rosters.forEach(r=>{
+      rosterPicksRaw[r.roster_id]=(r.draft_picks||[]).filter(pk=>{
+        const yr=parseInt(pk.season)||0;
+        return yr>=2027&&pk.round;
+      }).map(pk=>({
+        season:parseInt(pk.season),
+        round:parseInt(pk.round),
+        _orig:parseInt(pk.original_roster_id)||parseInt(pk.roster_id)||r.roster_id,
+        _id:`${pk.season}_${pk.round}_${parseInt(pk.original_roster_id)||r.roster_id}`
+      }));
     });
 
     // Cache Sleeper player IDs for photo lookups — normalized name → sleeper_id
@@ -2876,7 +2807,7 @@ async function loadLeague(){
       // Note: pickVal computed later after pwr is known (slot-aware scoring)
       return{owner:owner.name,wins:r.settings?.wins||0,losses:r.settings?.losses||0,ties:r.settings?.ties||0,
         totalScore:Math.round(found.reduce((s,p)=>s+p.score,0)*10)/10,pickVal:0,
-        top:found.slice(0,6),all:found,weeklyPts,picks:rosterPicks[r.roster_id]||[],
+        top:found.slice(0,6),all:found,weeklyPts,picks:rosterPicksRaw[r.roster_id]||[],
         pf:Math.round(pf*10)/10,pa:Math.round(pa*10)/10,rid};
     });
 
