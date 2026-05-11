@@ -1964,7 +1964,7 @@ function showRosterBreakdown(rosterIdx){
         ?`<span style="font-family:Oswald,sans-serif;font-size:10px;color:var(--accent);margin-left:4px;">(${origOwnerName.split(' ')[0]})</span>`
         :'';
       const pickLabel=`${yr} ${rdLabel} · ${slot}`;
-      playerHtml+=`<div class="modal-player-row"><div style="width:36px;height:36px;border-radius:50%;background:rgba(155,138,191,0.12);border:1px solid var(--pick);display:flex;align-items:center;justify-content:center;font-family:Oswald,sans-serif;font-size:9px;font-weight:600;color:var(--pick);flex-shrink:0;">R${rd}</div><div style="flex:1;"><div class="modal-player-name" style="color:var(--pick);">${pickLabel}${fromTag}</div><div class="modal-player-meta">Dynasty Pick · ${val} pts</div></div><div class="modal-player-score" style="color:var(--pick);">${val}</div></div>`;
+      playerHtml+=`<div class="modal-player-row"><div style="width:36px;height:36px;border-radius:50%;background:rgba(155,138,191,0.12);border:1px solid var(--pick);display:flex;align-items:center;justify-content:center;font-family:Oswald,sans-serif;font-size:9px;font-weight:600;color:var(--pick);flex-shrink:0;">R${rd}</div><div style="flex:1;"><div class="modal-player-name" style="color:var(--pick);">${pickLabel}${fromTag} <span style="font-size:9px;color:var(--text3);">[${pk._id}]</span></div><div class="modal-player-meta">Dynasty Pick · ${val} pts</div></div><div class="modal-player-score" style="color:var(--pick);">${val}</div></div>`;
     });
   }
   body.innerHTML=html+playerHtml;
