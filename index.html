@@ -2782,7 +2782,18 @@ async function loadLeague(){
     allTxns.forEach(txn=>{
       const picks=txn.draft_picks||[];
       if(!picks.length) return;
-      const sides=(txn.roster_ids||[]).map(v=>toRid(v)).filter(Boolean);
+      let sides=(txn.roster_ids||[]).map(v=>toRid(v)).filter(Boolean);
+
+      // Commissioner transactions often only list one team in roster_ids.
+      // Derive the missing side from the pick fields themselves.
+      if(sides.length<2&&txn.type==='commissioner'){
+        picks.forEach(pk=>{
+          const giver=toRid(pk.previous_owner_id)||toRid(pk.roster_id);
+          const receiver=toRid(pk.owner_id);
+          if(giver&&!sides.includes(giver)) sides.push(giver);
+          if(receiver&&!sides.includes(receiver)) sides.push(receiver);
+        });
+      }
       if(sides.length<2) return;
       const [teamA,teamB]=sides;
 
