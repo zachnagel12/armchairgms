@@ -115,8 +115,8 @@ tbody tr{border-bottom:1px solid rgba(42,47,61,0.5);cursor:pointer;transition:ba
 tbody tr:hover{background:var(--panel);}
 tbody tr.sel{background:rgba(176,106,58,0.1);border-left:2px solid var(--accent);}
 tbody tr.pr{opacity:0.88;}
-td{padding:8px 16px;vertical-align:middle;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.rn{font-family:'Russo One',sans-serif;font-size:13px;color:var(--accent);width:34px;text-align:center;}
+td{padding:8px 16px;vertical-align:middle;}
+.rn{font-family:'Russo One',sans-serif;font-size:13px;color:var(--accent);width:42px;text-align:center;white-space:nowrap;overflow:visible;}
 .rname{font-family:'Oswald',sans-serif;font-size:13px;font-weight:600;color:var(--text);}
 .rmeta{font-size:10px;color:var(--text3);margin-top:1px;}
 .rposrank{font-family:'Russo One',sans-serif;font-size:10px;color:var(--text3);margin-top:1px;}
@@ -126,7 +126,7 @@ td{padding:8px 16px;vertical-align:middle;overflow:hidden;text-overflow:ellipsis
 .pos-RB{color:var(--rb);border-color:var(--rb);}
 .pos-TE{color:var(--te);border-color:var(--te);}
 .pos-PICK{color:var(--pick);border-color:var(--pick);}
-.rs{text-align:right;font-family:'Russo One',sans-serif;font-size:16px;color:var(--accent);width:60px;}
+.rs{text-align:right;font-family:'Russo One',sans-serif;font-size:16px;color:var(--accent);width:72px;white-space:nowrap;overflow:visible;}
 .rbc{text-align:right;width:70px;padding-right:16px;}
 .rbw{height:4px;background:var(--border);margin-top:2px;border-radius:2px;}
 .rb{height:100%;border-radius:2px;}
@@ -742,7 +742,7 @@ tbody tr.sel{background:rgba(192,120,72,0.13);}
       <div class="pb"><span class="pt" id="rc">All assets</span><span style="font-size:9px;color:var(--text3);font-family:'Oswald',sans-serif;letter-spacing:0.1em;">CLICK ROW TO SELECT</span></div>
       <div class="tw">
         <table>
-          <thead><tr><th style="width:34px;">#</th><th>Player / Pick</th><th style="width:56px;text-align:right;">Score</th><th style="width:70px;text-align:right;">Value</th></tr></thead>
+          <thead><tr><th style="width:42px;">#</th><th>Player / Pick</th><th style="width:72px;text-align:right;">Score</th><th style="width:60px;text-align:right;">Value</th></tr></thead>
           <tbody id="tbody"></tbody>
         </table>
         <div id="nr" class="nr" style="display:none;">No results found</div>
