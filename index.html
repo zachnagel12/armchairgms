@@ -2817,8 +2817,7 @@ async function loadLeague(){
 
         if(!giver||!receiver||giver===receiver) return;
 
-        let giverIdx=rosterPicksRaw[giver]?.findIndex(p=>p._id===pickId);
-        if(giverIdx<0) giverIdx=rosterPicksRaw[giver]?.findIndex(p=>p.season===yr&&p.round===rd&&p._orig===origOwner);
+        const giverIdx=rosterPicksRaw[giver]?.findIndex(p=>p._id===pickId);
         if(giverIdx<0) return;
 
         const pick=rosterPicksRaw[giver][giverIdx];
