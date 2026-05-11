@@ -2774,7 +2774,7 @@ async function loadLeague(){
               .then(r=>r.json()).catch(()=>[])
           )
         );
-        weekTxns.forEach(wk=>{ if(Array.isArray(wk)) wk.forEach(t=>{ if(t.type==='trade') allTxns.push(t); }); });
+        weekTxns.forEach(wk=>{ if(Array.isArray(wk)) wk.forEach(t=>{ if(t.type==='trade'||t.type==='commissioner') allTxns.push(t); }); });
         if(!lr||!lr.previous_league_id) break;
         scanId=lr.previous_league_id;
       }
@@ -2823,8 +2823,11 @@ async function loadLeague(){
 
         if(!giver||!receiver||giver===receiver) return;
 
-        let giverIdx=rosterPicksRaw[giver]?.findIndex(p=>p._id===pickId);
-        if(giverIdx<0) giverIdx=rosterPicksRaw[giver]?.findIndex(p=>p.season===yr&&p.round===rd);
+        // Ensure both giver and receiver have buckets (handles historical roster IDs)
+        if(!rosterPicksRaw[giver]) rosterPicksRaw[giver]=[];
+        if(!rosterPicksRaw[receiver]) rosterPicksRaw[receiver]=[];
+
+        const giverIdx=rosterPicksRaw[giver].findIndex(p=>p._id===pickId);
         if(giverIdx<0) return;
 
         const pick=rosterPicksRaw[giver][giverIdx];
