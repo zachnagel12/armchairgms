@@ -2746,76 +2746,94 @@ async function loadLeague(){
       rosters.forEach(r=>rosterPicksRaw[r.roster_id].push({season:yr,round:rd,isOwn:true,_orig:r.roster_id,_id:`${yr}_${rd}_${r.roster_id}`}))
     ));
 
-    // toRid: resolves any user_id or roster_id value to a current roster_id integer
     const userToRoster={};
     rosters.forEach(r=>{ if(r.owner_id) userToRoster[String(r.owner_id)]=r.roster_id; });
     function toRid(v){
       if(!v&&v!==0) return null;
       const n=parseInt(v);
       if(isNaN(n)) return null;
-      // Check current season rosters first
       if(rosters.find(r=>r.roster_id===n)) return n;
-      // Check user_id → roster_id map
       if(userToRoster[String(v)]) return userToRoster[String(v)];
-      // Fall back to raw integer — historical seasons may use same roster IDs
       if(n>0) return n;
       return null;
     }
 
-    // Collect all trade transactions across all historical seasons
-    const allTxns=[];
+    // Step 1: scan /traded_picks across all seasons
+    // This gives us every pick currently away from its original owner.
+    // Picks returned to original owner are NOT in this list (Sleeper omits them) —
+    // those are correctly handled by seeding above.
+    const pickOwner={}; // pickId → current owner rid
     try{
       let scanId=id;
+      const seenIds=new Set();
       for(let s=0;s<8;s++){
-        const lr=await fetch(`https://api.sleeper.app/v1/league/${scanId}`).then(r=>r.json()).catch(()=>null);
-        const weekTxns=await Promise.all(
-          Array.from({length:18},(_,i)=>
-            fetch(`https://api.sleeper.app/v1/league/${scanId}/transactions/${i+1}`)
-              .then(r=>r.json()).catch(()=>[])
-          )
-        );
-        weekTxns.forEach(wk=>{ if(Array.isArray(wk)) wk.forEach(t=>{ if(t.type==='trade'||t.type==='commissioner') allTxns.push(t); }); });
-        if(!lr||!lr.previous_league_id) break;
-        scanId=lr.previous_league_id;
+        if(seenIds.has(scanId)) break;
+        seenIds.add(scanId);
+        const [tpRes,lgRes]=await Promise.all([
+          fetch(`https://api.sleeper.app/v1/league/${scanId}/traded_picks`).then(r=>r.ok?r.json():[]).catch(()=>[]),
+          fetch(`https://api.sleeper.app/v1/league/${scanId}`).then(r=>r.ok?r.json():null).catch(()=>null)
+        ]);
+        (tpRes||[]).forEach(pk=>{
+          const yr=parseInt(pk.season)||0;
+          const rd=parseInt(pk.round)||0;
+          if(yr<=2026||!rd) return;
+          const origRid=toRid(pk.original_roster_id);
+          const curOwner=toRid(pk.roster_id);
+          if(!origRid||!curOwner) return;
+          const pickId=`${yr}_${rd}_${origRid}`;
+          pickOwner[pickId]=curOwner;
+        });
+        if(!lgRes?.previous_league_id) break;
+        scanId=lgRes.previous_league_id;
       }
     }catch(e){}
 
-    // Sort oldest first — use status_updated (trade completion time) with created as fallback
-    allTxns.sort((a,b)=>(a.status_updated||a.created||0)-(b.status_updated||b.created||0));
+    // Step 2: scan transactions to catch picks returned to original owner.
+    // /traded_picks omits these, but the transaction log has them.
+    // We only care about transactions where owner_id === original_roster_id.
+    try{
+      let scanId=id;
+      const seenIds=new Set();
+      for(let s=0;s<8;s++){
+        if(seenIds.has(scanId)) break;
+        seenIds.add(scanId);
+        const [lgRes,weekTxns]=await Promise.all([
+          fetch(`https://api.sleeper.app/v1/league/${scanId}`).then(r=>r.ok?r.json():null).catch(()=>null),
+          Promise.all(Array.from({length:18},(_,i)=>
+            fetch(`https://api.sleeper.app/v1/league/${scanId}/transactions/${i+1}`)
+              .then(r=>r.ok?r.json():[]).catch(()=>[])
+          ))
+        ]);
+        weekTxns.forEach(wk=>{
+          if(!Array.isArray(wk)) return;
+          wk.forEach(t=>{
+            if(t.type!=='trade'&&t.type!=='commissioner') return;
+            (t.draft_picks||[]).forEach(pk=>{
+              const yr=parseInt(pk.season)||0;
+              const rd=parseInt(pk.round)||0;
+              if(yr<=2026||!rd) return;
+              const origRid=toRid(pk.original_roster_id);
+              const curOwner=toRid(pk.owner_id);
+              if(!origRid||!curOwner) return;
+              // Only handle the case where pick returned to original owner
+              if(curOwner===origRid){
+                const pickId=`${yr}_${rd}_${origRid}`;
+                pickOwner[pickId]=curOwner;
+              }
+            });
+          });
+        });
+        if(!lgRes?.previous_league_id) break;
+        scanId=lgRes.previous_league_id;
+      }
+    }catch(e){}
 
-    // Simple approach: for each pick in each transaction,
-    // original_roster_id = who originally owned it (never changes)
-    // owner_id = who owns it AFTER this transaction
-    // Process oldest→newest so final state wins.
-    // Build a map: pickId → current owner rid
-    const pickOwner={}; // "yr_rd_origRid" → current owner rid
-    allTxns.forEach(txn=>{
-      (txn.draft_picks||[]).forEach(pk=>{
-        const yr=parseInt(pk.season)||0;
-        const rd=parseInt(pk.round)||0;
-        if(yr<=2026||!rd) return;
-        const origRid=toRid(pk.original_roster_id)||toRid(pk.previous_owner_id);
-        if(!origRid) return;
-        const pickId=`${yr}_${rd}_${origRid}`;
-        const prevOwner=toRid(pk.previous_owner_id)||toRid(pk.roster_id);
-        let newOwner=toRid(pk.owner_id);
-        // If owner_id missing, infer receiver as whichever roster_ids entry is NOT the previous owner
-        if(!newOwner&&prevOwner){
-          const txnSides=(txn.roster_ids||[]).map(v=>toRid(v)).filter(Boolean);
-          newOwner=txnSides.find(r=>r!==prevOwner)||null;
-        }
-        if(newOwner) pickOwner[pickId]=newOwner;
-      });
-    });
-
-    // Apply: for every pick that was traded, move it to final owner
+    // Apply: move all traded picks to their final owner
     Object.entries(pickOwner).forEach(([pickId,ownerRid])=>{
-      // Remove from all rosters
       Object.values(rosterPicksRaw).forEach(arr=>{
         const i=arr.findIndex(p=>p._id===pickId);
         if(i>=0) arr.splice(i,1);
       });
-      // Add to final owner
       if(!rosterPicksRaw[ownerRid]) rosterPicksRaw[ownerRid]=[];
       if(!rosterPicksRaw[ownerRid].find(p=>p._id===pickId)){
         const parts=pickId.split('_');
