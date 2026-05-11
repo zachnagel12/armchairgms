@@ -1228,9 +1228,9 @@ async function doLogout(){
 // Save profile back to Supabase when league ID changes
 async function saveProfile(){
   if(!CU?.token||!CU?.uid) return;
-  const lid=document.getElementById('lid')?.value?.trim()||CU.lid||'';
+  const lid=CU.lid||document.getElementById('lid')?.value?.trim()||'';
   try{await sbUpsertProfile(CU.token,CU.uid,{email:CU.em,league_id:lid,scoring:SCORING||'SF'});}catch(e){}
-  CU.lid=lid;sSess(CU);
+  sSess(CU);
 }
 
 function launch(u){
@@ -2561,7 +2561,9 @@ function renderTS(){
 async function loadLeague(){
   const id=(document.getElementById('lid').value||'').trim();
   if(!id){document.getElementById('lerr').textContent='Please enter a League ID.';document.getElementById('lerr').style.display='block';return;}
-  if(CU&&CU.em!=='Guest'){const us=gUsers();if(us[CU.em]){us[CU.em].lid=id;sUsers(us);}CU.lid=id;sSess(CU);}
+  // Save league ID to session and Supabase profile
+  if(CU&&CU.em!=='Guest'){CU.lid=id;sSess(CU);saveProfile();}
+  else if(CU){CU.lid=id;sSess(CU);}
   const btn=document.getElementById('lbtn');btn.disabled=true;btn.textContent='Loading...';
   document.getElementById('lerr').style.display='none';
   document.getElementById('llod').style.display='block';
