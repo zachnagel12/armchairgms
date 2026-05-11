@@ -2726,15 +2726,11 @@ async function loadLeague(){
     let sp={};
     try{const pr=await fetch('https://api.sleeper.app/v1/players/nfl');sp=await pr.json();}catch(e){}
 
-    // Draft capital — use transaction history with timestamps.
-    // Algorithm: seed every team with their own picks. Then scan ALL transactions
-    // across all historical seasons. For each future pick involved in a trade,
-    // track the most recent transaction. Most recent transaction's adds[] tells
-    // us exactly who ended up with that pick. Move it there.
+    // Draft capital — fetch Sleeper's /traded_picks endpoint which gives definitive current ownership
+    // Then supplement with transaction history for picks not covered
     loadStep(4);
 
     // Seed: every team starts with their own picks for 2027-2029 rounds 1-4
-    // Use original_roster_id tracking from the start — each pick is unique by (season, round, original_owner)
     const rosterPicks={};
     rosters.forEach(r=>{ rosterPicks[r.roster_id]=[]; });
     [2027,2028,2029].forEach(yr=>[1,2,3,4].forEach(rd=>
@@ -2744,99 +2740,46 @@ async function loadLeague(){
     const userToRoster={};
     rosters.forEach(r=>{ if(r.owner_id) userToRoster[String(r.owner_id)]=r.roster_id; });
     function toRid(v){
-      if(!v&&v!==0) return null;
+      if(v===null||v===undefined) return null;
       const n=parseInt(v);
       if(rosters.find(r=>r.roster_id===n)) return n;
       return userToRoster[String(v)]||null;
     }
 
-    // Collect all trade transactions across all historical seasons (with timestamps)
-    const allTxns=[];
+    // Fetch traded_picks directly — this is the most reliable source
+    // It returns every future pick that has changed hands
+    let tradedPicks=[];
     try{
-      let scanId=id;
-      for(let s=0;s<8;s++){
-        const [lr]=await Promise.all([
-          fetch(`https://api.sleeper.app/v1/league/${scanId}`).then(r=>r.json()).catch(()=>null)
-        ]);
-        // Fetch all weeks of transactions for this season
-        const weekTxns=await Promise.all(
-          Array.from({length:18},(_,i)=>
-            fetch(`https://api.sleeper.app/v1/league/${scanId}/transactions/${i+1}`)
-              .then(r=>r.json()).catch(()=>[])
-          )
-        );
-        weekTxns.forEach(wk=>{ if(Array.isArray(wk)) wk.forEach(t=>{ if(t.type==='trade') allTxns.push(t); }); });
-        if(!lr||!lr.previous_league_id) break;
-        scanId=lr.previous_league_id;
-      }
+      const tpRes=await fetch(`https://api.sleeper.app/v1/league/${id}/traded_picks`);
+      if(tpRes.ok) tradedPicks=await tpRes.json();
     }catch(e){}
 
-    // Sort trades oldest first so later trades overwrite earlier ones
-    allTxns.sort((a,b)=>(a.created||0)-(b.created||0));
+    // Apply traded picks — each entry has {season, round, roster_id (current owner), previous_owner_id, original_roster_id}
+    // Process sorted by season ascending so earlier picks are handled first
+    tradedPicks.sort((a,b)=>(parseInt(a.season)||0)-(parseInt(b.season)||0));
+    tradedPicks.forEach(pk=>{
+      const yr=parseInt(pk.season)||0;
+      const rd=parseInt(pk.round)||0;
+      if(yr<2027||!rd) return;
 
-    // For each trade, move picks between the two teams.
-    // Strategy: use every available field to determine giver and receiver.
-    // Fields Sleeper may provide on each draft_pick in a transaction:
-    //   roster_id          = previous owner (who gave it in THIS trade)
-    //   previous_owner_id  = same as roster_id in most leagues
-    //   original_roster_id = who originally owned the pick (never changes)
-    //   owner_id           = new owner (who received it in THIS trade)
-    // txn.roster_ids = [teamA, teamB] — always present, always the two traders
+      const origRid=toRid(pk.original_roster_id);
+      const currentOwner=toRid(pk.roster_id); // current owner per Sleeper
+      const pickId=origRid?`${yr}_${rd}_${origRid}`:null;
+      if(!origRid||!currentOwner) return;
 
-    allTxns.forEach(txn=>{
-      const picks=txn.draft_picks||[];
-      if(!picks.length) return;
-      const sides=(txn.roster_ids||[]).map(v=>toRid(v)).filter(Boolean);
-      if(sides.length<2) return;
-      const [teamA,teamB]=sides;
+      // Remove this pick from wherever it currently sits
+      Object.keys(rosterPicks).forEach(rid=>{
+        if(!rosterPicks[rid]) return;
+        const idx=pickId
+          ?rosterPicks[rid].findIndex(p=>p._id===pickId)
+          :rosterPicks[rid].findIndex(p=>p.season===yr&&p.round===rd&&p._orig===origRid);
+        if(idx>=0) rosterPicks[rid].splice(idx,1);
+      });
 
-      picks.forEach(pk=>{
-        const yr=parseInt(pk.season)||0;
-        const rd=parseInt(pk.round)||0;
-        if(yr<=2026||!rd) return;
-
-        // Build unique pick ID from original owner
-        const origOwner=toRid(pk.original_roster_id);
-        const pickId=origOwner?`${yr}_${rd}_${origOwner}`:null;
-
-        // Try to determine giver/receiver from Sleeper fields
-        let receiver=toRid(pk.owner_id);
-        let giver=toRid(pk.previous_owner_id)||toRid(pk.roster_id);
-
-        // If fields missing or invalid, derive from which side currently holds the pick
-        if(!giver||!receiver||giver===receiver||(!sides.includes(giver)&&!sides.includes(receiver))){
-          // Find which side currently has the pick
-          const aIdx=pickId
-            ?rosterPicks[teamA]?.findIndex(p=>p._id===pickId)
-            :rosterPicks[teamA]?.findIndex(p=>p.season===yr&&p.round===rd);
-          const bIdx=pickId
-            ?rosterPicks[teamB]?.findIndex(p=>p._id===pickId)
-            :rosterPicks[teamB]?.findIndex(p=>p.season===yr&&p.round===rd);
-          if(aIdx>=0&&bIdx<0){giver=teamA;receiver=teamB;}
-          else if(bIdx>=0&&aIdx<0){giver=teamB;receiver=teamA;}
-          else if(aIdx<0&&bIdx<0){
-            // Not on either side — could be a pick being traded for the first time
-            // Seed on original owner, then move
-            const orig=origOwner||(sides.includes(toRid(pk.previous_owner_id))?toRid(pk.previous_owner_id):teamA);
-            if(orig&&rosterPicks[orig]){
-              const exists=pickId?rosterPicks[orig].find(p=>p._id===pickId):rosterPicks[orig].find(p=>p.season===yr&&p.round===rd);
-              if(!exists) rosterPicks[orig].push({season:yr,round:rd,isOwn:true,_orig:orig,_id:pickId||`${yr}_${rd}_${orig}`});
-              giver=orig;
-              receiver=sides.find(s=>s!==orig)||teamB;
-            } else return;
-          } else return; // both have it — data conflict, skip
-        }
-
-        if(!giver||!receiver||giver===receiver) return;
-
-        // Find pick on giver's roster
-        let idx=pickId?rosterPicks[giver]?.findIndex(p=>p._id===pickId):-1;
-        if(idx<0) idx=rosterPicks[giver]?.findIndex(p=>p.season===yr&&p.round===rd)??-1;
-        if(idx<0) return;
-
-        // Move it
-        const pick=rosterPicks[giver].splice(idx,1)[0];
-        rosterPicks[receiver].push({...pick,isOwn:false,_id:pickId||pick._id||`${yr}_${rd}_${pick._orig||giver}`});
+      // Place it on current owner's roster
+      rosterPicks[currentOwner].push({
+        season:yr,round:rd,isOwn:currentOwner===origRid,
+        _orig:origRid,_id:pickId||`${yr}_${rd}_${origRid}`
       });
     });
 
