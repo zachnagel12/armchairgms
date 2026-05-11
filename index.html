@@ -2865,27 +2865,39 @@ async function loadLeague(){
 
         if(!giver||!receiver||giver===receiver) return;
 
-        const giverIdx=rosterPicksRaw[giver]?.findIndex(p=>p._id===pickId);
-        // _id miss: origRid may resolve differently across transactions (Sleeper inconsistency).
-        // Find by season+round where _orig is NOT the giver (it's a traded pick, not own)
-        // and where no other pick with same season+round has the same _orig (unambiguous).
+        // Try exact _id match first
+        let giverIdx=rosterPicksRaw[giver]?.findIndex(p=>p._id===pickId);
+
+        // Log miss for debugging
+        if(giverIdx<0){
+          window._pickMisses=window._pickMisses||[];
+          window._pickMisses.push({pickId,giver,receiver,origRid:origOwner,prevOwner:toRid(pk.previous_owner_id),ownerId:toRid(pk.owner_id),rosterIds:txn.roster_ids,giverPicks:rosterPicksRaw[giver]?.map(p=>p._id)});
+        }
+
+        // _id miss: Sleeper sometimes stores different origRid across transactions for same pick.
+        // Try alternative IDs using other fields on the pick object.
+        if(giverIdx<0){
+          // Alt 1: maybe origRid resolved to previous_owner_id on the incoming transaction
+          const altOrigRid=toRid(pk.previous_owner_id)||toRid(pk.roster_id);
+          if(altOrigRid&&altOrigRid!==origOwner){
+            const altPickId=`${yr}_${rd}_${altOrigRid}`;
+            giverIdx=rosterPicksRaw[giver]?.findIndex(p=>p._id===altPickId);
+          }
+        }
+
+        // Alt 2: only one pick of this season+round on giver — unambiguous
         if(giverIdx<0){
           const byRound=rosterPicksRaw[giver]?.filter(p=>p.season===yr&&p.round===rd)||[];
-          // If only one pick of this season+round on giver — safe to move
           if(byRound.length===1){
-            const idx=rosterPicksRaw[giver].indexOf(byRound[0]);
-            if(idx>=0){
-              const pick=rosterPicksRaw[giver][idx];
-              rosterPicksRaw[giver].splice(idx,1);
-              rosterPicksRaw[receiver].push({...pick,isOwn:receiver===pick._orig,_id:pick._id});
-            }
+            giverIdx=rosterPicksRaw[giver].indexOf(byRound[0]);
           }
-          return;
         }
+
+        if(giverIdx<0) return;
 
         const pick=rosterPicksRaw[giver][giverIdx];
         rosterPicksRaw[giver].splice(giverIdx,1);
-        rosterPicksRaw[receiver].push({...pick,isOwn:receiver===pick._orig,_id:pickId});
+        rosterPicksRaw[receiver].push({...pick,isOwn:receiver===pick._orig,_id:pick._id});
       });
     });
 
@@ -3247,6 +3259,19 @@ async function loadLeague(){
     });
     window._lastLeague=league;
     window._lastLeagueId=id;
+
+    // Show pick miss debug on page
+    setTimeout(()=>{
+      const misses=window._pickMisses||[];
+      if(misses.length){
+        const el=document.getElementById('lcon');
+        const html=`<div style="background:#1a1a2e;border:2px solid red;padding:12px;margin-bottom:16px;font-family:monospace;font-size:10px;color:#f88;overflow:auto;max-height:300px;">
+          <b style="color:#faa;">PICK MISSES (${misses.length})</b><br>
+          ${misses.map(m=>`pickId:${m.pickId} giver:${m.giver} receiver:${m.receiver} orig:${m.origRid} prev:${m.prevOwner} owner:${m.ownerId}<br>giverHas:[${(m.giverPicks||[]).join(',')}]<hr>`).join('')}
+        </div>`;
+        el.innerHTML=html+el.innerHTML;
+      }
+    },3000);
     renderLeague(league,scored,id);
     renderTargets();
     renderRosterNeedsContext();
