@@ -2842,19 +2842,8 @@ async function loadLeague(){
         if(yr<=2026||!rd) return;
 
         const origOwner=toRid(pk.original_roster_id)||toRid(pk.previous_owner_id);
-        const pickId=origOwner?`${yr}_${rd}_${origOwner}`:`${yr}_${rd}_${pk.original_roster_id||pk.previous_owner_id||'?'}`;
-
-        // Ensure origOwner has a bucket (handles former managers no longer in current roster list)
-        if(origOwner&&!rosterPicksRaw[origOwner]){
-          rosterPicksRaw[origOwner]=[];
-          // Seed their picks — they were a real team at some point
-          [2027,2028,2029].forEach(y=>[1,2,3,4].forEach(r2=>{
-            const pid=`${y}_${r2}_${origOwner}`;
-            if(!rosterPicksRaw[origOwner].find(p=>p._id===pid)){
-              rosterPicksRaw[origOwner].push({season:y,round:r2,isOwn:true,_orig:origOwner,_id:pid});
-            }
-          }));
-        }
+        if(!origOwner) return; // skip picks with no traceable origin
+        const pickId=`${yr}_${rd}_${origOwner}`;
         const receiverFromPk=toRid(pk.owner_id);
         const giverFromPk=toRid(pk.previous_owner_id)||toRid(pk.roster_id);
 
@@ -2870,12 +2859,7 @@ async function loadLeague(){
           const bHas=rosterPicksRaw[teamB]?.some(p=>p._id===pickId);
           if(aHas){giver=teamA;receiver=teamB;}
           else if(bHas){giver=teamB;receiver=teamA;}
-          else{
-            const orig=origOwner||teamA;
-            if(rosterPicksRaw[orig]&&!rosterPicksRaw[orig].find(p=>p._id===pickId)){
-              rosterPicksRaw[orig].push({season:yr,round:rd,isOwn:true,_orig:orig,_id:pickId});
-            }
-          }
+          else return; // can't determine direction, skip
         }
 
         if(!giver||!receiver||giver===receiver) return;
