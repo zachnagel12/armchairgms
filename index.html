@@ -2933,7 +2933,39 @@ async function loadLeague(){
       });
     });
 
-    // Cache Sleeper player IDs for photo lookups — normalized name → sleeper_id
+    // Override with /traded_picks — this is Sleeper's authoritative snapshot
+    // of every pick currently away from its original owner. Takes priority over
+    // transaction log which may be incomplete (commissioner edits, etc).
+    try{
+      let scanId=id;
+      const seenLids=new Set();
+      for(let s=0;s<8;s++){
+        if(seenLids.has(scanId)) break;
+        seenLids.add(scanId);
+        const [tpRes,lgRes]=await Promise.all([
+          fetch(`https://api.sleeper.app/v1/league/${scanId}/traded_picks`).then(r=>r.ok?r.json():[]).catch(()=>[]),
+          fetch(`https://api.sleeper.app/v1/league/${scanId}`).then(r=>r.ok?r.json():null).catch(()=>null)
+        ]);
+        (tpRes||[]).forEach(pk=>{
+          const yr=parseInt(pk.season)||0;
+          const rd=parseInt(pk.round)||0;
+          if(yr<=2026||!rd) return;
+          const origRid=toRid(pk.original_roster_id,scanId);
+          const curOwner=toRid(pk.roster_id,scanId);
+          if(!origRid||!curOwner) return;
+          const pickId=`${yr}_${rd}_${origRid}`;
+          // Move to correct owner — remove from wherever it is, add to curOwner
+          Object.values(rosterPicksRaw).forEach(arr=>{
+            const i=arr.findIndex(p=>p._id===pickId);
+            if(i>=0) arr.splice(i,1);
+          });
+          if(!rosterPicksRaw[curOwner]) rosterPicksRaw[curOwner]=[];
+          rosterPicksRaw[curOwner].push({season:yr,round:rd,isOwn:curOwner===origRid,_orig:origRid,_id:pickId});
+        });
+        if(!lgRes?.previous_league_id) break;
+        scanId=lgRes.previous_league_id;
+      }
+    }catch(e){}
     Object.entries(sp).forEach(([pid,p])=>{
       if(!p.first_name&&!p.last_name) return;
       const key=normName(`${p.first_name||''} ${p.last_name||''}`);
