@@ -2752,8 +2752,14 @@ async function loadLeague(){
     function toRid(v){
       if(!v&&v!==0) return null;
       const n=parseInt(v);
+      if(isNaN(n)) return null;
+      // Check current season rosters first
       if(rosters.find(r=>r.roster_id===n)) return n;
-      return userToRoster[String(v)]||null;
+      // Check user_id → roster_id map
+      if(userToRoster[String(v)]) return userToRoster[String(v)];
+      // Fall back to raw integer — historical seasons may use same roster IDs
+      if(n>0) return n;
+      return null;
     }
 
     // Collect all trade transactions across all historical seasons
