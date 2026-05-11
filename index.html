@@ -2808,9 +2808,9 @@ async function loadLeague(){
       if(!picks.length) return;
       let sides=(txn.roster_ids||[]).map(v=>toRid(v)).filter(Boolean);
 
-      // Commissioner transactions often only list one team in roster_ids.
-      // Derive the missing side from the pick fields themselves.
-      if(sides.length<2&&txn.type==='commissioner'){
+      // If sides incomplete, derive from pick fields (handles commissioner moves
+      // and any transaction where roster_ids is missing/incomplete)
+      if(sides.length<2){
         picks.forEach(pk=>{
           const giver=toRid(pk.previous_owner_id)||toRid(pk.roster_id);
           const receiver=toRid(pk.owner_id);
@@ -2829,6 +2829,17 @@ async function loadLeague(){
         const origOwner=toRid(pk.original_roster_id)||toRid(pk.previous_owner_id);
         const pickId=origOwner?`${yr}_${rd}_${origOwner}`:`${yr}_${rd}_${pk.original_roster_id||pk.previous_owner_id||'?'}`;
 
+        // Ensure origOwner has a bucket (handles former managers no longer in current roster list)
+        if(origOwner&&!rosterPicksRaw[origOwner]){
+          rosterPicksRaw[origOwner]=[];
+          // Seed their picks — they were a real team at some point
+          [2027,2028,2029].forEach(y=>[1,2,3,4].forEach(r2=>{
+            const pid=`${y}_${r2}_${origOwner}`;
+            if(!rosterPicksRaw[origOwner].find(p=>p._id===pid)){
+              rosterPicksRaw[origOwner].push({season:y,round:r2,isOwn:true,_orig:origOwner,_id:pid});
+            }
+          }));
+        }
         const receiverFromPk=toRid(pk.owner_id);
         const giverFromPk=toRid(pk.previous_owner_id)||toRid(pk.roster_id);
 
