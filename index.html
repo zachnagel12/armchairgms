@@ -2802,9 +2802,14 @@ async function loadLeague(){
 
     // Deduplicate by transaction_id, sort oldest first by status_updated
     const txnMap={};
-    allTxns.forEach(t=>{ if(t.transaction_id) txnMap[t.transaction_id]=t; else txnMap[Math.random()]=t; });
+    allTxns.forEach(t=>{
+      const key=t.transaction_id?String(t.transaction_id):null;
+      if(key&&txnMap[key]) return; // already have it
+      txnMap[key||`_${Math.random()}`]=t;
+    });
     const dedupedTxns=Object.values(txnMap);
     dedupedTxns.sort((a,b)=>(a.status_updated||a.created||0)-(b.status_updated||b.created||0));
+    console.log(`[AGM] allTxns:${allTxns.length} dedupedTxns:${dedupedTxns.length}`);
 
     dedupedTxns.forEach(txn=>{
       const picks=txn.draft_picks||[];
@@ -3267,7 +3272,7 @@ async function loadLeague(){
       if(misses.length){
         const el=document.getElementById('lcon');
         const html=`<div style="background:#1a1a2e;border:2px solid red;padding:12px;margin-bottom:16px;font-family:monospace;font-size:10px;color:#f88;overflow:auto;max-height:300px;">
-          <b style="color:#faa;">PICK MISSES (${misses.length})</b><br>
+          <b style="color:#faa;">PICK MISSES (${misses.length}) | allTxns:${allTxns.length} deduped:${dedupedTxns.length}</b><br>
           ${misses.map(m=>`${m}<br>`).join('')}
         </div>`;
         el.innerHTML=html+el.innerHTML;
