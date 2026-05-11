@@ -2748,13 +2748,37 @@ async function loadLeague(){
 
     const userToRoster={};
     rosters.forEach(r=>{ if(r.owner_id) userToRoster[String(r.owner_id)]=r.roster_id; });
+
+    // Also build from historical seasons so old user_ids resolve correctly
+    try{
+      let scanId=id;
+      for(let s=0;s<8;s++){
+        const [lgRes,rostersRes,usersRes]=await Promise.all([
+          fetch(`https://api.sleeper.app/v1/league/${scanId}`).then(r=>r.ok?r.json():null).catch(()=>null),
+          fetch(`https://api.sleeper.app/v1/league/${scanId}/rosters`).then(r=>r.ok?r.json():[]).catch(()=>[]),
+          fetch(`https://api.sleeper.app/v1/league/${scanId}/users`).then(r=>r.ok?r.json():[]).catch(()=>[])
+        ]);
+        // Map user_id → roster_id for this season
+        // Use CURRENT season's roster_id for the same owner_id (they stay consistent)
+        rostersRes.forEach(r=>{
+          if(r.owner_id&&!userToRoster[String(r.owner_id)]){
+            // Only add if we can match to a current roster by owner
+            const curRoster=rosters.find(cr=>cr.owner_id===r.owner_id);
+            if(curRoster) userToRoster[String(r.owner_id)]=curRoster.roster_id;
+            else userToRoster[String(r.owner_id)]=r.roster_id;
+          }
+        });
+        if(!lgRes?.previous_league_id) break;
+        scanId=lgRes.previous_league_id;
+      }
+    }catch(e){}
+
     function toRid(v){
       if(!v&&v!==0) return null;
       const n=parseInt(v);
       if(isNaN(n)||n<=0) return null;
       if(rosters.find(r=>r.roster_id===n)) return n;
       if(userToRoster[String(v)]) return userToRoster[String(v)];
-      // Historical seasons reuse the same roster IDs — trust the integer
       return n;
     }
 
@@ -3202,17 +3226,6 @@ async function loadLeague(){
     });
     window._lastLeague=league;
     window._lastLeagueId=id;
-
-    // DEBUG: show pick transaction summary on league page
-    window._pickDebug={txns:allTxns.length,allocations:{}};
-    scored.forEach(r=>{
-      window._pickDebug.allocations[r.owner]=(r.picks||[]).map(p=>`${p.season}R${p.round}(orig:${p._orig})`).join(', ');
-    });
-    const debugHtml=`<div style="background:#1a1a2e;border:1px solid #444;padding:12px 16px;margin-bottom:16px;font-family:monospace;font-size:11px;color:#aaa;">
-      <div style="color:#c07848;font-weight:bold;margin-bottom:8px;">PICK DEBUG — ${allTxns.length} transactions found</div>
-      ${scored.map(r=>`<div style="margin-bottom:4px;"><span style="color:#e8e0d4;">${r.owner}:</span> ${(r.picks||[]).map(p=>`<span style="color:${p._orig===r.rid?'#78c492':'#c07848'}">${p.season}R${p.round}(${p._orig})</span>`).join(' ')}</div>`).join('')}
-    </div>`;
-    document.getElementById('lcon').innerHTML=debugHtml;
     renderLeague(league,scored,id);
     renderTargets();
     renderRosterNeedsContext();
