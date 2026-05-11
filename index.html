@@ -2783,21 +2783,21 @@ async function loadLeague(){
       }
     }catch(e){}
 
-    // Build final recipient map: for each unique pick, find the MOST RECENT trade
-    // Sort by created timestamp descending — first entry per pick = most recent state
-    rawTradedPicks.sort((a,b)=>(parseInt(b.created)||0)-(parseInt(a.created)||0));
-    const finalRecipient={}; // pickId → final owner roster_id (integer)
+    // /traded_picks returns a snapshot of current pick ownership — not a transaction log.
+    // Each unique pick appears ONCE with its current owner in roster_id.
+    // No sorting needed. Just read roster_id = final owner directly.
+    const finalRecipient={}; // "yr_rd_origRid" → final owner roster_id (int)
     rawTradedPicks.forEach(pk=>{
       const yr=parseInt(pk.season)||0;
       const rd=parseInt(pk.round)||0;
       const origRid=parseInt(pk.original_roster_id)||0;
-      if(yr<2027||!rd||!origRid) return;
+      const currentOwner=parseInt(pk.roster_id)||0;
+      if(yr<2027||!rd||!origRid||!currentOwner) return;
       const pickId=`${yr}_${rd}_${origRid}`;
-      if(finalRecipient.hasOwnProperty(pickId)) return; // already have most recent
-      // roster_id = current/final owner per Sleeper
-      const owner=parseInt(pk.roster_id)||0;
-      if(owner) finalRecipient[pickId]=owner;
-      else finalRecipient[pickId]=null; // traded but can't resolve owner — still remove from orig
+      // If same pick appears multiple times across historical seasons,
+      // only keep the entry where the owner differs from original (actually traded)
+      // or overwrite with latest known state
+      finalRecipient[pickId]=currentOwner;
     });
 
     // ── STEP 3: ALLOCATE ─────────────────────────────────────────────────────
