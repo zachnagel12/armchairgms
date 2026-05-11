@@ -2896,55 +2896,27 @@ async function loadLeague(){
     });
 
     // Assign draft pick SLOTS based on projected finish order
-    // Worst projected record = earliest pick slot (Early = top 3 picks, Late = bottom 3)
-    // Only applies to 1st and 2nd round picks — 3rd/4th are always Mid
-    const n=scored.length;
+    // Rule: slot determined solely by original owner's projected record
+    // Bottom third = Early, Middle third = Mid, Top third = Late
+    // SAME slot for ALL years (2027/2028/2029) — consistent per original owner
+    // Rounds 3-4 always Mid regardless
     const draftOrder=[...scored].sort((a,b)=>a.pwr-b.pwr);
-
-    function pickSlot(pos, total){
-      const pct=pos/total; // 0=worst(first pick), 1=best(last pick)
-      if(pct<0.25)  return 'Early';
-      if(pct<0.42)  return 'Early-Mid';
-      if(pct<0.58)  return 'Mid';
-      if(pct<0.75)  return 'Mid-Late';
-      return 'Late';
-    }
-
-    // Current year slot (tight projection from current pwr)
+    const _n=draftOrder.length;
     const rosterSlot={};
-    draftOrder.forEach((r,i)=>{ rosterSlot[r.rid]=pickSlot(i,draftOrder.length); });
+    draftOrder.forEach((r,i)=>{
+      const pct=i/_n;
+      rosterSlot[r.rid]=pct<0.333?'Early':pct<0.667?'Mid':'Late';
+    });
 
-    // Following year slot — regression toward mean by 1 step
-    // Bad teams tend to improve, good teams tend to regress slightly
-    const slotSteps=['Early','Early-Mid','Mid','Mid-Late','Late'];
-    function regressSlot(slot){
-      const idx=slotSteps.indexOf(slot);
-      if(idx<0) return 'Mid';
-      // Push toward middle (index 2)
-      if(idx<2) return slotSteps[idx+1]; // bad teams regress toward mid
-      if(idx>2) return slotSteps[idx-1]; // good teams regress toward mid
-      return 'Mid';
-    }
-    const rosterSlotY2={};
-    Object.entries(rosterSlot).forEach(([rid,slot])=>{ rosterSlotY2[rid]=regressSlot(slot); });
-
-    // Now rescore picks using slot-aware DATA lookup and attach slot to each pick object
-    // r.picks already reflects correct ownership — own picks that were never traded,
-    // plus picks received via trade. Show and score all of them.
     scored.forEach(r=>{
       let pickVal=0;
       (r.picks||[]).forEach(pk=>{
         const origRid=pk._orig||r.rid;
         const yr=parseInt(pk.season)||2027;
         const rd=pk.round;
-        // Only 1st and 2nd round picks get projected slots
-        // 3rd/4th always Mid — too hard to predict that far
-        let slot='Mid';
-        if(rd<=2){
-          const isY2=yr>=2028; // picks 2+ years out get regressed slot
-          const baseSlot=rosterSlot[origRid]||rosterSlot[r.rid]||'Mid';
-          slot=isY2?rosterSlotY2[origRid]||rosterSlotY2[r.rid]||'Mid':baseSlot;
-        }
+        // Rd 1-2: use original owner's slot (same for all years)
+        // Rd 3-4: always Mid
+        const slot=(rd<=2)?(rosterSlot[origRid]||rosterSlot[r.rid]||'Mid'):'Mid';
         pk.slot=slot;
         let match=DATA.find(d=>d.type==='pick'&&d.year==yr&&d.round==rd&&d.slot===slot);
         if(!match) match=DATA.find(d=>d.type==='pick'&&d.year==yr&&d.round==rd);
