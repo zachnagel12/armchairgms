@@ -2765,10 +2765,9 @@ async function loadLeague(){
       }
     }catch(e){}
 
-    // Deduplicate — same pick may appear across seasons as it moves hands
-    // Keep only the most recent entry per unique pick (yr_rd_origOwner)
-    // Sort oldest first so latest overwrites
+    // Deduplicate — keep latest entry per unique pick
     tradedPicks.sort((a,b)=>(parseInt(a.season)||0)-(parseInt(b.season)||0));
+    console.log('[AGM] traded_picks raw count:', tradedPicks.length, tradedPicks.filter(p=>parseInt(p.season)>=2027).slice(0,5));
     const latestTradedPick={};
     tradedPicks.forEach(pk=>{
       const yr=parseInt(pk.season)||0;
@@ -2783,13 +2782,16 @@ async function loadLeague(){
     Object.values(latestTradedPick).forEach(pk=>{
       const yr=parseInt(pk.season);
       const rd=parseInt(pk.round);
-      const origRid=toRid(pk.original_roster_id);
+      // original_roster_id may not be in current league if from old season — use raw int
+      const origRid=parseInt(pk.original_roster_id)||null;
       const currentOwner=toRid(pk.roster_id);
       if(!origRid||!currentOwner) return;
+      // If original owner is not in current league, skip — pick seeded as own pick doesn't exist
+      if(!rosterPicks[origRid]) return;
 
       const pickId=`${yr}_${rd}_${origRid}`;
 
-      // Remove from ALL rosters
+      // Remove from ALL rosters using rosters array (guaranteed to have all keys)
       rosters.forEach(r=>{
         const arr=rosterPicks[r.roster_id];
         if(!arr) return;
@@ -2798,6 +2800,7 @@ async function loadLeague(){
       });
 
       // Place only on final owner
+      if(!rosterPicks[currentOwner]) rosterPicks[currentOwner]=[];
       rosterPicks[currentOwner].push({
         season:yr, round:rd,
         isOwn: currentOwner===origRid,
