@@ -2770,6 +2770,7 @@ async function loadLeague(){
           // Map this season's roster_id → current roster_id
           const curRid=userToRoster[String(r.owner_id)];
           if(curRid) ridMap[r.roster_id]=curRid;
+          if(r.roster_id===2||r.roster_id===12){window._r2debug=window._r2debug||[];window._r2debug.push(`lid:${scanId} rid:${r.roster_id} owner:${r.owner_id} →curRid:${curRid}`);}
         });
         seasonRidMap[scanId]=ridMap;
         if(!lgRes?.previous_league_id) break;
@@ -3272,13 +3273,11 @@ async function loadLeague(){
     window._lastLeague=league;
     window._lastLeagueId=id;
     setTimeout(()=>{
-      const moves=window._r2moves||[];
       const r2=MODAL_DATA?.find(r=>r.rid===2);
       const allRosters=(MODAL_DATA||[]).map(r=>`rid:${r.rid}=${r.owner}`).join(' | ');
-      if(moves.length||true){
-        const el=document.getElementById('lcon');
-        el.innerHTML=`<div style="background:#1a1a2e;border:2px solid orange;padding:12px;margin-bottom:16px;font-family:monospace;font-size:10px;color:#fa8;overflow:auto;max-height:200px;"><b>ROSTERS:</b> ${allRosters}<br><b>R2 FINAL:</b> ${(r2?.picks||[]).map(p=>p._id).join(' ')}</div>`+el.innerHTML;
-      }
+      const r2dbg=(window._r2debug||[]).join('<br>');
+      const el=document.getElementById('lcon');
+      el.innerHTML=`<div style="background:#1a1a2e;border:2px solid orange;padding:12px;margin-bottom:16px;font-family:monospace;font-size:10px;color:#fa8;overflow:auto;max-height:300px;"><b>ROSTERS:</b> ${allRosters}<br><b>R2 FINAL:</b> ${(r2?.picks||[]).map(p=>p._id).join(' ')}<br><b>RID 2/12 DEBUG:</b><br>${r2dbg}</div>`+el.innerHTML;
     },3000);
     renderLeague(league,scored,id);
     renderTargets();
