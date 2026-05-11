@@ -2738,10 +2738,79 @@ async function loadLeague(){
     window._rawPickTxns=[];
     loadStep(4);
 
-    // Picks are built entirely from trade history in loadTradeHistory.
-    // Start every roster with empty picks — loadTradeHistory fills them in.
+    // Fetch all transactions for current season to build pick ownership now,
+    // so MODAL_DATA has correct picks before first render
     const rosterPicksRaw={};
     rosters.forEach(r=>{ rosterPicksRaw[r.roster_id]=[]; });
+
+    try{
+      // Scan current + historical seasons for pick transactions
+      let scanLid=id;
+      const allPickTxns=[]; // {yr, rd, origRid, newOwner, ts}
+      const seenLids=new Set();
+      for(let s=0;s<8;s++){
+        if(seenLids.has(scanLid)) break;
+        seenLids.add(scanLid);
+        const [lgRes,weekTxns]=await Promise.all([
+          fetch(`https://api.sleeper.app/v1/league/${scanLid}`).then(r=>r.ok?r.json():null).catch(()=>null),
+          Promise.all(Array.from({length:18},(_,i)=>
+            fetch(`https://api.sleeper.app/v1/league/${scanLid}/transactions/${i+1}`)
+              .then(r=>r.ok?r.json():[]).catch(()=>[])
+          ))
+        ]);
+        weekTxns.forEach(wk=>{
+          if(!Array.isArray(wk)) return;
+          wk.forEach(t=>{
+            if(t.type!=='trade') return;
+            (t.draft_picks||[]).forEach(pk=>{
+              const yr=parseInt(pk.season)||0;
+              const rd=parseInt(pk.round)||0;
+              const origRid=parseInt(pk.original_roster_id)||0;
+              const newOwner=parseInt(pk.owner_id)||0;
+              if(yr>=2027&&rd&&origRid&&newOwner){
+                allPickTxns.push({yr,rd,origRid,newOwner,ts:t.status_updated||t.created||0});
+              }
+            });
+          });
+        });
+        if(!lgRes?.previous_league_id) break;
+        scanLid=lgRes.previous_league_id;
+      }
+
+      // Sort oldest→newest so final trade wins
+      allPickTxns.sort((a,b)=>a.ts-b.ts);
+
+      // Build finalOwner map
+      const finalOwner={};
+      allPickTxns.forEach(({yr,rd,origRid,newOwner})=>{
+        finalOwner[`${yr}_${rd}_${origRid}`]=newOwner;
+      });
+
+      // Place traded picks on final recipient
+      Object.entries(finalOwner).forEach(([pickId,ownerRid])=>{
+        const parts=pickId.split('_');
+        if(parts.length<3) return;
+        const yr=parseInt(parts[0]),rd=parseInt(parts[1]),origRid=parseInt(parts[2]);
+        if(!rosterPicksRaw[ownerRid]) return;
+        if(!rosterPicksRaw[ownerRid].find(p=>p._id===pickId)){
+          rosterPicksRaw[ownerRid].push({season:yr,round:rd,_orig:origRid,_id:pickId});
+        }
+      });
+
+      // Give untouched picks to original owners
+      [2027,2028,2029].forEach(yr=>[1,2,3,4].forEach(rd=>{
+        rosters.forEach(r=>{
+          const pickId=`${yr}_${rd}_${r.roster_id}`;
+          if(!finalOwner.hasOwnProperty(pickId)){
+            rosterPicksRaw[r.roster_id].push({season:yr,round:rd,_orig:r.roster_id,_id:pickId});
+          }
+        });
+      }));
+
+      // Store for use in loadTradeHistory (so it doesn't need to rebuild)
+      window._rawPickTxns=allPickTxns;
+
+    }catch(e){ console.error('Pick build error:',e); }
 
     // Cache Sleeper player IDs for photo lookups — normalized name → sleeper_id
     Object.entries(sp).forEach(([pid,p])=>{
@@ -3698,77 +3767,9 @@ async function loadTradeHistory(leagueId, userMap, sleeperPlayers){
     TRADES_DATA={trades:allTrades,topTraded,teamTrades,teamWaivers};
     window._tradesData=TRADES_DATA;
 
-    // ── BUILD PICKS FROM SCRATCH ──────────────────────────────────────────────
-    // Every pick is treated as if it was traded. If it was actually traded, place
-    // it on the final recipient. If never traded, treat as self-trade (own pick).
-    if(window._rawPickTxns&&window.MODAL_DATA&&window.MODAL_DATA.length){
-      const numTeams=window.MODAL_DATA.length;
-      const ridMap={};
-      window.MODAL_DATA.forEach(r=>{
-        ridMap[r.rid]=r;
-        ridMap[parseInt(r.rid)]=r;
-        r.picks=[]; // clear all picks — rebuild from scratch
-      });
-
-      // Step 1: process all transactions oldest→newest
-      // finalOwner[pickId] = the most recent recipient's rid
-      const finalOwner={}; // pickId → ownerRid
-      const txns=(window._rawPickTxns||[]).slice().sort((a,b)=>a.ts-b.ts);
-      txns.forEach(({yr,rd,origRid,newOwner})=>{
-        const pickId=`${yr}_${rd}_${origRid}`;
-        finalOwner[pickId]=newOwner; // overwrite each time — last trade wins
-      });
-
-      // Step 2: place traded picks on final recipient
-      Object.entries(finalOwner).forEach(([pickId,ownerRid])=>{
-        const parts=pickId.split('_');
-        if(parts.length<3) return;
-        const yr=parseInt(parts[0]);
-        const rd=parseInt(parts[1]);
-        const origRid=parseInt(parts[2]);
-        const roster=ridMap[ownerRid]||ridMap[parseInt(ownerRid)];
-        if(!roster) return;
-        if(!roster.picks.find(p=>p._id===pickId)){
-          roster.picks.push({season:yr,round:rd,_orig:origRid,_id:pickId});
-        }
-      });
-
-      // Step 3: for every yr × rd × team, if pick was NEVER traded, give to original owner
-      [2027,2028,2029].forEach(yr=>{
-        [1,2,3,4].forEach(rd=>{
-          window.MODAL_DATA.forEach(r=>{
-            const pickId=`${yr}_${rd}_${r.rid}`;
-            // Only add if this pick never appeared in any transaction
-            if(!finalOwner.hasOwnProperty(pickId)){
-              r.picks.push({season:yr,round:rd,_orig:r.rid,_id:pickId});
-            }
-          });
-        });
-      });
-
-      // Step 4: apply slots and scores
-      window.MODAL_DATA.forEach(r=>{
-        let pickVal=0;
-        (r.picks||[]).forEach(pk=>{
-          const origRid=pk._orig;
-          const rd=pk.round;
-          const yr=pk.season;
-          const sl=window._rosterSlot;
-          const slot=(rd<=2&&sl)?(sl[origRid]||sl[String(origRid)]||'Mid'):'Mid';
-          pk.slot=slot;
-          let match=DATA.find(d=>d.type==='pick'&&d.year===yr&&d.round===rd&&d.slot===slot);
-          if(!match) match=DATA.find(d=>d.type==='pick'&&d.year===yr&&d.round===rd);
-          pk.matchedScore=match?match.score:(rd===1?20:rd===2?8:rd===3?4:1);
-          pickVal+=pk.matchedScore;
-        });
-        r.pickVal=Math.round(pickVal*10)/10;
-        r.totalScore=Math.round((r.all.reduce((s,p)=>s+getScore(p),0)+pickVal)*10)/10;
-      });
-
-      // Re-render league so power rankings and roster modals reflect correct picks
-      if(window._lastLeague&&window._lastLeagueId){
-        renderLeague(window._lastLeague,MODAL_DATA,window._lastLeagueId);
-      }
+    // Picks already built during loadLeague — just re-render to show updated values
+    if(window._lastLeague&&window._lastLeagueId&&window.MODAL_DATA?.length){
+      renderLeague(window._lastLeague,MODAL_DATA,window._lastLeagueId);
     }
 
     // ── RECONCILE PICK OWNERSHIP from trade history ───────────────────────────
