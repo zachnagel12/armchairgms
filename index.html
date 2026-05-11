@@ -2739,27 +2739,19 @@ async function loadLeague(){
     window._rawPickTxns=[];
     loadStep(4);
 
-    // Fetch all transactions across current + historical seasons to build pick ownership
+    // Fetch all transactions using same approach as loadTradeHistory (which works)
     const rosterPicksRaw={};
     rosters.forEach(r=>{ rosterPicksRaw[r.roster_id]=[]; });
 
-    // First collect all season league IDs (current + history)
-    const allSeasonIds=[];
-    let scanLid=id;
-    for(let s=0;s<8;s++){
-      allSeasonIds.push(scanLid);
-      const lgRes=await fetch(`https://api.sleeper.app/v1/league/${scanLid}`).then(r=>r.ok?r.json():null).catch(()=>null);
-      if(!lgRes?.previous_league_id) break;
-      scanLid=lgRes.previous_league_id;
-    }
-
-    // Now fetch transactions for ALL seasons including week 0 (offseason trades)
     const allPickTxns=[];
-    for(const lid of allSeasonIds){
+    let pickScanLid=id;
+    for(let s=0;s<8;s++){
+      const lr=await fetch(`https://api.sleeper.app/v1/league/${pickScanLid}`).then(r=>r.json()).catch(()=>null);
+      if(!lr) break;
       const weekTxns=await Promise.all(
-        Array.from({length:19},(_,i)=>
-          fetch(`https://api.sleeper.app/v1/league/${lid}/transactions/${i}`)
-            .then(r=>r.ok?r.json():[]).catch(()=>[])
+        Array.from({length:18},(_,i)=>
+          fetch(`https://api.sleeper.app/v1/league/${pickScanLid}/transactions/${i+1}`)
+            .then(r=>r.json()).catch(()=>[])
         )
       );
       weekTxns.forEach(wk=>{
@@ -2782,19 +2774,18 @@ async function loadLeague(){
           });
         });
       });
+      if(!lr.previous_league_id) break;
+      pickScanLid=lr.previous_league_id;
     }
 
-    // Sort oldest→newest so final trade wins
     allPickTxns.sort((a,b)=>a.ts-b.ts);
     window._rawPickTxns=allPickTxns;
 
-    // Build finalOwner: pickId → final recipient rid
     const finalOwner={};
     allPickTxns.forEach(({yr,rd,origRid,newOwner})=>{
       finalOwner[`${yr}_${rd}_${origRid}`]=newOwner;
     });
 
-    // Place traded picks on final recipient only
     Object.entries(finalOwner).forEach(([pickId,ownerRid])=>{
       const parts=pickId.split('_');
       if(parts.length<3) return;
@@ -2805,7 +2796,6 @@ async function loadLeague(){
       }
     });
 
-    // Give untouched picks (never appeared in any trade) to original owners
     [2027,2028,2029].forEach(yr=>[1,2,3,4].forEach(rd=>{
       rosters.forEach(r=>{
         const pickId=`${yr}_${rd}_${r.roster_id}`;
