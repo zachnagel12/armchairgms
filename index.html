@@ -1849,15 +1849,66 @@ function showRosterBreakdown(rosterIdx){
   const body=document.getElementById('modal-body');
   if(!modal||!title||!body)return;
   title.textContent=`${r.owner} — Roster Analysis`;
-  const POSITIONS=['QB','WR','RB','TE'];
+
+  // ── POSITIONAL RANKINGS (vs whole league) ──
+  // For each position, rank this team among all league teams by total positional value
+  const _IGNORE_=['QB','WR','RB','TE'];
+  function posTotal(roster, pos){
+    return roster.all.filter(p=>p.pos===pos).reduce((s,p)=>s+getScore(p),0);
+  }
+  function pickTotal(roster){
+    return (roster.picks||[]).reduce((s,pk)=>{
+      const m=DATA.find(d=>d.type==='pick'&&d.year===pk.season&&d.round===pk.round);
+      return s+(m?getScore(m):0);
+    },0);
+  }
+  const posRankings=[...POSITIONS,'PICK'].map(pos=>{
+    const ranked=[...MODAL_DATA].sort((a,b)=>{
+      const va=pos==='PICK'?pickTotal(a):posTotal(a,pos);
+      const vb=pos==='PICK'?pickTotal(b):posTotal(b,pos);
+      return vb-va;
+    });
+    const myRank=ranked.findIndex(x=>x.owner===r.owner)+1;
+    const myVal=pos==='PICK'?pickTotal(r):posTotal(r,pos);
+    const maxVal=pos==='PICK'?pickTotal(ranked[0]):posTotal(ranked[0],pos);
+    const pct=maxVal>0?Math.round((myVal/maxVal)*100):0;
+    const posColor=pos==='QB'?'var(--qb)':pos==='WR'?'var(--wr)':pos==='RB'?'var(--rb)':pos==='TE'?'var(--te)':'var(--pick)';
+    return {pos,rank:myRank,total:MODAL_DATA.length,val:myVal.toFixed(1),pct,posColor};
+  });
+
+  const posRankHtml=posRankings.map(pr=>`
+    <div style="display:grid;grid-template-columns:44px 1fr 36px 24px;align-items:center;gap:8px;margin-bottom:7px;">
+      <span class="pb2 pos-${pr.pos}" style="font-size:9px;text-align:center;">${pr.pos}</span>
+      <div style="position:relative;height:8px;background:var(--border);border-radius:4px;overflow:hidden;">
+        <div style="position:absolute;left:0;top:0;height:100%;width:${pr.pct}%;background:${pr.posColor};border-radius:4px;opacity:0.8;"></div>
+      </div>
+      <div style="font-family:'Russo One',sans-serif;font-size:11px;color:${pr.posColor};text-align:right;">${pr.val}</div>
+      <div style="font-family:Oswald,sans-serif;font-size:10px;color:var(--text3);text-align:right;">#${pr.rank}</div>
+    </div>`).join('');
+
+  const posRankSection=`<div style="border-top:1px solid var(--border);">
+    <div onclick="const b=this.nextElementSibling;const a=this.querySelector('.pos-arr');b.style.display=b.style.display==='none'?'block':'none';a.textContent=b.style.display==='none'?'▼':'▲';" style="display:flex;align-items:center;justify-content:space-between;padding:10px 20px;cursor:pointer;background:var(--bg2);">
+      <div style="font-family:Oswald,sans-serif;font-size:10px;letter-spacing:0.16em;text-transform:uppercase;color:var(--text3);">Positional League Rankings</div>
+      <span class="pos-arr" style="font-family:Oswald,sans-serif;font-size:11px;color:var(--accent);">▼</span>
+    </div>
+    <div style="display:none;padding:12px 20px;background:var(--bg3);">
+      <div style="display:grid;grid-template-columns:44px 1fr 36px 24px;gap:8px;margin-bottom:6px;font-family:Oswald,sans-serif;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;color:var(--text3);">
+        <div></div><div>Value</div><div style="text-align:right;">Total</div><div style="text-align:right;">Rank</div>
+      </div>
+      ${posRankHtml}
+      <div style="font-size:10px;color:var(--text3);font-family:Oswald,sans-serif;margin-top:6px;">Ranked among ${MODAL_DATA.length} teams by total positional value</div>
+    </div>
+  </div>`;
+
+  const POSS=['QB','WR','RB','TE'];
   const posAvg={};
-  POSITIONS.forEach(pos=>{
+  POSS.forEach(pos=>{
     posAvg[pos]=MODAL_DATA.reduce((s,r2)=>{
       const best=r2.all.filter(p=>p.pos===pos).sort((a,b)=>getScore(b)-getScore(a))[0];
       return s+(best?getScore(best):0);
     },0)/MODAL_DATA.length;
   });
-  const posRows=POSITIONS.map(pos=>{
+  const posRows=POSS.map(pos=>{
     const players=r.all.filter(p=>p.pos===pos).sort((a,b)=>getScore(b)-getScore(a));
     const best=players[0];const score=best?getScore(best):0;const avg=posAvg[pos]||1;
     const pct=Math.min(100,Math.round((score/Math.max(avg*1.5,score))*100));
@@ -1874,8 +1925,8 @@ function showRosterBreakdown(rosterIdx){
       <div class="dg-grade dg-grade-${grade}" style="font-size:14px;">${grade}</div>
     </div>`;
   }).join('');
-  const holes=POSITIONS.filter(pos=>{const b=r.all.filter(p=>p.pos===pos).sort((a,b2)=>getScore(b2)-getScore(a))[0];return !b||getScore(b)<posAvg[pos]*0.75;});
-  const strengths=POSITIONS.filter(pos=>{const players=r.all.filter(p=>p.pos===pos);const cnt=players.filter(p=>getScore(p)>=posAvg[pos]*1.1).length;return cnt>=2;});
+  const holes=POSS.filter(pos=>{const b=r.all.filter(p=>p.pos===pos).sort((a,b2)=>getScore(b2)-getScore(a))[0];return !b||getScore(b)<posAvg[pos]*0.75;});
+  const strengths=POSS.filter(pos=>{const players=r.all.filter(p=>p.pos===pos);const cnt=players.filter(p=>getScore(p)>=posAvg[pos]*1.1).length;return cnt>=2;});
   const ageCounts={young:0,peak:0,old:0};
   r.all.slice(0,10).forEach(p=>{const pk={QB:30,WR:27,RB:25,TE:28}[p.pos]||27;const age=p.age||pk;if(age<pk-2)ageCounts.young++;else if(age<=pk+1)ageCounts.peak++;else ageCounts.old++;});
   const tradeTargets=holes.length?holes.map(pos=>{
@@ -1883,7 +1934,7 @@ function showRosterBreakdown(rosterIdx){
     return `<div style="margin-bottom:8px;"><span style="font-family:Oswald,sans-serif;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:${POS_COLORS[pos]};margin-right:6px;">${pos}</span>${top.map(p=>`${p.name} (${getScore(p).toFixed(1)})`).join(', ')}</div>`;
   }).join(''):'<div style="font-size:12px;color:var(--gt);">No major holes.</div>';
 
-  let html=`<div style="padding:16px 20px;border-bottom:1px solid var(--border);background:var(--bg3);">
+  let html=posRankSection+`<div style="padding:16px 20px;border-bottom:1px solid var(--border);background:var(--bg3);">
     <div style="font-family:Oswald,sans-serif;font-size:10px;letter-spacing:0.16em;text-transform:uppercase;color:var(--text3);margin-bottom:12px;">Positional Breakdown vs League Avg</div>
     ${posRows}
   </div>
@@ -3253,43 +3304,7 @@ function renderLeague(league,rosters,lid){
       ${champBars}
     </div>
 
-    <!-- POSITIONAL VALUE RANKINGS -->
-    <div class="champ-bar-wrap" style="margin-bottom:16px;">
-      <div class="champ-bar-title" style="margin-bottom:14px;">Positional Value Rankings</div>
-      ${['QB','WR','RB','TE','PICK'].map(pos=>{
-        // Sum total value at each position per team (including picks for PICK)
-        const posRanked=[...rosters].map(r=>{
-          let total=0;
-          if(pos==='PICK'){
-            total=(r.picks||[]).reduce((s,pk)=>{
-              const m=DATA.find(d=>d.type==='pick'&&d.year===pk.season&&d.round===pk.round&&(d.slot===pk.slot||true));
-              return s+(m?getScore(m):0);
-            },0);
-          } else {
-            total=r.all.filter(p=>p.pos===pos).reduce((s,p)=>s+getScore(p),0);
-          }
-          return{name:r.owner,total:Math.round(total*10)/10};
-        }).sort((a,b)=>b.total-a.total);
-        const maxVal=posRanked[0]?.total||1;
-        const posColor=pos==='QB'?'var(--qb)':pos==='WR'?'var(--wr)':pos==='RB'?'var(--rb)':pos==='TE'?'var(--te)':'var(--pick)';
-        return `<div style="margin-bottom:16px;">
-          <div style="font-family:Oswald,sans-serif;font-size:10px;letter-spacing:0.14em;text-transform:uppercase;color:${posColor};margin-bottom:8px;display:flex;align-items:center;gap:8px;">
-            <span class="pb2 pos-${pos}" style="font-size:9px;">${pos}</span>
-            <span style="color:var(--text3);">Total ${pos==='PICK'?'Draft Capital':pos} Value</span>
-          </div>
-          ${posRanked.map((t,i)=>{
-            const pct=Math.round((t.total/maxVal)*100);
-            const isBest=i===0;
-            return `<div class="champ-row" style="margin-bottom:5px;">
-              <div style="font-family:Oswald,sans-serif;font-size:11px;${isBest?'font-weight:600;color:var(--text)':'color:var(--text2)'};min-width:110px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${i+1}. ${t.name.split(' ')[0]}</div>
-              <div class="champ-bar-outer" style="height:10px;"><div class="champ-bar-inner" style="width:${pct}%;background:${posColor};opacity:${isBest?1:0.5+i*0.02};"></div></div>
-              <div class="champ-pct" style="color:${posColor};font-size:11px;">${t.total>0?t.total.toFixed(1):'—'}</div>
-            </div>`;
-          }).join('')}
-        </div>`;
-      }).join('<div style="border-top:1px solid var(--border);margin:12px 0;"></div>')}
-    </div>
-    <div class="tgrid">${rosters.map((r,i)=>{
+        <div class="tgrid">${rosters.map((r,i)=>{
       const tier = valueTier(r.totalScore, leagueAvg);
       const blurb = buildBlurb(r, leagueAvg);
       const grade = rosterGrade(r, leagueAvg);
