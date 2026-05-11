@@ -1937,12 +1937,24 @@ function showRosterBreakdown(rosterIdx){
   const picks=(r.picks||[]).slice().sort((a,b)=>a.season-b.season||a.round-b.round);
   if(picks.length){
     playerHtml+=`<div class="modal-section">Draft Capital</div>`;
-    const groups={};
-    picks.forEach(pk=>{const slot=pk.slot||'Mid';const key=`${pk.season}_${pk.round}_${slot}`;if(!groups[key])groups[key]={season:pk.season,round:pk.round,slot,items:[],totalVal:0};groups[key].items.push(pk);groups[key].totalVal+=pk.matchedScore||0;});
-    Object.values(groups).sort((a,b)=>a.season-b.season||a.round-b.round).forEach(g=>{
-      const count=g.items.length;const val=(g.totalVal/count).toFixed(1);const totalVal=g.totalVal.toFixed(1);
-      const cb=count>1?`<span style="font-family:Oswald,sans-serif;font-size:10px;background:rgba(155,138,191,0.2);color:var(--pick);padding:1px 6px;border-radius:3px;margin-left:6px;">${count} picks</span>`:'';
-      playerHtml+=`<div class="modal-player-row"><div style="width:36px;height:36px;border-radius:50%;background:rgba(155,138,191,0.12);border:1px solid var(--pick);display:flex;align-items:center;justify-content:center;font-family:Oswald,sans-serif;font-size:9px;font-weight:600;color:var(--pick);flex-shrink:0;">R${g.round}</div><div style="flex:1;"><div class="modal-player-name" style="color:var(--pick);">${g.season} Round ${g.round} · ${g.slot}${cb}</div><div class="modal-player-meta">Dynasty Pick · ${val} pts each</div></div><div class="modal-player-score" style="color:var(--pick);">${count>1?totalVal:val}</div></div>`;
+    // Build roster_id → owner name map from MODAL_DATA
+    const ridToOwner={};
+    MODAL_DATA.forEach(md=>{ if(md.rid) ridToOwner[md.rid]=md.owner; });
+    picks.forEach(pk=>{
+      const slot=pk.slot||'Mid';
+      const val=(pk.matchedScore||0).toFixed(1);
+      const rd=pk.round;
+      const yr=pk.season;
+      const rdLabel=rd===1?'1st':rd===2?'2nd':rd===3?'3rd':'4th';
+      // Determine original owner name
+      const origRid=pk._orig;
+      const origOwnerName=origRid?ridToOwner[origRid]||ridToOwner[parseInt(origRid)]||ridToOwner[String(origRid)]:'';
+      const isOwn=!origRid||origRid===r.rid||parseInt(origRid)===r.rid;
+      const fromTag=!isOwn&&origOwnerName
+        ?`<span style="font-family:Oswald,sans-serif;font-size:10px;color:var(--accent);margin-left:4px;">(${origOwnerName.split(' ')[0]})</span>`
+        :'';
+      const pickLabel=`${yr} ${rdLabel} · ${slot}`;
+      playerHtml+=`<div class="modal-player-row"><div style="width:36px;height:36px;border-radius:50%;background:rgba(155,138,191,0.12);border:1px solid var(--pick);display:flex;align-items:center;justify-content:center;font-family:Oswald,sans-serif;font-size:9px;font-weight:600;color:var(--pick);flex-shrink:0;">R${rd}</div><div style="flex:1;"><div class="modal-player-name" style="color:var(--pick);">${pickLabel}${fromTag}</div><div class="modal-player-meta">Dynasty Pick · ${val} pts</div></div><div class="modal-player-score" style="color:var(--pick);">${val}</div></div>`;
     });
   }
   body.innerHTML=html+playerHtml;
@@ -2783,61 +2795,48 @@ async function loadLeague(){
         const rd=parseInt(pk.round)||0;
         if(yr<=2026||!rd) return;
 
-        // Unique ID for this specific pick
-        const origOwner=toRid(pk.original_roster_id)||toRid(pk.previous_owner_id);
+        // Build unique pick ID from original owner
+        const origOwner=toRid(pk.original_roster_id);
         const pickId=origOwner?`${yr}_${rd}_${origOwner}`:null;
 
-        // owner_id = who is RECEIVING the pick in this transaction (most reliable)
-        // previous_owner_id / roster_id = who is GIVING the pick
-        const receiver=toRid(pk.owner_id);
-        const giver=toRid(pk.previous_owner_id)||toRid(pk.roster_id);
+        // Try to determine giver/receiver from Sleeper fields
+        let receiver=toRid(pk.owner_id);
+        let giver=toRid(pk.previous_owner_id)||toRid(pk.roster_id);
 
-        // Validate both sides are in this trade
-        if(!receiver||!giver||receiver===giver) return;
-        if(!sides.includes(receiver)&&!sides.includes(giver)) return;
-
-        // Find the pick on the giver's roster
-        // Try by unique _id first, then by season+round
-        let idx=-1;
-        if(pickId&&rosterPicks[giver]){
-          idx=rosterPicks[giver].findIndex(p=>p._id===pickId);
-        }
-        if(idx<0&&rosterPicks[giver]){
-          idx=rosterPicks[giver].findIndex(p=>p.season===yr&&p.round===rd);
-        }
-
-        if(idx<0){
-          // Pick not found on giver — check if it's on the other trade partner
-          // (may have been seeded there due to previous trade logic)
-          const otherSide=sides.find(s=>s!==giver);
-          if(otherSide&&rosterPicks[otherSide]){
-            let altIdx=pickId?rosterPicks[otherSide].findIndex(p=>p._id===pickId):-1;
-            if(altIdx<0) altIdx=rosterPicks[otherSide].findIndex(p=>p.season===yr&&p.round===rd);
-            if(altIdx>=0){
-              // It's on the other side — this means giver never had it, skip
-              return;
-            }
-          }
-          // Truly not found anywhere — seed it on original owner if we know who that is
-          if(origOwner&&rosterPicks[origOwner]&&!rosterPicks[origOwner].find(p=>p._id===pickId)){
-            const newPick={season:yr,round:rd,isOwn:true,_orig:origOwner,_id:pickId||`${yr}_${rd}_${origOwner}`};
-            rosterPicks[origOwner].push(newPick);
-            // If giver IS the original owner, we can now move it
-            if(origOwner===giver){
-              idx=rosterPicks[giver].length-1;
-            } else {
-              return; // can't determine direction safely
-            }
-          } else {
-            return;
-          }
+        // If fields missing or invalid, derive from which side currently holds the pick
+        if(!giver||!receiver||giver===receiver||(!sides.includes(giver)&&!sides.includes(receiver))){
+          // Find which side currently has the pick
+          const aIdx=pickId
+            ?rosterPicks[teamA]?.findIndex(p=>p._id===pickId)
+            :rosterPicks[teamA]?.findIndex(p=>p.season===yr&&p.round===rd);
+          const bIdx=pickId
+            ?rosterPicks[teamB]?.findIndex(p=>p._id===pickId)
+            :rosterPicks[teamB]?.findIndex(p=>p.season===yr&&p.round===rd);
+          if(aIdx>=0&&bIdx<0){giver=teamA;receiver=teamB;}
+          else if(bIdx>=0&&aIdx<0){giver=teamB;receiver=teamA;}
+          else if(aIdx<0&&bIdx<0){
+            // Not on either side — could be a pick being traded for the first time
+            // Seed on original owner, then move
+            const orig=origOwner||(sides.includes(toRid(pk.previous_owner_id))?toRid(pk.previous_owner_id):teamA);
+            if(orig&&rosterPicks[orig]){
+              const exists=pickId?rosterPicks[orig].find(p=>p._id===pickId):rosterPicks[orig].find(p=>p.season===yr&&p.round===rd);
+              if(!exists) rosterPicks[orig].push({season:yr,round:rd,isOwn:true,_orig:orig,_id:pickId||`${yr}_${rd}_${orig}`});
+              giver=orig;
+              receiver=sides.find(s=>s!==orig)||teamB;
+            } else return;
+          } else return; // both have it — data conflict, skip
         }
 
-        // Move the pick from giver to receiver
+        if(!giver||!receiver||giver===receiver) return;
+
+        // Find pick on giver's roster
+        let idx=pickId?rosterPicks[giver]?.findIndex(p=>p._id===pickId):-1;
+        if(idx<0) idx=rosterPicks[giver]?.findIndex(p=>p.season===yr&&p.round===rd)??-1;
+        if(idx<0) return;
+
+        // Move it
         const pick=rosterPicks[giver].splice(idx,1)[0];
-        // Preserve _orig, update _id to use the correct origOwner
-        const finalId=pickId||pick._id||`${yr}_${rd}_${pick._orig||giver}`;
-        rosterPicks[receiver].push({...pick,isOwn:false,_id:finalId});
+        rosterPicks[receiver].push({...pick,isOwn:false,_id:pickId||pick._id||`${yr}_${rd}_${pick._orig||giver}`});
       });
     });
 
@@ -3230,30 +3229,26 @@ function showRoster(idx){
   });
   if(!sorted.length)html='<div style="padding:24px;text-align:center;color:var(--text3);font-size:13px;">No matched players found.</div>';
 
-  // Draft Capital section — grouped by slot
+  // Draft Capital section — individual picks with original owner labels
   const picks=(r.picks||[]).slice().sort((a,b)=>a.season-b.season||a.round-b.round);
   if(picks.length){
     html+=`<div class="modal-section">Draft Capital</div>`;
-    // Group picks by year+round+slot for display
-    const groups={};
+    const ridToOwner2={};
+    MODAL_DATA.forEach(md=>{ if(md.rid){ ridToOwner2[md.rid]=md.owner; ridToOwner2[String(md.rid)]=md.owner; }});
     picks.forEach(pk=>{
       const slot=pk.slot||'Mid';
-      const key=`${pk.season}_${pk.round}_${slot}`;
-      if(!groups[key]) groups[key]={season:pk.season,round:pk.round,slot,items:[],totalVal:0};
-      groups[key].items.push(pk);
-      groups[key].totalVal+=pk.matchedScore||0;
-    });
-    Object.values(groups).sort((a,b)=>a.season-b.season||a.round-b.round||0).forEach(g=>{
-      const count=g.items.length;
-      const val=(g.totalVal/count).toFixed(1);
-      const totalVal=g.totalVal.toFixed(1);
-      const pickLabel=`${g.season} Round ${g.round} · ${g.slot}`;
-      const countBadge=count>1?`<span style="font-family:Oswald,sans-serif;font-size:10px;background:rgba(155,138,191,0.2);color:var(--pick);padding:1px 6px;border-radius:3px;margin-left:6px;">${count} picks</span>`:'';
-      const acquired=g.items.some(pk=>!pk.isOwn)?`<span style="font-size:9px;color:var(--accent2);font-family:Oswald,sans-serif;margin-left:4px;">acquired</span>`:'';
+      const val=(pk.matchedScore||0).toFixed(1);
+      const rd=pk.round;
+      const yr=pk.season;
+      const rdLabel=rd===1?'1st':rd===2?'2nd':rd===3?'3rd':'4th';
+      const origRid=pk._orig;
+      const isOwn=!origRid||origRid===r.rid||parseInt(origRid)===r.rid;
+      const origOwnerName=!isOwn?(ridToOwner2[origRid]||ridToOwner2[parseInt(origRid)]||''):'';
+      const fromTag=origOwnerName?` <span style="font-family:Oswald,sans-serif;font-size:10px;color:var(--accent);">(${origOwnerName.split(' ')[0]})</span>`:'';
       html+=`<div class="modal-player-row">
-        <div style="width:36px;height:36px;border-radius:50%;background:rgba(155,138,191,0.12);border:1px solid var(--pick);display:flex;align-items:center;justify-content:center;font-family:Oswald,sans-serif;font-size:9px;font-weight:600;color:var(--pick);flex-shrink:0;">R${g.round}</div>
-        <div style="flex:1;"><div class="modal-player-name" style="color:var(--pick);">${pickLabel}${countBadge}${acquired}</div><div class="modal-player-meta">${g.season} Dynasty Pick · ${val} pts each</div></div>
-        <div class="modal-player-score" style="color:var(--pick);">${count>1?totalVal:val}</div>
+        <div style="width:36px;height:36px;border-radius:50%;background:rgba(155,138,191,0.12);border:1px solid var(--pick);display:flex;align-items:center;justify-content:center;font-family:Oswald,sans-serif;font-size:9px;font-weight:600;color:var(--pick);flex-shrink:0;">R${rd}</div>
+        <div style="flex:1;"><div class="modal-player-name" style="color:var(--pick);">${yr} ${rdLabel} · ${slot}${fromTag}</div><div class="modal-player-meta">Dynasty Pick · ${val} pts</div></div>
+        <div class="modal-player-score" style="color:var(--pick);">${val}</div>
       </div>`;
     });
   }
