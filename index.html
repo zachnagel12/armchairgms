@@ -2903,7 +2903,11 @@ async function loadLeague(){
         // Try exact _id match only — fallbacks cause wrong picks to move
         const giverIdx=rosterPicksRaw[actualGiver]?.findIndex(p=>p._id===pickId);
 
-        if(giverIdx<0) return;
+        if(giverIdx<0){
+          window._pickMisses=window._pickMisses||[];
+          window._pickMisses.push(`${pickId} g:${actualGiver}→r:${receiver} ts:${txn.status_updated||txn.created||0}`);
+          return;
+        }
 
         const pick=rosterPicksRaw[actualGiver][giverIdx];
         rosterPicksRaw[actualGiver].splice(giverIdx,1);
@@ -3274,10 +3278,9 @@ async function loadLeague(){
     window._lastLeagueId=id;
     setTimeout(()=>{
       const r2=MODAL_DATA?.find(r=>r.rid===2);
-      const allRosters=(MODAL_DATA||[]).map(r=>`rid:${r.rid}=${r.owner}`).join(' | ');
-      const r2dbg=(window._r2debug||[]).join('<br>');
+      const misses=window._pickMisses||[];
       const el=document.getElementById('lcon');
-      el.innerHTML=`<div style="background:#1a1a2e;border:2px solid orange;padding:12px;margin-bottom:16px;font-family:monospace;font-size:10px;color:#fa8;overflow:auto;max-height:300px;"><b>ROSTERS:</b> ${allRosters}<br><b>R2 FINAL:</b> ${(r2?.picks||[]).map(p=>p._id).join(' ')}<br><b>RID 2/12 DEBUG:</b><br>${r2dbg}</div>`+el.innerHTML;
+      el.innerHTML=`<div style="background:#1a1a2e;border:2px solid red;padding:12px;margin-bottom:16px;font-family:monospace;font-size:10px;color:#f88;overflow:auto;max-height:300px;"><b>MISSES (${misses.length}):</b><br>${misses.map(m=>m+'<br>').join('')}<br><b>R2 FINAL:</b> ${(r2?.picks||[]).map(p=>p._id).join(' ')}</div>`+el.innerHTML;
     },3000);
     renderLeague(league,scored,id);
     renderTargets();
