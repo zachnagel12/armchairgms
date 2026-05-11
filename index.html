@@ -2743,16 +2743,22 @@ async function loadLeague(){
     const rosterPicksRaw={};
     rosters.forEach(r=>{ rosterPicksRaw[r.roster_id]=[]; });
 
+    // First collect all season league IDs (current + history)
+    const allSeasonIds=[];
     let scanLid=id;
-    const allPickTxns=[];
-    const seenLids=new Set();
     for(let s=0;s<8;s++){
-      if(seenLids.has(scanLid)) break;
-      seenLids.add(scanLid);
+      allSeasonIds.push(scanLid);
       const lgRes=await fetch(`https://api.sleeper.app/v1/league/${scanLid}`).then(r=>r.ok?r.json():null).catch(()=>null);
+      if(!lgRes?.previous_league_id) break;
+      scanLid=lgRes.previous_league_id;
+    }
+
+    // Now fetch transactions for ALL seasons
+    const allPickTxns=[];
+    for(const lid of allSeasonIds){
       const weekTxns=await Promise.all(
         Array.from({length:18},(_,i)=>
-          fetch(`https://api.sleeper.app/v1/league/${scanLid}/transactions/${i+1}`)
+          fetch(`https://api.sleeper.app/v1/league/${lid}/transactions/${i+1}`)
             .then(r=>r.ok?r.json():[]).catch(()=>[])
         )
       );
@@ -2776,8 +2782,6 @@ async function loadLeague(){
           });
         });
       });
-      if(!lgRes?.previous_league_id) break;
-      scanLid=lgRes.previous_league_id;
     }
 
     // Sort oldest→newest so final trade wins
