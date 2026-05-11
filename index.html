@@ -2811,6 +2811,16 @@ async function loadLeague(){
     dedupedTxns.sort((a,b)=>(a.status_updated||a.created||0)-(b.status_updated||b.created||0));
     console.log(`[AGM] allTxns:${allTxns.length} dedupedTxns:${dedupedTxns.length}`);
 
+    // Track current holder of each pick as we process transactions
+    // This handles cases where Sleeper records the same trade twice with different IDs
+    const pickCurrentHolder={}; // pickId → current roster_id
+    // Initialize from seeded picks
+    rosters.forEach(r=>{
+      (rosterPicksRaw[r.roster_id]||[]).forEach(pk=>{
+        pickCurrentHolder[pk._id]=r.roster_id;
+      });
+    });
+
     dedupedTxns.forEach(txn=>{
       // Deduplicate picks within this transaction (Sleeper sometimes lists same pick twice)
       const seenPks=new Set();
@@ -2864,18 +2874,27 @@ async function loadLeague(){
 
         if(!giver||!receiver||giver===receiver) return;
 
+        // Find actual current holder — may differ from giver if this is a duplicate transaction
+        const actualGiver=pickCurrentHolder[pickId]??giver;
+
+        // Skip if pick is already with the receiver (duplicate transaction)
+        if(actualGiver===receiver) return;
+
         // Try exact _id match only — fallbacks cause wrong picks to move
-        const giverIdx=rosterPicksRaw[giver]?.findIndex(p=>p._id===pickId);
+        const giverIdx=rosterPicksRaw[actualGiver]?.findIndex(p=>p._id===pickId);
 
         if(giverIdx<0){
           window._pickMisses=window._pickMisses||[];
-          window._pickMisses.push(`${pickId} g:${giver}→r:${receiver} ts:${txn.status_updated||txn.created||0} id:${txn.transaction_id} has:[${(rosterPicksRaw[giver]||[]).filter(p=>p.season===yr&&p.round===rd).map(p=>p._id).join(',')}]`);
+          const hasSameRound=(rosterPicksRaw[actualGiver]||[]).filter(p=>p.season===yr&&p.round===rd).map(p=>p._id).join(',');
+          const ts=txn.status_updated||txn.created||0;
+          window._pickMisses.push(pickId+' g:'+actualGiver+'→r:'+receiver+' ts:'+ts+' id:'+txn.transaction_id+' has:['+hasSameRound+']');
           return;
         }
 
-        const pick=rosterPicksRaw[giver][giverIdx];
-        rosterPicksRaw[giver].splice(giverIdx,1);
+        const pick=rosterPicksRaw[actualGiver][giverIdx];
+        rosterPicksRaw[actualGiver].splice(giverIdx,1);
         rosterPicksRaw[receiver].push({...pick,isOwn:receiver===pick._orig,_id:pick._id});
+        pickCurrentHolder[pick._id]=receiver;
         window._successMoves=window._successMoves||[];
         window._successMoves.push(`OK: ${pick._id}→${receiver} ts:${txn.status_updated||txn.created||0} id:${txn.transaction_id}`);
       });
