@@ -3634,6 +3634,15 @@ async function loadTradeHistory(leagueId, userMap, sleeperPlayers){
           picks.forEach(pk=>{
             const toRid=pk.owner_id;
             if(sides[toRid]) sides[toRid].picks.push(`${pk.season} Rd${pk.round}`);
+            // Store raw pick for ownership reconciliation
+            const yr=parseInt(pk.season)||0;
+            const rd=parseInt(pk.round)||0;
+            const origRid=parseInt(pk.original_roster_id)||0;
+            const newOwner=parseInt(pk.owner_id)||0;
+            if(yr>=2027&&rd&&origRid&&newOwner){
+              window._pickTrades=window._pickTrades||[];
+              window._pickTrades.push({yr,rd,origRid,newOwner,ts:t.status_updated||t.created||0});
+            }
           });
           const sideArr=Object.values(sides).filter(s=>s.name);
           if(sideArr.length>=2){
@@ -3725,6 +3734,48 @@ async function loadTradeHistory(leagueId, userMap, sleeperPlayers){
 
     TRADES_DATA={trades:allTrades,topTraded,teamTrades,teamWaivers};
     window._tradesData=TRADES_DATA;
+
+    // ── RECONCILE PICKS using raw transaction data ────────────────────────────
+    // _pickTrades has every pick trade: {yr, rd, origRid, newOwner, ts}
+    // Sort oldest→newest so final state wins
+    if(window._pickTrades&&window.MODAL_DATA&&window.MODAL_DATA.length){
+      const pickTrades=window._pickTrades.slice().sort((a,b)=>a.ts-b.ts);
+      // Build rid→MODAL_DATA roster map
+      const ridToRoster={};
+      window.MODAL_DATA.forEach(r=>{ ridToRoster[r.rid]=r; ridToRoster[parseInt(r.rid)]=r; });
+
+      pickTrades.forEach(({yr,rd,origRid,newOwner})=>{
+        if(newOwner===origRid) return; // traded back, no change
+        const pickId=`${yr}_${rd}_${origRid}`;
+
+        // Remove from original owner
+        const origRoster=ridToRoster[origRid];
+        if(origRoster&&origRoster.picks){
+          const i=origRoster.picks.findIndex(p=>p._id===pickId);
+          if(i>=0) origRoster.picks.splice(i,1);
+        }
+
+        // Remove from any previous holder (pick may have changed hands multiple times)
+        window.MODAL_DATA.forEach(r=>{
+          if(r.rid===newOwner||r.rid===origRid) return;
+          if(r.picks){
+            const i=r.picks.findIndex(p=>p._id===pickId);
+            if(i>=0) r.picks.splice(i,1);
+          }
+        });
+
+        // Add to new owner if not already there
+        const newRoster=ridToRoster[newOwner];
+        if(newRoster){
+          if(!newRoster.picks) newRoster.picks=[];
+          if(!newRoster.picks.find(p=>p._id===pickId)){
+            // Carry over slot from original owner's pick if we can find it
+            const slot=(ridToRoster[origRid]?.picks||[]).find(p=>p._id===pickId)?.slot||'Mid';
+            newRoster.picks.push({season:yr,round:rd,_orig:origRid,_id:pickId,slot});
+          }
+        }
+      });
+    }
 
     // ── RECONCILE PICK OWNERSHIP from trade history ───────────────────────────
     // At this point we have every trade transaction with raw draft_picks data.
