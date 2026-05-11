@@ -2786,8 +2786,19 @@ async function loadLeague(){
     allTxns.forEach(txn=>{
       const picks=txn.draft_picks||[];
       if(!picks.length) return;
-      const sides=(txn.roster_ids||[]).map(v=>toRid(v)).filter(Boolean);
-      if(sides.length<2) return;
+
+      // For commissioner moves, roster_ids may only have 1 entry (the recipient).
+      // Derive the full two sides from adds/drops instead.
+      let sides=(txn.roster_ids||[]).map(v=>toRid(v)).filter(Boolean);
+      if(sides.length<2){
+        // Build sides from adds (receivers) and drops (givers)
+        const addRids=new Set(Object.values(txn.adds||{}).map(v=>toRid(v)).filter(Boolean));
+        const dropRids=new Set(Object.values(txn.drops||{}).map(v=>toRid(v)).filter(Boolean));
+        const allRids=[...new Set([...addRids,...dropRids,...sides])];
+        if(allRids.length>=2) sides=allRids;
+        else if(allRids.length===1) sides=allRids; // single-side commissioner add — handle below
+      }
+      if(!sides.length) return;
       const [teamA,teamB]=sides;
 
       picks.forEach(pk=>{
@@ -2799,7 +2810,10 @@ async function loadLeague(){
         const pickId=origOwner?`${yr}_${rd}_${origOwner}`:`${yr}_${rd}_${pk.original_roster_id||pk.previous_owner_id||'?'}`;
 
         const receiverFromPk=toRid(pk.owner_id);
-        const giverFromPk=toRid(pk.previous_owner_id)||toRid(pk.roster_id);
+        // For commissioner moves, giver may only be findable via drops
+        const giverFromDrops=Object.entries(txn.drops||{}).length===0?null:
+          toRid(Object.keys(txn.drops||{})[0]);
+        const giverFromPk=toRid(pk.previous_owner_id)||toRid(pk.roster_id)||giverFromDrops;
 
         let giver,receiver;
         if(giverFromPk&&receiverFromPk&&giverFromPk!==receiverFromPk){
@@ -2833,6 +2847,28 @@ async function loadLeague(){
         const pick=rosterPicksRaw[giver][giverIdx];
         rosterPicksRaw[giver].splice(giverIdx,1);
         rosterPicksRaw[receiver].push({...pick,isOwn:false,_id:pickId});
+      });
+    });
+
+    // Dedup: each unique pickId must exist on exactly one roster.
+    // If a pick appears on multiple rosters (can happen when giver lookup fails
+    // but receiver still got added), remove it from all except the one with isOwn:false
+    // (traded copy) or the last one found.
+    const pickIdSeen={};
+    Object.values(rosterPicksRaw).forEach(arr=>{
+      arr.forEach(pk=>{ pickIdSeen[pk._id]=(pickIdSeen[pk._id]||0)+1; });
+    });
+    Object.keys(pickIdSeen).forEach(pid=>{
+      if(pickIdSeen[pid]<=1) return;
+      // Find all rosters that have this pick
+      const holders=Object.entries(rosterPicksRaw).filter(([,arr])=>arr.some(p=>p._id===pid));
+      if(holders.length<=1) return;
+      // Keep the one where isOwn===false (traded), or the last holder — remove from rest
+      const keeper=holders.find(([,arr])=>arr.find(p=>p._id===pid&&p.isOwn===false))||holders[holders.length-1];
+      holders.forEach(([rid,arr])=>{
+        if(rid===keeper[0]) return;
+        const i=arr.findIndex(p=>p._id===pid);
+        if(i>=0) arr.splice(i,1);
       });
     });
 
