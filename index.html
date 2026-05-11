@@ -30,7 +30,7 @@ body.light{
   --shadow-lg:0 4px 24px rgba(0,0,0,0.15);
   --player-name:#1a1610;
 }
-body{background:var(--bg3);color:var(--text);font-family:'Barlow Condensed',sans-serif;min-height:100vh;font-size:14px;-webkit-font-smoothing:antialiased;transition:background 0.25s,color 0.25s;}
+body{background:var(--bg3);color:var(--text);font-family:'Barlow Condensed',sans-serif;min-height:100vh;font-size:14px;-webkit-font-smoothing:antialiased;transition:background 0.25s,color 0.25s;-webkit-tap-highlight-color:rgba(176,96,48,0.12);}
 body:not(.light) .rname,
 body:not(.light) .pn,
 body:not(.light) .ttn,
@@ -111,13 +111,24 @@ nav{background:var(--bg2);border-bottom:2px solid var(--accent);display:flex;ali
 table{width:100%;border-collapse:collapse;table-layout:fixed;}
 thead{position:sticky;top:0;z-index:10;}
 thead th{font-family:'Oswald',sans-serif;font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:var(--text3);padding:7px 16px;text-align:left;border-bottom:1px solid var(--border);background:var(--bg2);font-weight:400;}
-tbody tr{border-bottom:1px solid rgba(42,47,61,0.5);cursor:pointer;transition:background 0.08s;}
-tbody tr:hover{background:var(--panel);}
-tbody tr.sel{background:rgba(176,106,58,0.1);border-left:2px solid var(--accent);}
+tbody tr{border-bottom:1px solid rgba(42,47,61,0.5);cursor:pointer;transition:background 0.12s,border-left 0.12s;}
+tbody tr:hover{background:var(--panel);border-left:3px solid var(--border2);}
+tbody tr.sel{background:rgba(176,106,58,0.1);border-left:3px solid var(--accent);}
 tbody tr.pr{opacity:0.88;}
 td{padding:8px 16px;vertical-align:middle;}
 .rn{font-family:'Russo One',sans-serif;font-size:13px;color:var(--accent);width:42px;text-align:center;white-space:nowrap;overflow:visible;}
 .rname{font-family:'Oswald',sans-serif;font-size:13px;font-weight:600;color:var(--text);}
+tbody tr:hover .rname{text-decoration:underline;text-decoration-color:rgba(176,96,48,0.4);text-underline-offset:2px;}
+/* Touch active feedback */
+tbody tr:active{background:rgba(192,120,72,0.18) !important;}
+.tc:active{opacity:0.92;}
+/* On touch devices (no hover support): show cues persistently */
+@media(hover:none){
+  tbody tr .rname{text-decoration:underline;text-decoration-color:rgba(176,96,48,0.28);text-underline-offset:2px;}
+  tbody tr{border-left:3px solid transparent;}
+  tbody tr.sel{border-left:3px solid var(--accent);}
+  .tco{text-decoration:underline !important;text-decoration-color:rgba(176,96,48,0.4) !important;text-underline-offset:3px !important;}
+}
 .rmeta{font-size:10px;color:var(--text3);margin-top:1px;}
 .rposrank{font-family:'Russo One',sans-serif;font-size:10px;color:var(--text3);margin-top:1px;}
 .pb2{display:inline-block;font-family:'Oswald',sans-serif;font-size:8px;letter-spacing:0.06em;padding:1px 5px;border:1px solid;margin-left:4px;vertical-align:middle;border-radius:3px;}
@@ -254,8 +265,8 @@ nav{height:50px;border-bottom:2px solid var(--accent);box-shadow:var(--shadow);}
 .fi{border-radius:var(--r6);}
 .pcb{border-radius:var(--r6);}
 .mb{border-radius:0;}
-tbody tr:hover{background:rgba(192,120,72,0.07);}
-tbody tr.sel{background:rgba(192,120,72,0.13);}
+tbody tr:hover{background:rgba(192,120,72,0.07);border-left:3px solid rgba(176,96,48,0.3);}
+tbody tr.sel{background:rgba(192,120,72,0.13);border-left:3px solid var(--accent);}
 .record-card{border-radius:var(--r8);}
 .champ-row{border-radius:var(--r8);}
 .whizz-row{border-radius:var(--r8);}
@@ -3073,7 +3084,7 @@ function renderLeague(league,rosters,lid){
           <!-- Main info -->
           <div style="padding:14px 16px;">
             <div style="display:flex;align-items:center;gap:8px;margin-bottom:3px;">
-              <div class="tco" onclick="showRosterBreakdown(${i})" style="cursor:pointer;">${r.owner}</div>
+              <div class="tco" onclick="showRosterBreakdown(${i})" style="cursor:pointer;text-decoration:underline;text-decoration-color:rgba(176,96,48,0.45);text-underline-offset:3px;" title="Tap to see full roster">${r.owner} <span style="font-family:Oswald,sans-serif;font-size:10px;color:var(--accent);letter-spacing:0.04em;opacity:0.7;">→</span></div>
               <div class="grade-badge ${grade.cls}" title="${grade.detail}" style="font-size:11px;padding:1px 7px;">${grade.letter}</div>
             </div>
             <div style="font-family:Oswald,sans-serif;font-size:10px;color:var(--text3);letter-spacing:0.05em;margin-bottom:6px;">
@@ -3912,4 +3923,25 @@ DATA.forEach(d=>{
   NM_EXACT[d.name.toLowerCase()]=d;
   NM_NORM[normName(d.name)]=d;
 });
+
+// ── PREFETCH SLEEPER PLAYER IDs on startup ────────────────────────────────
+// Fetches the Sleeper NFL players list in the background so avatar photos
+// are ready immediately when the rankings table renders, without waiting
+// for a full league load.
+(async function prefetchSleeperPIDs(){
+  // Only fetch if SLEEPER_PID is still empty (not already populated by league load)
+  if(Object.keys(SLEEPER_PID).length>0) return;
+  try{
+    const res=await fetch('https://api.sleeper.app/v1/players/nfl');
+    if(!res.ok) return;
+    const players=await res.json();
+    Object.entries(players).forEach(([pid,p])=>{
+      if(!p.first_name&&!p.last_name) return;
+      const key=normName(`${p.first_name||''} ${p.last_name||''}`);
+      if(key) SLEEPER_PID[key]=pid;
+    });
+    // Re-render the table so images populate now that IDs are loaded
+    renderTable();
+  }catch(e){}
+})();
 </script></body></html>
