@@ -1851,54 +1851,37 @@ function showRosterBreakdown(rosterIdx){
   title.textContent=`${r.owner} — Roster Analysis`;
 
   // ── POSITIONAL RANKINGS (vs whole league) ──
-  // For each position, rank this team among all league teams by total positional value
-  const _IGNORE_=['QB','WR','RB','TE'];
-  function posTotal(roster, pos){
-    return roster.all.filter(p=>p.pos===pos).reduce((s,p)=>s+getScore(p),0);
-  }
-  function pickTotal(roster){
-    return (roster.picks||[]).reduce((s,pk)=>{
-      const m=DATA.find(d=>d.type==='pick'&&d.year===pk.season&&d.round===pk.round);
-      return s+(m?getScore(m):0);
-    },0);
-  }
-  const posRankings=[...POSITIONS,'PICK'].map(pos=>{
-    const ranked=[...MODAL_DATA].sort((a,b)=>{
-      const va=pos==='PICK'?pickTotal(a):posTotal(a,pos);
-      const vb=pos==='PICK'?pickTotal(b):posTotal(b,pos);
-      return vb-va;
+  const POSITIONS_PR=['QB','WR','RB','TE'];
+  function posTotal(roster,pos){return roster.all.filter(p=>p.pos===pos).reduce((s,p)=>s+getScore(p),0);}
+  function pickTotal(roster){return (roster.picks||[]).reduce((s,pk)=>{const m=DATA.find(d=>d.type==='pick'&&d.year===pk.season&&d.round===pk.round);return s+(m?getScore(m):0);},0);}
+  let posRankSection='';
+  if(MODAL_DATA&&MODAL_DATA.length>1){
+    const posRankings=[...POSITIONS_PR,'PICK'].map(pos=>{
+      const ranked=[...MODAL_DATA].sort((a,b)=>(pos==='PICK'?pickTotal(b)-pickTotal(a):posTotal(b,pos)-posTotal(a,pos)));
+      const myRank=ranked.findIndex(x=>x.owner===r.owner)+1;
+      const myVal=pos==='PICK'?pickTotal(r):posTotal(r,pos);
+      const maxVal=ranked[0]?(pos==='PICK'?pickTotal(ranked[0]):posTotal(ranked[0],pos)):1;
+      const pct=maxVal>0?Math.round((myVal/maxVal)*100):0;
+      const posColor=pos==='QB'?'var(--qb)':pos==='WR'?'var(--wr)':pos==='RB'?'var(--rb)':pos==='TE'?'var(--te)':'var(--pick)';
+      return {pos,rank:myRank,val:myVal.toFixed(1),pct,posColor};
     });
-    const myRank=ranked.findIndex(x=>x.owner===r.owner)+1;
-    const myVal=pos==='PICK'?pickTotal(r):posTotal(r,pos);
-    const maxVal=pos==='PICK'?pickTotal(ranked[0]):posTotal(ranked[0],pos);
-    const pct=maxVal>0?Math.round((myVal/maxVal)*100):0;
-    const posColor=pos==='QB'?'var(--qb)':pos==='WR'?'var(--wr)':pos==='RB'?'var(--rb)':pos==='TE'?'var(--te)':'var(--pick)';
-    return {pos,rank:myRank,total:MODAL_DATA.length,val:myVal.toFixed(1),pct,posColor};
-  });
-
-  const posRankHtml=posRankings.map(pr=>`
-    <div style="display:grid;grid-template-columns:44px 1fr 36px 24px;align-items:center;gap:8px;margin-bottom:7px;">
-      <span class="pb2 pos-${pr.pos}" style="font-size:9px;text-align:center;">${pr.pos}</span>
-      <div style="position:relative;height:8px;background:var(--border);border-radius:4px;overflow:hidden;">
-        <div style="position:absolute;left:0;top:0;height:100%;width:${pr.pct}%;background:${pr.posColor};border-radius:4px;opacity:0.8;"></div>
-      </div>
-      <div style="font-family:'Russo One',sans-serif;font-size:11px;color:${pr.posColor};text-align:right;">${pr.val}</div>
-      <div style="font-family:Oswald,sans-serif;font-size:10px;color:var(--text3);text-align:right;">#${pr.rank}</div>
-    </div>`).join('');
-
-  const posRankSection=`<div style="border-top:1px solid var(--border);">
-    <div onclick="const b=this.nextElementSibling;const a=this.querySelector('.pos-arr');b.style.display=b.style.display==='none'?'block':'none';a.textContent=b.style.display==='none'?'▼':'▲';" style="display:flex;align-items:center;justify-content:space-between;padding:10px 20px;cursor:pointer;background:var(--bg2);">
-      <div style="font-family:Oswald,sans-serif;font-size:10px;letter-spacing:0.16em;text-transform:uppercase;color:var(--text3);">Positional League Rankings</div>
-      <span class="pos-arr" style="font-family:Oswald,sans-serif;font-size:11px;color:var(--accent);">▼</span>
-    </div>
-    <div style="display:none;padding:12px 20px;background:var(--bg3);">
-      <div style="display:grid;grid-template-columns:44px 1fr 36px 24px;gap:8px;margin-bottom:6px;font-family:Oswald,sans-serif;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;color:var(--text3);">
-        <div></div><div>Value</div><div style="text-align:right;">Total</div><div style="text-align:right;">Rank</div>
-      </div>
-      ${posRankHtml}
-      <div style="font-size:10px;color:var(--text3);font-family:Oswald,sans-serif;margin-top:6px;">Ranked among ${MODAL_DATA.length} teams by total positional value</div>
-    </div>
-  </div>`;
+    const posRankHtml=posRankings.map(pr=>'<div style="display:grid;grid-template-columns:44px 1fr 36px 24px;align-items:center;gap:8px;margin-bottom:7px;">'
+      +'<span class="pb2 pos-'+pr.pos+'" style="font-size:9px;text-align:center;">'+pr.pos+'</span>'
+      +'<div style="position:relative;height:8px;background:var(--border);border-radius:4px;overflow:hidden;"><div style="position:absolute;left:0;top:0;height:100%;width:'+pr.pct+'%;background:'+pr.posColor+';border-radius:4px;opacity:0.8;"></div></div>'
+      +'<div style="font-family:Oswald,sans-serif;font-weight:700;font-size:12px;color:'+pr.posColor+';text-align:right;">'+pr.val+'</div>'
+      +'<div style="font-family:Oswald,sans-serif;font-size:10px;color:var(--text3);text-align:right;">#'+pr.rank+'</div>'
+      +'</div>').join('');
+    posRankSection='<div style="border-top:1px solid var(--border);">'
+      +'<div onclick="var b=this.nextElementSibling;var a=this.querySelector(\'.pos-arr\');b.style.display=b.style.display===\'none\'?\'block\':\'none\';a.textContent=b.style.display===\'none\'?\'▼\':\'▲\';" style="display:flex;align-items:center;justify-content:space-between;padding:10px 20px;cursor:pointer;background:var(--bg2);">'
+      +'<div style="font-family:Oswald,sans-serif;font-size:10px;letter-spacing:0.16em;text-transform:uppercase;color:var(--text3);">Positional League Rankings</div>'
+      +'<span class="pos-arr" style="font-family:Oswald,sans-serif;font-size:11px;color:var(--accent);">▼</span>'
+      +'</div>'
+      +'<div style="display:none;padding:12px 20px;background:var(--bg3);">'
+      +'<div style="display:grid;grid-template-columns:44px 1fr 36px 24px;gap:8px;margin-bottom:6px;font-family:Oswald,sans-serif;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;color:var(--text3);"><div></div><div>Value</div><div style=\"text-align:right;\">Total</div><div style=\"text-align:right;\">Rank</div></div>'
+      +posRankHtml
+      +'<div style="font-size:10px;color:var(--text3);font-family:Oswald,sans-serif;margin-top:6px;">Ranked among '+MODAL_DATA.length+' teams by total positional value</div>'
+      +'</div></div>';
+  }
 
   const POSS=['QB','WR','RB','TE'];
   const posAvg={};
@@ -2245,6 +2228,12 @@ function renderCard(){
   const pc=POS_COLORS[d.pos]||'var(--text)';
   const age=d.age||25;
 
+  // ── OWNER LOOKUP ──
+  const ownerName=window._playerOwner&&window._playerOwner[normName(d.name)];
+  const ownerTag=ownerName
+    ?`<div style="font-family:Oswald,sans-serif;font-size:10px;color:var(--accent);margin-top:2px;">🏈 Owned by ${ownerName}</div>`
+    :'';
+
   // ── POSITIONAL RANK ──
   const posPlayers=DATA.filter(p=>p.type==='player'&&p.pos===d.pos).sort((a,b)=>getScore(b)-getScore(a));
   const posRank=posPlayers.findIndex(p=>p.rank===d.rank)+1;
@@ -2298,6 +2287,7 @@ function renderCard(){
       <div style="flex:1;">
         <div class="pn">${d.name}</div>
         <div class="pm">${d.team==='FA'?'Free Agent':d.team} · ${d.pos}${d.age?' · Age '+d.age:''}</div>
+        ${ownerTag}
         ${trajHtml}
       </div>
       <div style="text-align:right;">
@@ -2361,7 +2351,9 @@ function ttag(d,s){
 }
 
 function tradeTagFull(d,side){
-  return `<div class="ttag" style="margin-bottom:5px;"><div><div class="ttn" style="max-width:160px;">${d.displayName||d.name}</div><div style="font-size:9px;color:var(--text3);font-family:'Oswald',sans-serif;">${d.pos} · ${d.team}</div></div><div style="display:flex;align-items:center;gap:6px;"><span class="tts" style="font-size:12px;">${getScore(d).toFixed(1)}</span><span class="trm" onclick="remT(${d.rank},'${side}')">×</span></div></div>`;
+  const owner=window._playerOwner&&d.type==='player'?window._playerOwner[normName(d.name)]:'';
+  const ownerLine=owner?`<div style="font-size:9px;color:var(--accent);font-family:'Oswald',sans-serif;">🏈 ${owner}</div>`:'';
+  return `<div class="ttag" style="margin-bottom:5px;"><div><div class="ttn" style="max-width:160px;">${d.displayName||d.name}</div><div style="font-size:9px;color:var(--text3);font-family:'Oswald',sans-serif;">${d.pos} · ${d.team}</div>${ownerLine}</div><div style="display:flex;align-items:center;gap:6px;"><span class="tts" style="font-size:12px;">${getScore(d).toFixed(1)}</span><span class="trm" onclick="remT(${d.rank},'${side}')">×</span></div></div>`;
 }
 
 function renderTA(){
@@ -3199,6 +3191,14 @@ async function loadLeague(){
     loadStep(6);
     await new Promise(r=>setTimeout(r,80));
     MODAL_DATA=[...scored];
+    // Build player→owner lookup map for use in rankings and trade analyzer
+    window._playerOwner={};
+    MODAL_DATA.forEach(r=>{
+      r.all.forEach(p=>{
+        const key=normName(p.name);
+        if(key) window._playerOwner[key]=r.owner;
+      });
+    });
     window._lastLeague=league;
     window._lastLeagueId=id;
     renderLeague(league,scored,id);
