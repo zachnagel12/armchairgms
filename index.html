@@ -2783,49 +2783,61 @@ async function loadLeague(){
         const rd=parseInt(pk.round)||0;
         if(yr<=2026||!rd) return;
 
-        // Build a unique pick ID using original_roster_id
+        // Unique ID for this specific pick
         const origOwner=toRid(pk.original_roster_id)||toRid(pk.previous_owner_id);
-        const pickId=origOwner?`${yr}_${rd}_${origOwner}`:`${yr}_${rd}_${pk.original_roster_id||pk.previous_owner_id||'?'}`;
+        const pickId=origOwner?`${yr}_${rd}_${origOwner}`:null;
 
-        // Determine receiver from owner_id first (most reliable)
-        const receiverFromPk=toRid(pk.owner_id);
-        // Determine giver from roster_id / previous_owner_id
-        const giverFromPk=toRid(pk.previous_owner_id)||toRid(pk.roster_id);
+        // owner_id = who is RECEIVING the pick in this transaction (most reliable)
+        // previous_owner_id / roster_id = who is GIVING the pick
+        const receiver=toRid(pk.owner_id);
+        const giver=toRid(pk.previous_owner_id)||toRid(pk.roster_id);
 
-        const [teamA,teamB]=sides;
-        let giver,receiver;
+        // Validate both sides are in this trade
+        if(!receiver||!giver||receiver===giver) return;
+        if(!sides.includes(receiver)&&!sides.includes(giver)) return;
 
-        if(giverFromPk&&receiverFromPk&&giverFromPk!==receiverFromPk){
-          giver=giverFromPk;receiver=receiverFromPk;
-        } else if(giverFromPk===teamA||giverFromPk===teamB){
-          giver=giverFromPk;receiver=sides.find(s=>s!==giver);
-        } else if(receiverFromPk===teamA||receiverFromPk===teamB){
-          receiver=receiverFromPk;giver=sides.find(s=>s!==receiver);
-        } else {
-          // Fallback: find by unique pick ID
-          const aHas=rosterPicks[teamA]?.some(p=>p._id===pickId);
-          const bHas=rosterPicks[teamB]?.some(p=>p._id===pickId);
-          if(aHas){giver=teamA;receiver=teamB;}
-          else if(bHas){giver=teamB;receiver=teamA;}
-          else{
-            // Not seeded yet — seed on original owner
-            const orig=origOwner||teamA;
-            if(rosterPicks[orig]&&!rosterPicks[orig].find(p=>p._id===pickId)){
-              rosterPicks[orig].push({season:yr,round:rd,isOwn:true,_orig:orig,_id:pickId});
+        // Find the pick on the giver's roster
+        // Try by unique _id first, then by season+round
+        let idx=-1;
+        if(pickId&&rosterPicks[giver]){
+          idx=rosterPicks[giver].findIndex(p=>p._id===pickId);
+        }
+        if(idx<0&&rosterPicks[giver]){
+          idx=rosterPicks[giver].findIndex(p=>p.season===yr&&p.round===rd);
+        }
+
+        if(idx<0){
+          // Pick not found on giver — check if it's on the other trade partner
+          // (may have been seeded there due to previous trade logic)
+          const otherSide=sides.find(s=>s!==giver);
+          if(otherSide&&rosterPicks[otherSide]){
+            let altIdx=pickId?rosterPicks[otherSide].findIndex(p=>p._id===pickId):-1;
+            if(altIdx<0) altIdx=rosterPicks[otherSide].findIndex(p=>p.season===yr&&p.round===rd);
+            if(altIdx>=0){
+              // It's on the other side — this means giver never had it, skip
+              return;
             }
+          }
+          // Truly not found anywhere — seed it on original owner if we know who that is
+          if(origOwner&&rosterPicks[origOwner]&&!rosterPicks[origOwner].find(p=>p._id===pickId)){
+            const newPick={season:yr,round:rd,isOwn:true,_orig:origOwner,_id:pickId||`${yr}_${rd}_${origOwner}`};
+            rosterPicks[origOwner].push(newPick);
+            // If giver IS the original owner, we can now move it
+            if(origOwner===giver){
+              idx=rosterPicks[giver].length-1;
+            } else {
+              return; // can't determine direction safely
+            }
+          } else {
+            return;
           }
         }
 
-        if(!giver||!receiver||giver===receiver) return;
-
-        // Find pick by unique ID first, fall back to season+round if no ID match
-        let giverIdx=rosterPicks[giver]?.findIndex(p=>p._id===pickId);
-        if(giverIdx<0) giverIdx=rosterPicks[giver]?.findIndex(p=>p.season===yr&&p.round===rd);
-        if(giverIdx<0) return;
-
-        const pick=rosterPicks[giver][giverIdx];
-        rosterPicks[giver].splice(giverIdx,1);
-        rosterPicks[receiver].push({...pick,isOwn:false,_id:pickId});
+        // Move the pick from giver to receiver
+        const pick=rosterPicks[giver].splice(idx,1)[0];
+        // Preserve _orig, update _id to use the correct origOwner
+        const finalId=pickId||pick._id||`${yr}_${rd}_${pick._orig||giver}`;
+        rosterPicks[receiver].push({...pick,isOwn:false,_id:finalId});
       });
     });
 
