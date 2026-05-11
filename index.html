@@ -680,7 +680,7 @@ tbody tr.sel{background:rgba(192,120,72,0.13);border-left:3px solid var(--accent
         <input class="fi" type="email" id="le" placeholder="your@email.com">
         <label class="fl">Password</label>
         <input class="fi" type="password" id="lp" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()">
-        <button class="abtn abtn-p" onclick="doLogin()">Sign In →</button>
+        <button id="login-btn" class="abtn abtn-p" onclick="doLogin()">Sign In →</button>
         <button class="abtn abtn-g" onclick="doGuest()">Continue as Guest</button>
       </div>
       <div id="sf" style="display:none;">
@@ -691,7 +691,7 @@ tbody tr.sel{background:rgba(192,120,72,0.13);border-left:3px solid var(--accent
         <label class="fl">Sleeper League ID <span style="color:var(--text3);font-size:9px;">(optional)</span></label>
         <input class="fi" type="text" id="sl" placeholder="e.g. 1234567890123456789">
         <div class="fh">Sleeper → League → Settings → League ID</div>
-        <button class="abtn abtn-p" onclick="doSignup()">Create Account →</button>
+        <button id="signup-btn" class="abtn abtn-p" onclick="doSignup()">Create Account →</button>
         <div style="margin-top:12px;padding:10px 12px;background:var(--bg3);border:1px solid var(--border);font-size:11px;color:var(--text3);line-height:1.6;">Stored locally on this device only. No server.</div>
       </div>
     </div>
@@ -1084,8 +1084,41 @@ const DATA=RAW.map(d=>({rank:d.r,name:d.n,pos:d.p,team:d.t,age:d.a,score:d.s,har
 
 // Name lookup maps
 let CU=null;
-function gUsers(){try{return JSON.parse(localStorage.getItem('agm_u')||'{}')}catch(e){return{}}}
-function sUsers(u){try{localStorage.setItem('agm_u',JSON.stringify(u))}catch(e){}}
+
+// ── SUPABASE AUTH ─────────────────────────────────────────────────────────
+const SB_URL='https://uabtlmzytbzwagnyprcx.supabase.co';
+const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVhYnRsbXp5dGJ6d2FnbnlwcmN4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg0NzQ4NTMsImV4cCI6MjA5NDA1MDg1M30.Adg5xOF7zryNx3nDH5OgsJh0sxsrWZGdizwTdtLyBmk';
+
+async function sbFetch(path, opts={}){
+  const res=await fetch(`${SB_URL}${path}`,{
+    ...opts,
+    headers:{'Content-Type':'application/json','apikey':SB_KEY,'Authorization':`Bearer ${SB_KEY}`,...(opts.headers||{})}
+  });
+  const data=await res.json();
+  return{ok:res.ok,status:res.status,data};
+}
+
+async function sbSignup(email,password){
+  return sbFetch('/auth/v1/signup',{method:'POST',body:JSON.stringify({email,password})});
+}
+async function sbSignin(email,password){
+  return sbFetch('/auth/v1/token?grant_type=password',{method:'POST',body:JSON.stringify({email,password})});
+}
+async function sbSignout(token){
+  return sbFetch('/auth/v1/logout',{method:'POST',headers:{'Authorization':`Bearer ${token}`}});
+}
+async function sbGetProfile(token){
+  return sbFetch('/rest/v1/profiles?select=*',{headers:{'Authorization':`Bearer ${token}`,'Prefer':'return=representation'}});
+}
+async function sbUpsertProfile(token,uid,data){
+  return sbFetch('/rest/v1/profiles',{
+    method:'POST',
+    headers:{'Authorization':`Bearer ${token}`,'Prefer':'resolution=merge-duplicates,return=representation'},
+    body:JSON.stringify({id:uid,...data})
+  });
+}
+
+// Session persistence
 function sSess(u){try{localStorage.setItem('agm_s',JSON.stringify(u))}catch(e){}}
 function lSess(){try{return JSON.parse(localStorage.getItem('agm_s')||'null')}catch(e){return null}}
 function clSess(){try{localStorage.removeItem('agm_s')}catch(e){}}
@@ -1099,46 +1132,89 @@ function swAuth(m,btn){
   document.getElementById('a-ok').style.display='none';
   const hed=document.getElementById('a-hed-txt');
   const sub=document.getElementById('a-sub-txt');
-  if(m==='login'){hed.textContent='Welcome Back';sub.textContent='Sign in to auto-sync your Sleeper league';}
-  else{hed.textContent='Create Account';sub.textContent='Saved locally on this device — no server required';}
+  if(m==='login'){hed.textContent='Welcome Back';sub.textContent='Sign in to sync your league from any device';}
+  else{hed.textContent='Create Account';sub.textContent='Your league syncs across all your devices';}
 }
-function aerr(msg){
-  const e=document.getElementById('a-err');
-  e.textContent=msg;e.style.display='block';
-  document.getElementById('a-ok').style.display='none';
-}
-function aok(msg){
-  const e=document.getElementById('a-ok');
-  e.textContent=msg;e.style.display='block';
-  document.getElementById('a-err').style.display='none';
+function aerr(msg){const e=document.getElementById('a-err');e.textContent=msg;e.style.display='block';document.getElementById('a-ok').style.display='none';}
+function aok(msg){const e=document.getElementById('a-ok');e.textContent=msg;e.style.display='block';document.getElementById('a-err').style.display='none';}
+function setAuthLoading(loading){
+  ['login-btn','signup-btn'].forEach(id=>{const b=document.getElementById(id);if(b){b.disabled=loading;b.style.opacity=loading?'0.6':'1';}});
 }
 
-function doSignup(){
+async function doSignup(){
   const em=document.getElementById('se').value.trim();
   const pw=document.getElementById('sp').value;
   const lid=document.getElementById('sl').value.trim();
   if(!em||!pw) return aerr('Email and password are required.');
   if(!em.includes('@')) return aerr('Enter a valid email address.');
   if(pw.length<6) return aerr('Password must be at least 6 characters.');
-  const us=gUsers();
-  if(us[em]) return aerr('An account with that email already exists. Sign in instead.');
-  us[em]={em,pw,lid,c:Date.now()};
-  sUsers(us);
-  const u={em,lid};sSess(u);
-  aok('Account created! Signing you in...');
-  setTimeout(()=>launch(u),600);
+  setAuthLoading(true);
+  try{
+    const r=await sbSignup(em,pw);
+    if(!r.ok){
+      const msg=r.data?.msg||r.data?.message||r.data?.error_description||'Signup failed.';
+      return aerr(msg.includes('already registered')?'An account with that email already exists. Sign in instead.':msg);
+    }
+    // Supabase returns session on signup
+    const token=r.data?.access_token;
+    const uid=r.data?.user?.id||r.data?.id;
+    if(token&&uid){
+      await sbUpsertProfile(token,uid,{email:em,league_id:lid,scoring:SCORING||'SF'});
+      const u={em,lid,token,uid};
+      sSess(u);
+      aok('Account created! Welcome to Armchair GMs.');
+      setTimeout(()=>launch(u),600);
+    } else {
+      // Email confirmation required
+      aok('Check your email to confirm your account, then sign in.');
+    }
+  }catch(e){aerr('Network error. Check your connection.');}
+  finally{setAuthLoading(false);}
 }
-function doLogin(){
+
+async function doLogin(){
   const em=document.getElementById('le').value.trim();
   const pw=document.getElementById('lp').value;
   if(!em||!pw) return aerr('Enter your email and password.');
-  const us=gUsers(),u=us[em];
-  if(!u) return aerr('No account found with that email. Create one instead.');
-  if(u.pw!==pw) return aerr('Incorrect password. Try again.');
-  const user={em,lid:u.lid};sSess(user);launch(user);
+  setAuthLoading(true);
+  try{
+    const r=await sbSignin(em,pw);
+    if(!r.ok){
+      const msg=r.data?.error_description||r.data?.msg||r.data?.message||'Login failed.';
+      return aerr(msg.includes('Invalid')||msg.includes('invalid')?'Incorrect email or password.':msg);
+    }
+    const token=r.data?.access_token;
+    const uid=r.data?.user?.id;
+    // Load profile to get saved league_id
+    let lid='';
+    try{
+      const pr=await sbGetProfile(token);
+      if(pr.ok&&pr.data?.length) lid=pr.data[0].league_id||'';
+    }catch(e){}
+    const u={em,lid,token,uid};
+    sSess(u);
+    launch(u);
+  }catch(e){aerr('Network error. Check your connection.');}
+  finally{setAuthLoading(false);}
 }
+
 function doGuest(){launch({em:'Guest',lid:''});}
-function doLogout(){clSess();CU=null;document.getElementById('app').style.display='none';document.getElementById('landing').style.display='grid';}
+
+async function doLogout(){
+  const s=lSess();
+  if(s?.token){try{await sbSignout(s.token);}catch(e){}}
+  clSess();CU=null;
+  document.getElementById('app').style.display='none';
+  document.getElementById('landing').style.display='grid';
+}
+
+// Save profile back to Supabase when league ID changes
+async function saveProfile(){
+  if(!CU?.token||!CU?.uid) return;
+  const lid=document.getElementById('lid')?.value?.trim()||CU.lid||'';
+  try{await sbUpsertProfile(CU.token,CU.uid,{email:CU.em,league_id:lid,scoring:SCORING||'SF'});}catch(e){}
+  CU.lid=lid;sSess(CU);
+}
 
 function launch(u){
   CU=u;
