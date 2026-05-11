@@ -2785,20 +2785,19 @@ async function loadLeague(){
 
     allTxns.forEach(txn=>{
       const picks=txn.draft_picks||[];
-      if(!picks.length) return;
 
       // For commissioner moves, roster_ids may only have 1 entry (the recipient).
       // Derive the full two sides from adds/drops instead.
       let sides=(txn.roster_ids||[]).map(v=>toRid(v)).filter(Boolean);
       if(sides.length<2){
-        // Build sides from adds (receivers) and drops (givers)
+        // adds = {playerId: roster_id_receiver}, drops = {playerId: roster_id_giver}
         const addRids=new Set(Object.values(txn.adds||{}).map(v=>toRid(v)).filter(Boolean));
         const dropRids=new Set(Object.values(txn.drops||{}).map(v=>toRid(v)).filter(Boolean));
         const allRids=[...new Set([...addRids,...dropRids,...sides])];
         if(allRids.length>=2) sides=allRids;
-        else if(allRids.length===1) sides=allRids; // single-side commissioner add — handle below
+        else if(allRids.length===1) sides=allRids;
       }
-      if(!sides.length) return;
+      if(!sides.length||!picks.length) return;
       const [teamA,teamB]=sides;
 
       picks.forEach(pk=>{
@@ -2810,9 +2809,9 @@ async function loadLeague(){
         const pickId=origOwner?`${yr}_${rd}_${origOwner}`:`${yr}_${rd}_${pk.original_roster_id||pk.previous_owner_id||'?'}`;
 
         const receiverFromPk=toRid(pk.owner_id);
-        // For commissioner moves, giver may only be findable via drops
-        const giverFromDrops=Object.entries(txn.drops||{}).length===0?null:
-          toRid(Object.keys(txn.drops||{})[0]);
+        // drops = {playerId: roster_id} — values are the givers
+        const dropVals=Object.values(txn.drops||{});
+        const giverFromDrops=dropVals.length?toRid(dropVals[0]):null;
         const giverFromPk=toRid(pk.previous_owner_id)||toRid(pk.roster_id)||giverFromDrops;
 
         let giver,receiver;
