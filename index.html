@@ -2761,12 +2761,12 @@ async function loadLeague(){
         // Map user_id → roster_id for this season
         // Use CURRENT season's roster_id for the same owner_id (they stay consistent)
         rostersRes.forEach(r=>{
-          if(r.owner_id&&!userToRoster[String(r.owner_id)]){
-            // Only add if we can match to a current roster by owner
-            const curRoster=rosters.find(cr=>cr.owner_id===r.owner_id);
-            if(curRoster) userToRoster[String(r.owner_id)]=curRoster.roster_id;
-            else userToRoster[String(r.owner_id)]=r.roster_id;
-          }
+          if(!r.owner_id) return;
+          if(userToRoster[String(r.owner_id)]) return; // never overwrite
+          // Only map if this owner exists in current season
+          const curRoster=rosters.find(cr=>cr.owner_id===r.owner_id);
+          if(curRoster) userToRoster[String(r.owner_id)]=curRoster.roster_id;
+          // Don't fall back to historical roster_id — it may collide with current IDs
         });
         if(!lgRes?.previous_league_id) break;
         scanId=lgRes.previous_league_id;
@@ -2811,10 +2811,10 @@ async function loadLeague(){
     dedupedTxns.sort((a,b)=>{
       const tsDiff=(a.status_updated||a.created||0)-(b.status_updated||b.created||0);
       if(tsDiff!==0) return tsDiff;
-      // Same timestamp — use transaction_id as tiebreaker (higher ID = later)
-      const aId=parseFloat(a.transaction_id||0);
-      const bId=parseFloat(b.transaction_id||0);
-      return aId-bId;
+      // Same timestamp — use transaction_id string comparison (snowflake IDs are monotonic)
+      const aId=String(a.transaction_id||'0').padStart(20,'0');
+      const bId=String(b.transaction_id||'0').padStart(20,'0');
+      return aId<bId?-1:aId>bId?1:0;
     });
 
     // Track current holder of each pick as we process transactions
