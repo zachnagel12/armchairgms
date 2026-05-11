@@ -3767,8 +3767,73 @@ async function loadTradeHistory(leagueId, userMap, sleeperPlayers){
     const topTraded=Object.entries(playerCounts).sort((a,b)=>b[1]-a[1]).slice(0,10).map(([name,count])=>({name,count}));
 
     TRADES_DATA={trades:allTrades,topTraded,teamTrades,teamWaivers};
-    // Store globally for league page net trade leaderboard
     window._tradesData=TRADES_DATA;
+
+    // ── RECONCILE PICK OWNERSHIP from trade history ───────────────────────────
+    // At this point we have every trade transaction with raw draft_picks data.
+    // For each future pick (2027+) that appeared in a trade, determine final owner
+    // and update MODAL_DATA rosters accordingly.
+    // We process oldest→newest so the most recent transaction wins.
+    if(window.MODAL_DATA&&window.MODAL_DATA.length){
+      // Build rid → MODAL_DATA index map
+      const ridToIdx={};
+      window.MODAL_DATA.forEach((r,i)=>{ ridToIdx[r.rid]=i; ridToIdx[String(r.rid)]=i; });
+
+      // Collect all raw pick transactions from allTrades — sorted oldest first
+      const pickTxns=[]; // {yr, rd, origRid, newOwnerRid, ts}
+      // We need the raw draft_picks — re-scan from the transactions we already fetched
+      // allTrades was built from those transactions, but picks were stored as strings "2027 Rd1"
+      // So instead use window._tradesData to cross-reference with MODAL_DATA pick arrays
+
+      // Simpler: iterate allTrades oldest→newest, for each pick string determine direction
+      const sortedTrades=[...allTrades].sort((a,b)=>a.ts-b.ts);
+
+      sortedTrades.forEach(trade=>{
+        if(trade.sides.length<2) return;
+        trade.sides.forEach(side=>{
+          // side.picks = array of strings like "2027 Rd1"
+          // side.name = manager name who RECEIVED these picks
+          side.picks.forEach(pickStr=>{
+            const yrMatch=pickStr.match(/(\d{4})/);
+            const rdMatch=pickStr.match(/Rd(\d)/);
+            if(!yrMatch||!rdMatch) return;
+            const yr=parseInt(yrMatch[1]);
+            const rd=parseInt(rdMatch[1]);
+            if(yr<2027) return;
+
+            // Find the manager receiving this pick
+            const recipientIdx=ridToIdx[side.name]??
+              window.MODAL_DATA.findIndex(r=>r.owner===side.name);
+            if(recipientIdx<0) return;
+            const recipientRid=window.MODAL_DATA[recipientIdx].rid;
+
+            // Remove this yr+rd pick from ALL other rosters, add to recipient
+            // (we don't know original owner from the string alone, so remove by yr+rd)
+            let foundPick=null;
+            window.MODAL_DATA.forEach(r=>{
+              if(r.rid===recipientRid) return; // skip recipient
+              const arr=r.picks||[];
+              const i=arr.findIndex(p=>p.season===yr&&p.round===rd);
+              if(i>=0){
+                foundPick=arr.splice(i,1)[0];
+              }
+            });
+
+            // Add to recipient if not already there
+            const recipientPicks=window.MODAL_DATA[recipientIdx].picks||[];
+            const alreadyHas=recipientPicks.find(p=>p.season===yr&&p.round===rd&&
+              (foundPick?p._orig===foundPick._orig:true));
+            if(!alreadyHas&&foundPick){
+              recipientPicks.push({...foundPick});
+            } else if(!alreadyHas&&!foundPick){
+              // Pick wasn't found on any other roster — may have been seeded wrong
+              // Just ensure recipient has it (add with unknown origin)
+              recipientPicks.push({season:yr,round:rd,_orig:null,_id:`${yr}_${rd}_unknown`});
+            }
+          });
+        });
+      });
+    }
 
     // Net trade value per manager (today's value of what they received minus what they gave)
     const netTradeValue={};
