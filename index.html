@@ -2838,6 +2838,8 @@ async function loadLeague(){
     });
 
     dedupedTxns.forEach(txn=>{
+      // Log season rid map on first txn for debug
+      if(!window._srmLogged){window._srmLogged=true;window._srm=seasonRidMap;}
       // Deduplicate picks within this transaction (Sleeper sometimes lists same pick twice)
       const seenPks=new Set();
       const picks=(txn.draft_picks||[]).filter(pk=>{
@@ -2906,7 +2908,7 @@ async function loadLeague(){
         rosterPicksRaw[actualGiver].splice(giverIdx,1);
         rosterPicksRaw[receiver].push({...pick,isOwn:receiver===pick._orig,_id:pick._id});
         pickCurrentHolder[pick._id]=receiver;
-        if(receiver===2){window._r2moves=window._r2moves||[];window._r2moves.push(`${pick._id} from:${actualGiver} ts:${txn.status_updated||txn.created||0} rostids:${JSON.stringify(txn.roster_ids)}`);}
+        if(receiver===2){window._r2moves=window._r2moves||[];window._r2moves.push(`${pick._id} from:${actualGiver} ts:${txn.status_updated||txn.created||0} lid:${txn._leagueId} rawRostIds:${JSON.stringify(txn.roster_ids)} srmEntry:${JSON.stringify(seasonRidMap[txn._leagueId]||{})}`);}
 
       });
     });
@@ -3271,9 +3273,11 @@ async function loadLeague(){
     window._lastLeagueId=id;
     setTimeout(()=>{
       const moves=window._r2moves||[];
+      const srm=window._srm||{};
+      const srmStr=Object.entries(srm).map(([lid,map])=>`${lid}:${JSON.stringify(map)}`).join('<br>');
       if(moves.length){
         const el=document.getElementById('lcon');
-        el.innerHTML=`<div style="background:#1a1a2e;border:2px solid orange;padding:12px;margin-bottom:16px;font-family:monospace;font-size:10px;color:#fa8;overflow:auto;max-height:300px;"><b>ROSTER 2 INCOMING (${moves.length})</b><br>${moves.map(m=>m+'<br>').join('')}</div>`+el.innerHTML;
+        el.innerHTML=`<div style="background:#1a1a2e;border:2px solid orange;padding:12px;margin-bottom:16px;font-family:monospace;font-size:10px;color:#fa8;overflow:auto;max-height:300px;"><b>ROSTER 2 INCOMING (${moves.length})</b><br>${moves.map(m=>m+'<br>').join('')}<br><b>SEASON RID MAP:</b><br>${srmStr}</div>`+el.innerHTML;
       }
     },3000);
     renderLeague(league,scored,id);
