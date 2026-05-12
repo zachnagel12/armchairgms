@@ -2747,13 +2747,43 @@ async function loadLeague(){
       }));
     });
 
-    // Step 2: Build user_id → roster_id map for resolving transaction participants
+    // Step 2: Build user_id → roster_id map + per-season roster_id translation
     const userToRoster={};
     rosters.forEach(r=>{ if(r.owner_id) userToRoster[String(r.owner_id)]=r.roster_id; });
-    function toRid(v){
+    const seasonRidMap={}; // leagueId → {oldRosterId: currentRosterId}
+
+    // Pre-fetch all historical rosters to build seasonRidMap
+    try{
+      let scanId=id;
+      const seenL=new Set();
+      for(let s=0;s<10;s++){
+        if(seenL.has(scanId)) break; seenL.add(scanId);
+        const [lgRes,histRosters]=await Promise.all([
+          fetch(`https://api.sleeper.app/v1/league/${scanId}`).then(r=>r.ok?r.json():null).catch(()=>null),
+          fetch(`https://api.sleeper.app/v1/league/${scanId}/rosters`).then(r=>r.ok?r.json():[]).catch(()=>[])
+        ]);
+        const ridMap={};
+        histRosters.forEach(r=>{
+          if(!r.owner_id) return;
+          if(!userToRoster[String(r.owner_id)]){
+            const cur=rosters.find(cr=>cr.owner_id===r.owner_id);
+            if(cur) userToRoster[String(r.owner_id)]=cur.roster_id;
+          }
+          const curRid=userToRoster[String(r.owner_id)];
+          if(curRid) ridMap[r.roster_id]=curRid;
+        });
+        seasonRidMap[scanId]=ridMap;
+        if(!lgRes?.previous_league_id) break;
+        scanId=lgRes.previous_league_id;
+      }
+    }catch(e){}
+
+    function toRid(v, lid){
       if(!v&&v!==0) return null;
       const n=parseInt(v);
       if(isNaN(n)||n<=0) return null;
+      // Translate historical roster_id → current via season map
+      if(lid&&seasonRidMap[lid]&&seasonRidMap[lid][n]!==undefined) return seasonRidMap[lid][n];
       if(rosters.find(r=>r.roster_id===n)) return n;
       return userToRoster[String(v)]||null;
     }
@@ -2777,7 +2807,7 @@ async function loadLeague(){
         weekTxns.forEach(wk=>{
           if(!Array.isArray(wk)) return;
           wk.forEach(t=>{
-            if(t.type==='trade'||t.type==='commissioner') allTxns.push(t);
+            if(t.type==='trade'||t.type==='commissioner'){t._lid=scanId; allTxns.push(t);}
           });
         });
         if(!lgRes?.previous_league_id) break;
@@ -2818,8 +2848,9 @@ async function loadLeague(){
         // Only process future picks (2027+), skip current/past season picks
         if(yr<2027||!rd||rd<1||rd>4) return;
 
-        const prevRid=toRid(pk.previous_owner_id)||toRid(pk.roster_id);
-        const nowRid=toRid(pk.owner_id);
+        const lid=txn._lid;
+        const prevRid=toRid(pk.previous_owner_id,lid)||toRid(pk.roster_id,lid);
+        const nowRid=toRid(pk.owner_id,lid);
 
         // Must have both sides and they must be different
         if(!prevRid||!nowRid||prevRid===nowRid) return;
@@ -2843,18 +2874,18 @@ async function loadLeague(){
     });
 
     // Step 5: Invariant replay — always runs, is the source of truth for pick counts
-    // Count-based logic: never gets confused by physical pick identity
+    // Per-transaction dedup only — same pick listed twice in one transaction = skip second
     const N=rosters.length;
     PICK_YEARS.forEach(yr=>PICK_ROUNDS.forEach(rd=>{
-      // Replay this yr+rd from scratch
       const correct={};
       rosters.forEach(r=>{ correct[r.roster_id]=1; });
       dedupedTxns.forEach(txn=>{
         const seenInTxn=new Set();
         (txn.draft_picks||[]).forEach(pk=>{
           if(parseInt(pk.season)!==yr||parseInt(pk.round)!==rd) return;
-          const prev=toRid(pk.previous_owner_id)||toRid(pk.roster_id);
-          const now=toRid(pk.owner_id);
+          const lid=txn._lid;
+          const prev=toRid(pk.previous_owner_id,lid)||toRid(pk.roster_id,lid);
+          const now=toRid(pk.owner_id,lid);
           if(!prev||!now||prev===now) return;
           const key=`${prev}_${now}`;
           if(seenInTxn.has(key)) return; seenInTxn.add(key);
@@ -2862,7 +2893,7 @@ async function loadLeague(){
         });
       });
 
-      // Reconcile rosterPicksRaw to match replay result
+      // Reconcile rosterPicksRaw to match
       rosters.forEach(r=>{
         const rid=r.roster_id;
         const have=(rosterPicksRaw[rid]||[]).filter(p=>p.season===yr&&p.round===rd).length;
