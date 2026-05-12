@@ -2850,69 +2850,56 @@ async function loadLeague(){
       });
     }
 
-    // INVARIANT: 144 picks total — 12 per yr+rd combo, never more never less
-    // Run after all transactions to catch any picks lost in chain tracking
-    const TOTAL_TEAMS=rosters.length; // 12
+    // INVARIANT CHECK: replay transactions to compute correct pick counts per roster
+    // Then reconcile rosterPicksRaw to match. Runs every load, guarantees 144 total.
+    const TOTAL_TEAMS=rosters.length;
     [2027,2028,2029].forEach(yr=>[1,2,3,4].forEach(rd=>{
-      // Count current picks for this yr+rd
-      const holders={};
-      Object.entries(rosterPicksRaw).forEach(([rid,arr])=>{
-        const cnt=arr.filter(p=>p.season===yr&&p.round===rd).length;
-        if(cnt>0) holders[rid]=cnt;
+      // Replay: start everyone with 1, apply transactions in order
+      const expected={};
+      rosters.forEach(r=>{ expected[r.roster_id]=1; });
+      dedupedTxns.forEach(txn=>{
+        const seenPk=new Set();
+        (txn.draft_picks||[]).forEach(pk=>{
+          if(parseInt(pk.season)!==yr||parseInt(pk.round)!==rd) return;
+          const prev=toRid(pk.previous_owner_id)||toRid(pk.roster_id);
+          const now=toRid(pk.owner_id);
+          if(!prev||!now||prev===now) return;
+          const key=`${prev}_${now}`;
+          if(seenPk.has(key)) return; seenPk.add(key);
+          if((expected[prev]||0)>0){ expected[prev]--; expected[now]=(expected[now]||0)+1; }
+        });
       });
-      const total=Object.values(holders).reduce((s,n)=>s+n,0);
 
-      if(total===TOTAL_TEAMS) return; // ✓ exactly 12, nothing to do
+      // Check if replay total = TOTAL_TEAMS
+      const replayTotal=Object.values(expected).reduce((s,n)=>s+n,0);
+      if(replayTotal!==TOTAL_TEAMS){
+        // Replay missed some — top up to 12 by giving missing picks to whoever
+        // has the highest expected count (most active traders = most likely to have extra)
+        let diff=TOTAL_TEAMS-replayTotal;
+        const sorted=Object.entries(expected).sort((a,b)=>b[1]-a[1]);
+        for(let i=0;diff>0;i++,diff--) expected[parseInt(sorted[i%sorted.length][0])]++;
+      }
 
-      if(total>TOTAL_TEAMS){
-        // Too many — remove duplicates from any roster that has >1
-        let excess=total-TOTAL_TEAMS;
-        Object.entries(holders).forEach(([rid,cnt])=>{
-          if(excess<=0||cnt<=1) return;
-          const remove=Math.min(cnt-1,excess);
-          let removed=0;
-          rosterPicksRaw[rid]=rosterPicksRaw[rid].filter(p=>{
-            if(p.season===yr&&p.round===rd&&removed<remove){removed++;return false;}
+      // Reconcile rosterPicksRaw to match expected counts
+      Object.entries(expected).forEach(([rid,exp])=>{
+        const ridN=parseInt(rid);
+        if(!rosterPicksRaw[ridN]) rosterPicksRaw[ridN]=[];
+        const actual=rosterPicksRaw[ridN].filter(p=>p.season===yr&&p.round===rd).length;
+        if(actual===exp) return;
+        if(actual>exp){
+          // Remove excess
+          let remove=actual-exp;
+          rosterPicksRaw[ridN]=rosterPicksRaw[ridN].filter(p=>{
+            if(p.season===yr&&p.round===rd&&remove>0){remove--;return false;}
             return true;
           });
-          excess-=remove;
-        });
-      } else {
-        // Too few — replay transactions for this specific yr+rd to find final owner
-        // Start: every roster owns their own pick for this yr+rd
-        const pickOwner={}; // rosterId → count of picks they should have
-        rosters.forEach(r=>{ pickOwner[r.roster_id]=1; });
-
-        // Replay transactions in order
-        dedupedTxns.forEach(txn=>{
-          const seenInTxn=new Set();
-          (txn.draft_picks||[]).forEach(pk=>{
-            if(parseInt(pk.season)!==yr||parseInt(pk.round)!==rd) return;
-            const prev=toRid(pk.previous_owner_id)||toRid(pk.roster_id);
-            const now=toRid(pk.owner_id);
-            if(!prev||!now||prev===now) return;
-            const key=`${prev}_${now}`;
-            if(seenInTxn.has(key)) return;
-            seenInTxn.add(key);
-            if((pickOwner[prev]||0)>0){
-              pickOwner[prev]--;
-              pickOwner[now]=(pickOwner[now]||0)+1;
-            }
-          });
-        });
-
-        // Find rosters that should have picks but don't
-        const missing=total-TOTAL_TEAMS; // negative = missing count
-        Object.entries(pickOwner).forEach(([rid,expected])=>{
-          const ridN=parseInt(rid);
-          const actual=(rosterPicksRaw[ridN]||[]).filter(p=>p.season===yr&&p.round===rd).length;
-          const needMore=expected-actual;
-          for(let i=0;i<needMore;i++){
-            if(!rosterPicksRaw[ridN]) rosterPicksRaw[ridN]=[];
+        } else {
+          // Add missing
+          for(let i=0;i<exp-actual;i++){
             rosterPicksRaw[ridN].push({season:yr,round:rd,isOwn:false,_orig:null,_id:`${yr}_${rd}_fix_${ridN}_${i}`});
           }
-        });
-      }
+        }
+      });
     }));
 
     Object.entries(sp).forEach(([pid,p])=>{
