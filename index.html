@@ -2913,6 +2913,7 @@ async function loadLeague(){
       });
 
       // Reconcile rosterPicksRaw to match
+      if(yr===2027&&rd===2) window._replay2027rd2=Object.assign({},correct);
       rosters.forEach(r=>{
         const rid=r.roster_id;
         const have=(rosterPicksRaw[rid]||[]).filter(p=>p.season===yr&&p.round===rd).length;
@@ -3291,22 +3292,22 @@ async function loadLeague(){
       if(!el||!MODAL_DATA) return;
       const total=MODAL_DATA.reduce((s,r)=>s+(r.picks||[]).length,0);
 
-      // Build full breakdown by yr+rd
-      const breakdown={};
-      MODAL_DATA.forEach(r=>{
-        (r.picks||[]).forEach(pk=>{
-          const key=`${pk.season} Rd${pk.round}`;
-          if(!breakdown[key]) breakdown[key]={};
-          breakdown[key][r.owner]=(breakdown[key][r.owner]||0)+1;
-        });
-      });
-
-      const bRows=Object.keys(breakdown).sort().map(key=>{
-        const owners=Object.entries(breakdown[key]).map(([name,cnt])=>
-          `<span style="color:${cnt>1?'#c97b7b':'var(--text2)'};">${name.split(/[^a-zA-Z]/)[0]}:${cnt}</span>`
-        ).join(' ');
-        const rowTotal=Object.values(breakdown[key]).reduce((s,n)=>s+n,0);
-        return `<div style="margin-bottom:3px;"><span style="color:${rowTotal===12?'#6db882':'#c97b7b'};min-width:80px;display:inline-block;">${key}(${rowTotal}/12)</span> ${owners}</div>`;
+      // Per yr+rd: show who has what
+      const yrRdRows=[2027,2028,2029].map(yr=>{
+        return [1,2,3,4].map(rd=>{
+          const rdLabel=rd===1?'1st':rd===2?'2nd':rd===3?'3rd':'4th';
+          const holders=[];
+          MODAL_DATA.forEach(r=>{
+            const cnt=(r.picks||[]).filter(p=>p.season===yr&&p.round===rd).length;
+            if(cnt>0) holders.push(`<span style="color:${cnt>1?'#c97b7b':'var(--text2)'};">${r.owner.split(/\W/)[0]}${cnt>1?'×'+cnt:''}</span>`);
+          });
+          const rowTotal=holders.length;
+          const color=rowTotal===12?'#6db882':'#c97b7b';
+          return `<div style="display:flex;align-items:baseline;gap:6px;margin-bottom:2px;">
+            <span style="color:${color};min-width:72px;flex-shrink:0;">${yr} ${rdLabel} ${rowTotal}/12</span>
+            <span style="color:var(--text3);font-size:10px;flex-wrap:wrap;">${holders.join(' ')}</span>
+          </div>`;
+        }).join('');
       }).join('');
 
       const panel=document.createElement('div');
@@ -3316,7 +3317,7 @@ async function loadLeague(){
         <span style="color:${total===144?'#6db882':'#c97b7b'};font-size:13px;font-weight:600;">PICKS: ${total}/144</span>
         <button onclick="rerunPickAllocation()" style="font-family:Oswald,sans-serif;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;padding:5px 12px;border:none;background:var(--accent);color:var(--bg2);cursor:pointer;">Check Again</button>
       </div>
-      <div style="line-height:1.9;color:var(--text3);font-size:10px;">${bRows}</div>`;
+      <div style="line-height:1.8;">${yrRdRows}</div>`;
       el.insertBefore(panel, el.firstChild);
     },1000);
     renderLeague(league,scored,id);
