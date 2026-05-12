@@ -1073,6 +1073,10 @@ tbody tr.sel{background:rgba(192,120,72,0.13);border-left:3px solid var(--accent
       <div class="stitle">TRADE <span>History</span></div>
       <div style="font-family:'Oswald',sans-serif;font-size:11px;color:var(--text3);letter-spacing:0.06em;">All-time league trades · Load League first</div>
     </div>
+    <div style="padding:12px 16px;border-bottom:1px solid var(--border);">
+      <button onclick="showRawPickTxns()" style="font-family:Oswald,sans-serif;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;padding:8px 16px;border:none;background:var(--accent);color:var(--bg2);cursor:pointer;">Show All Pick Transactions (Raw)</button>
+    </div>
+    <div id="raw-pick-txns" style="display:none;padding:16px;font-family:monospace;font-size:11px;overflow-y:auto;max-height:80vh;"></div>
     <div id="trades-empty" style="text-align:center;padding:60px 20px;">
       <div style="font-family:'Russo One',sans-serif;font-size:18px;color:var(--text2);margin-bottom:10px;">No Trade Data Yet</div>
       <div style="font-size:13px;color:var(--text3);line-height:1.7;max-width:380px;margin:0 auto;">Load your Sleeper league on the League tab first. Trade history will appear here automatically.</div>
@@ -3960,6 +3964,74 @@ function toggleH2H(id, card){
   el.style.display=open?'block':'none';
   const chev=card.querySelector('.h2h-card-chevron');
   if(chev) chev.textContent=open?'▴':'▾';
+}
+
+async function showRawPickTxns(){
+  const el=document.getElementById('raw-pick-txns');
+  el.style.display='block';
+  el.innerHTML='<div style="color:var(--text3);">Loading all transactions...</div>';
+  const lid=document.getElementById('lid')?.value?.trim()||document.getElementById('nav-lid')?.value?.trim();
+  if(!lid){el.innerHTML='<div style="color:#f88;">Load a league first.</div>';return;}
+
+  // Build roster ID → username map
+  const ridToName={};
+  (MODAL_DATA||[]).forEach(r=>{ ridToName[r.rid]=r.owner; });
+
+  // Fetch all transactions across all historical seasons
+  const allTxns=[];
+  try{
+    let scanId=lid;
+    const seen=new Set();
+    for(let s=0;s<8;s++){
+      if(seen.has(scanId)) break;
+      seen.add(scanId);
+      const [lgRes,weekTxns]=await Promise.all([
+        fetch(`https://api.sleeper.app/v1/league/${scanId}`).then(r=>r.ok?r.json():null).catch(()=>null),
+        Promise.all(Array.from({length:24},(_,i)=>
+          fetch(`https://api.sleeper.app/v1/league/${scanId}/transactions/${i}`)
+            .then(r=>r.json()).catch(()=>[])
+        ))
+      ]);
+      weekTxns.forEach(wk=>{ if(Array.isArray(wk)) wk.forEach(t=>{
+        if((t.type==='trade'||t.type==='commissioner')&&(t.draft_picks||[]).length>0){
+          t._lid=scanId; allTxns.push(t);
+        }
+      }); });
+      if(!lgRes?.previous_league_id) break;
+      scanId=lgRes.previous_league_id;
+    }
+  }catch(e){}
+
+  // Dedupe and sort oldest first
+  const seen2=new Set();
+  const deduped=allTxns.filter(t=>{ const k=String(t.transaction_id||Math.random()); if(seen2.has(k)) return false; seen2.add(k); return true; });
+  deduped.sort((a,b)=>{
+    const d=(a.status_updated||a.created||0)-(b.status_updated||b.created||0);
+    if(d!==0) return d;
+    return String(a.transaction_id||'0').padStart(20,'0')<String(b.transaction_id||'0').padStart(20,'0')?-1:1;
+  });
+
+  // Render
+  const rows=deduped.map((t,i)=>{
+    const date=new Date((t.status_updated||t.created||0)).toLocaleDateString();
+    const picks=(t.draft_picks||[]).map(pk=>{
+      const yr=pk.season,rd=pk.round;
+      const orig=pk.original_roster_id,prev=pk.previous_owner_id,cur=pk.owner_id;
+      const origName=ridToName[orig]||`rid:${orig}`;
+      const prevName=ridToName[prev]||`rid:${prev}`;
+      const curName=ridToName[cur]||`rid:${cur}`;
+      return `<div style="margin-left:16px;color:${cur?'#6db882':'#c97b7b'};">
+        📦 ${yr} Rd${rd} (orig:${origName}) prev:${prevName} → now:${curName}
+      </div>`;
+    }).join('');
+    const rids=(t.roster_ids||[]).map(r=>ridToName[r]||`rid:${r}`).join(' ↔ ');
+    return `<div style="border-bottom:1px solid var(--border);padding:8px 0;color:var(--text2);">
+      <div><span style="color:var(--accent);">#${i+1}</span> <span style="color:var(--text3);">${date}</span> <span style="color:var(--text);">${t.type}</span> [${rids}] <span style="color:var(--text3);font-size:10px;">id:${t.transaction_id} lid:${t._lid}</span></div>
+      ${picks}
+    </div>`;
+  }).join('');
+
+  el.innerHTML=`<div style="color:var(--accent);margin-bottom:12px;font-size:12px;">${deduped.length} transactions with picks found</div>${rows||'<div style="color:var(--text3);">No pick transactions found.</div>'}`;
 }
 
 function renderTrades(){
