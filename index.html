@@ -2851,13 +2851,12 @@ async function loadLeague(){
     }
 
     // INVARIANT CHECK: replay transactions to compute correct pick counts per roster
-    // Then reconcile rosterPicksRaw to match. Runs every load, guarantees 144 total.
     const TOTAL_TEAMS=rosters.length;
     [2027,2028,2029].forEach(yr=>[1,2,3,4].forEach(rd=>{
-      // Replay: start everyone with 1, apply transactions in order
       const expected={};
       rosters.forEach(r=>{ expected[r.roster_id]=1; });
       dedupedTxns.forEach(txn=>{
+        // Dedup within single transaction only (same as main loop)
         const seenPk=new Set();
         (txn.draft_picks||[]).forEach(pk=>{
           if(parseInt(pk.season)!==yr||parseInt(pk.round)!==rd) return;
@@ -2866,6 +2865,7 @@ async function loadLeague(){
           if(!prev||!now||prev===now) return;
           const key=`${prev}_${now}`;
           if(seenPk.has(key)) return; seenPk.add(key);
+          // Only move if prev actually has picks to give
           if((expected[prev]||0)>0){ expected[prev]--; expected[now]=(expected[now]||0)+1; }
         });
       });
