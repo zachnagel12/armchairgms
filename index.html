@@ -2748,13 +2748,44 @@ async function loadLeague(){
       }))
     ));
 
-    // Build user_id → roster_id map (current season)
+    // Build user_id → roster_id map across all historical seasons
     const userToRoster={};
     rosters.forEach(r=>{ if(r.owner_id) userToRoster[String(r.owner_id)]=r.roster_id; });
-    function toRid(v){
+
+    // Also map historical roster_ids → current roster_ids via owner_id chain
+    const seasonRidMap={}; // leagueId → {oldRid: currentRid}
+    try{
+      let scanId=id;
+      const seen=new Set();
+      for(let s=0;s<8;s++){
+        if(seen.has(scanId)) break;
+        seen.add(scanId);
+        const [lgRes,rostersRes]=await Promise.all([
+          fetch(`https://api.sleeper.app/v1/league/${scanId}`).then(r=>r.ok?r.json():null).catch(()=>null),
+          fetch(`https://api.sleeper.app/v1/league/${scanId}/rosters`).then(r=>r.ok?r.json():[]).catch(()=>[]),
+        ]);
+        const ridMap={};
+        rostersRes.forEach(r=>{
+          if(!r.owner_id) return;
+          if(!userToRoster[String(r.owner_id)]){
+            const cur=rosters.find(cr=>cr.owner_id===r.owner_id);
+            if(cur) userToRoster[String(r.owner_id)]=cur.roster_id;
+          }
+          const curRid=userToRoster[String(r.owner_id)];
+          if(curRid) ridMap[r.roster_id]=curRid;
+        });
+        seasonRidMap[scanId]=ridMap;
+        if(!lgRes?.previous_league_id) break;
+        scanId=lgRes.previous_league_id;
+      }
+    }catch(e){}
+
+    function toRid(v, leagueId){
       if(!v&&v!==0) return null;
       const n=parseInt(v);
       if(isNaN(n)||n<=0) return null;
+      // Translate historical roster_id to current via season map
+      if(leagueId&&seasonRidMap[leagueId]&&seasonRidMap[leagueId][n]!==undefined) return seasonRidMap[leagueId][n];
       if(rosters.find(r=>r.roster_id===n)) return n;
       return userToRoster[String(v)]||null;
     }
@@ -2775,7 +2806,7 @@ async function loadLeague(){
           ))
         ]);
         weekTxns.forEach(wk=>{ if(Array.isArray(wk)) wk.forEach(t=>{
-          if(t.type==='trade'||t.type==='commissioner') allTxns.push(t);
+          if(t.type==='trade'||t.type==='commissioner'){t._leagueId=scanId;allTxns.push(t);}
         }); });
         if(!lgRes?.previous_league_id) break;
         scanId=lgRes.previous_league_id;
@@ -2803,17 +2834,18 @@ async function loadLeague(){
     // Last transaction wins (oldest→newest sort means last write = most recent trade)
     const finalOwner={};
     dedupedTxns.forEach(txn=>{
+      const lid=txn._leagueId;
       const seenPks=new Set();
       (txn.draft_picks||[]).forEach(pk=>{
         const yr=parseInt(pk.season)||0;
         const rd=parseInt(pk.round)||0;
         if(yr<2027||!rd) return;
-        const origRid=toRid(pk.original_roster_id)||toRid(pk.previous_owner_id);
+        const origRid=toRid(pk.original_roster_id,lid)||toRid(pk.previous_owner_id,lid);
         if(!origRid) return;
         const pickId=`${yr}_${rd}_${origRid}`;
-        if(seenPks.has(pickId)) return; // skip dupes within same transaction
+        if(seenPks.has(pickId)) return;
         seenPks.add(pickId);
-        const newOwner=toRid(pk.owner_id);
+        const newOwner=toRid(pk.owner_id,lid);
         if(newOwner) finalOwner[pickId]=newOwner;
       });
     });
