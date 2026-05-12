@@ -2915,18 +2915,23 @@ async function loadLeague(){
     if(id==='1312091473377792000'){
       const nameToRid={};
       rosters.forEach(r=>{ const u=umap[r.owner_id]; if(u) nameToRid[u.name]=r.roster_id; });
-      [
-        {season:2027,round:1,from:'Steelerr43',to:'BigSteppaTim'},
-        {season:2027,round:1,from:'BigSteppaTim',to:'Steelerr43'},
-      ].forEach(({season,round,from,to})=>{
-        const fRid=nameToRid[from], tRid=nameToRid[to];
-        if(!fRid||!tRid) return;
-        const idx=(rosterPicksRaw[fRid]||[]).findIndex(p=>p.season===season&&p.round===round);
-        if(idx<0) return;
-        rosterPicksRaw[fRid].splice(idx,1);
-        if(!rosterPicksRaw[tRid]) rosterPicksRaw[tRid]=[];
-        rosterPicksRaw[tRid].push({season,round});
-      });
+      const ianRid=nameToRid['Steelerr43'];
+      const timRid=nameToRid['BigSteppaTim'];
+      if(ianRid&&timRid){
+        // #47: Ian's 2027 1st → Tim. Commissioner reverted it back to Ian.
+        // Inject synthetic revert (Tim→Ian) placed just after #47
+        dedupedTxns.push({
+          transaction_id:'1339686639961657345',
+          status_updated:1742169600001,
+          _lid:id,
+          draft_picks:[{season:'2027',round:1,previous_owner_id:timRid,owner_id:ianRid}]
+        });
+        dedupedTxns.sort((a,b)=>{
+          const d=(a.status_updated||a.created||0)-(b.status_updated||b.created||0);
+          if(d) return d;
+          return String(a.transaction_id||'0').padStart(20,'0')<String(b.transaction_id||'0').padStart(20,'0')?-1:1;
+        });
+      }
     }
 
     // ─── END PICK ALLOCATION ──────────────────────────────────────────────────
