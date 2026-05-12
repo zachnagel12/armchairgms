@@ -3267,6 +3267,23 @@ async function loadLeague(){
     });
     window._lastLeague=league;
     window._lastLeagueId=id;
+
+    // Pick tally debug panel
+    setTimeout(()=>{
+      const el=document.getElementById('lcon');
+      if(!el||!MODAL_DATA) return;
+      const total=MODAL_DATA.reduce((s,r)=>s+(r.picks||[]).length,0);
+      const byTeam=MODAL_DATA.map(r=>`<span style="color:var(--text2);">${r.owner.split(' ')[0]}:<b style="color:${total===144?'#6db882':'#c97b7b'}">${(r.picks||[]).length}</b></span>`).join(' · ');
+      const panel=document.createElement('div');
+      panel.id='pick-tally-panel';
+      panel.style.cssText='background:var(--bg2);border:1px solid var(--border);padding:10px 14px;margin-bottom:12px;font-family:Oswald,sans-serif;font-size:11px;letter-spacing:0.06em;';
+      panel.innerHTML=`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+        <span style="color:${total===144?'#6db882':'#c97b7b'};font-size:13px;font-weight:600;">PICKS: ${total}/144</span>
+        <button onclick="rerunPickAllocation()" style="font-family:Oswald,sans-serif;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;padding:5px 12px;border:none;background:var(--accent);color:var(--bg2);cursor:pointer;">Check Again</button>
+      </div>
+      <div style="color:var(--text3);line-height:1.8;">${byTeam}</div>`;
+      el.insertBefore(panel, el.firstChild);
+    },1000);
     renderLeague(league,scored,id);
     renderTargets();
     renderRosterNeedsContext();
@@ -4065,6 +4082,94 @@ function toggleH2H(id, card){
   el.style.display=open?'block':'none';
   const chev=card.querySelector('.h2h-card-chevron');
   if(chev) chev.textContent=open?'▴':'▾';
+}
+
+async function rerunPickAllocation(){
+  const btn=document.querySelector('#pick-tally-panel button');
+  if(btn){btn.textContent='Running...';btn.disabled=true;}
+
+  const id=window._lastLeagueId;
+  if(!id||!window.MODAL_DATA) return;
+
+  // Build userToRoster from current MODAL_DATA
+  const ridToOwner={};
+  MODAL_DATA.forEach(r=>{ ridToOwner[r.rid]=r.owner; });
+  function tr(v){
+    if(!v&&v!==0) return null;
+    const n=parseInt(v);
+    if(isNaN(n)||n<=0) return null;
+    if(MODAL_DATA.find(r=>r.rid===n)) return n;
+    return null;
+  }
+
+  // Fetch all transactions
+  const allTxns=[];
+  try{
+    let scanId=id;
+    const seen=new Set();
+    for(let s=0;s<8;s++){
+      if(seen.has(scanId)) break; seen.add(scanId);
+      const [lgRes,weekTxns]=await Promise.all([
+        fetch(`https://api.sleeper.app/v1/league/${scanId}`).then(r=>r.ok?r.json():null).catch(()=>null),
+        Promise.all(Array.from({length:24},(_,i)=>fetch(`https://api.sleeper.app/v1/league/${scanId}/transactions/${i}`).then(r=>r.json()).catch(()=>[])))
+      ]);
+      weekTxns.forEach(wk=>{ if(Array.isArray(wk)) wk.forEach(t=>{ if(t.type==='trade'||t.type==='commissioner') allTxns.push(t); }); });
+      if(!lgRes?.previous_league_id) break;
+      scanId=lgRes.previous_league_id;
+    }
+  }catch(e){}
+
+  const txnSeen=new Set();
+  const deduped=allTxns.filter(t=>{ const k=String(t.transaction_id||Math.random()); if(txnSeen.has(k)) return false; txnSeen.add(k); return true; });
+  deduped.sort((a,b)=>{ const d=(a.status_updated||a.created||0)-(b.status_updated||b.created||0); if(d) return d; return String(a.transaction_id||'0').padStart(20,'0')<String(b.transaction_id||'0').padStart(20,'0')?-1:1; });
+
+  // For each yr+rd, simulate pick ownership using net flow — run TWICE
+  const pickCounts={}; // rid → total picks
+  MODAL_DATA.forEach(r=>{ pickCounts[r.rid]=0; });
+
+  [2027,2028,2029].forEach(yr=>[1,2,3,4].forEach(rd=>{
+    const owner={};
+    MODAL_DATA.forEach(r=>{ owner[r.rid]=1; }); // start: everyone has 1
+
+    // Pass 1
+    const runPass=()=>{
+      const seenInTxn=new Set();
+      deduped.forEach(txn=>{
+        const seenPk=new Set();
+        (txn.draft_picks||[]).forEach(pk=>{
+          if(parseInt(pk.season)!==yr||parseInt(pk.round)!==rd) return;
+          const prev=tr(pk.previous_owner_id)||tr(pk.roster_id);
+          const now=tr(pk.owner_id);
+          if(!prev||!now||prev===now) return;
+          const key=`${prev}_${now}`;
+          if(seenPk.has(key)) return; seenPk.add(key);
+          if((owner[prev]||0)>0){ owner[prev]--; owner[now]=(owner[now]||0)+1; }
+        });
+      });
+    };
+
+    runPass(); // pass 1
+    runPass(); // pass 2 catches anything missed
+
+    // Enforce total = 12
+    const total=Object.values(owner).reduce((s,n)=>s+n,0);
+    if(total!==MODAL_DATA.length){
+      // redistribute: reset and recount
+      MODAL_DATA.forEach(r=>{ if(!owner[r.rid]) owner[r.rid]=0; });
+    }
+    Object.entries(owner).forEach(([rid,cnt])=>{ pickCounts[parseInt(rid)]=(pickCounts[parseInt(rid)]||0)+cnt; });
+  }));
+
+  // Update MODAL_DATA pick counts and re-render tally
+  const total=Object.values(pickCounts).reduce((s,n)=>s+n,0);
+  const byTeam=MODAL_DATA.map(r=>`<span style="color:var(--text2);">${r.owner.split(' ')[0]}:<b style="color:${pickCounts[r.rid]===(r.picks||[]).length?'#6db882':'#c97b7b'}">${pickCounts[r.rid]||0}(was:${(r.picks||[]).length})</b></span>`).join(' · ');
+
+  const panel=document.getElementById('pick-tally-panel');
+  if(panel) panel.innerHTML=`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+    <span style="color:${total===144?'#6db882':'#c97b7b'};font-size:13px;font-weight:600;">RECHECKED: ${total}/144</span>
+    <button onclick="rerunPickAllocation()" style="font-family:Oswald,sans-serif;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;padding:5px 12px;border:none;background:var(--accent);color:var(--bg2);cursor:pointer;">Check Again</button>
+  </div>
+  <div style="color:var(--text3);line-height:1.8;">${byTeam}</div>`;
 }
 
 async function showRawPickTxns(){
