@@ -2833,7 +2833,7 @@ async function loadLeague(){
         const prevArr=rosterPicksRaw[prevRid];
         if(!prevArr) return;
         const removeIdx=prevArr.findIndex(p=>p.season===yr&&p.round===rd);
-        if(removeIdx<0) return; // prev doesn't have this pick — skip
+        if(removeIdx<0) return;
         prevArr.splice(removeIdx,1);
 
         // Add one pick of this EXACT year+round to new owner
@@ -2842,32 +2842,27 @@ async function loadLeague(){
       });
     });
 
-    // Step 5: Invariant check — 144 total picks, 12 per year+round
-    // If any yr+rd has wrong total, replay that specific combo to find correct distribution
+    // Step 5: Invariant replay — always runs, is the source of truth for pick counts
+    // Count-based logic: never gets confused by physical pick identity
     const N=rosters.length;
     PICK_YEARS.forEach(yr=>PICK_ROUNDS.forEach(rd=>{
-      const actual={};
-      rosters.forEach(r=>{ actual[r.roster_id]=(rosterPicksRaw[r.roster_id]||[]).filter(p=>p.season===yr&&p.round===rd).length; });
-      const total=Object.values(actual).reduce((s,n)=>s+n,0);
-      if(total===N) return; // ✓ correct
-
-      // Replay this yr+rd from scratch to find correct distribution
+      // Replay this yr+rd from scratch
       const correct={};
       rosters.forEach(r=>{ correct[r.roster_id]=1; });
       dedupedTxns.forEach(txn=>{
-        const seenR=new Set();
+        const seenInTxn=new Set();
         (txn.draft_picks||[]).forEach(pk=>{
           if(parseInt(pk.season)!==yr||parseInt(pk.round)!==rd) return;
           const prev=toRid(pk.previous_owner_id)||toRid(pk.roster_id);
           const now=toRid(pk.owner_id);
           if(!prev||!now||prev===now) return;
           const key=`${prev}_${now}`;
-          if(seenR.has(key)) return; seenR.add(key);
+          if(seenInTxn.has(key)) return; seenInTxn.add(key);
           if((correct[prev]||0)>0){ correct[prev]--; correct[now]=(correct[now]||0)+1; }
         });
       });
 
-      // Reconcile rosterPicksRaw to match correct counts
+      // Reconcile rosterPicksRaw to match replay result
       rosters.forEach(r=>{
         const rid=r.roster_id;
         const have=(rosterPicksRaw[rid]||[]).filter(p=>p.season===yr&&p.round===rd).length;
