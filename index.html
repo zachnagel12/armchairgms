@@ -4173,10 +4173,10 @@ async function rerunPickAllocation(){
         const seenPk=new Set();
         (txn.draft_picks||[]).forEach(pk=>{
           if(parseInt(pk.season)!==yr||parseInt(pk.round)!==rd) return;
-          const prev=tr(pk.previous_owner_id)||tr(pk.roster_id);
+          const prev=tr(pk.previous_owner_id);
           const now=tr(pk.owner_id);
           if(!prev||!now||prev===now) return;
-          const key=`${prev}_${now}`;
+          const key=`${prev}_${now}_${rd}`;
           if(seenPk.has(key)) return; seenPk.add(key);
           if((owner[prev]||0)>0){ owner[prev]--; owner[now]=(owner[now]||0)+1; }
         });
