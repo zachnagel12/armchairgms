@@ -2913,7 +2913,9 @@ async function loadLeague(){
       });
 
       // Reconcile rosterPicksRaw to match
-      if(yr===2027&&rd===2) window._replay2027rd2=Object.assign({},correct);
+      if(yr===2027&&rd===2){
+        window._replay2027rd2=Object.assign({},correct);
+      }
       rosters.forEach(r=>{
         const rid=r.roster_id;
         const have=(rosterPicksRaw[rid]||[]).filter(p=>p.season===yr&&p.round===rd).length;
@@ -3313,11 +3315,14 @@ async function loadLeague(){
       const panel=document.createElement('div');
       panel.id='pick-tally-panel';
       panel.style.cssText='background:var(--bg2);border:1px solid var(--border);padding:10px 14px;margin-bottom:12px;font-family:Oswald,sans-serif;font-size:11px;letter-spacing:0.06em;';
+      const replayRow=window._replay2027rd2
+        ?`<div style="margin-top:6px;border-top:1px solid var(--border);padding-top:6px;"><span style="color:#c97b7b;min-width:72px;display:inline-block;">REPLAY 2027 Rd2</span> ${Object.entries(window._replay2027rd2).map(([rid,n])=>{const o=(MODAL_DATA||[]).find(r=>r.rid==rid);return n>0?`<span style="color:${n>1?'#c97b7b':'var(--text2)'};">${o?.owner?.split(/\W/)[0]||rid}:${n}</span>`:''}).filter(Boolean).join(' ')}</div>`
+        :'';
       panel.innerHTML=`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
         <span style="color:${total===144?'#6db882':'#c97b7b'};font-size:13px;font-weight:600;">PICKS: ${total}/144</span>
         <button onclick="rerunPickAllocation()" style="font-family:Oswald,sans-serif;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;padding:5px 12px;border:none;background:var(--accent);color:var(--bg2);cursor:pointer;">Check Again</button>
       </div>
-      <div style="line-height:1.8;">${yrRdRows}</div>`;
+      <div style="line-height:1.8;">${yrRdRows}</div>${replayRow}`;
       el.insertBefore(panel, el.firstChild);
     },1000);
     renderLeague(league,scored,id);
