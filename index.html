@@ -2734,18 +2734,20 @@ async function loadLeague(){
 
     loadStep(4);
 
-    // Seed all 144 picks to original owners
-    // pickId = "yr_rd_origRosterId" but since original_roster_id is null in this league,
-    // we track by position in roster array and move by prev→now chains
+    // ─── PICK ALLOCATION ──────────────────────────────────────────────────────
+    // Step 1: Seed every team with their own picks for next 3 draft years
+    // Each team gets exactly 1 pick per round (1-4) per year (2027-2029) = 12 picks
+    const PICK_YEARS=[2027,2028,2029];
+    const PICK_ROUNDS=[1,2,3,4];
     const rosterPicksRaw={};
-    rosters.forEach(r=>{ rosterPicksRaw[r.roster_id]=[]; });
-    [2027,2028,2029].forEach(yr=>[1,2,3,4].forEach(rd=>
-      rosters.forEach(r=>rosterPicksRaw[r.roster_id].push({
-        season:yr,round:rd,isOwn:true,_orig:r.roster_id,_id:`${yr}_${rd}_${r.roster_id}`
-      }))
-    ));
+    rosters.forEach(r=>{
+      rosterPicksRaw[r.roster_id]=[];
+      PICK_YEARS.forEach(yr=>PICK_ROUNDS.forEach(rd=>{
+        rosterPicksRaw[r.roster_id].push({season:yr,round:rd});
+      }));
+    });
 
-    // Build user_id → roster_id map
+    // Step 2: Build user_id → roster_id map for resolving transaction participants
     const userToRoster={};
     rosters.forEach(r=>{ if(r.owner_id) userToRoster[String(r.owner_id)]=r.roster_id; });
     function toRid(v){
@@ -2755,20 +2757,16 @@ async function loadLeague(){
       if(rosters.find(r=>r.roster_id===n)) return n;
       return userToRoster[String(v)]||null;
     }
-    function nameToRid(name){
-      if(!name) return null;
-      const r=MODAL_DATA?.find(r=>r.owner===name);
-      return r?r.rid:null;
-    }
 
-    // Fetch all transactions
+    // Step 3: Fetch ALL transactions across all historical seasons
+    // Sort chronologically by status_updated, then transaction_id as tiebreaker
     const allTxns=[];
     try{
       let scanId=id;
-      const seen=new Set();
-      for(let s=0;s<8;s++){
-        if(seen.has(scanId)) break;
-        seen.add(scanId);
+      const seenLeagues=new Set();
+      for(let s=0;s<10;s++){
+        if(seenLeagues.has(scanId)) break;
+        seenLeagues.add(scanId);
         const [lgRes,weekTxns]=await Promise.all([
           fetch(`https://api.sleeper.app/v1/league/${scanId}`).then(r=>r.ok?r.json():null).catch(()=>null),
           Promise.all(Array.from({length:24},(_,i)=>
@@ -2776,131 +2774,136 @@ async function loadLeague(){
               .then(r=>r.json()).catch(()=>[])
           ))
         ]);
-        weekTxns.forEach(wk=>{ if(Array.isArray(wk)) wk.forEach(t=>{
-          if(t.type==='trade'||t.type==='commissioner'){t._lid=scanId;allTxns.push(t);}
-        }); });
+        weekTxns.forEach(wk=>{
+          if(!Array.isArray(wk)) return;
+          wk.forEach(t=>{
+            if(t.type==='trade'||t.type==='commissioner') allTxns.push(t);
+          });
+        });
         if(!lgRes?.previous_league_id) break;
         scanId=lgRes.previous_league_id;
       }
     }catch(e){}
 
-    // Dedupe by transaction_id
+    // Deduplicate by transaction_id
     const txnSeen=new Set();
     const dedupedTxns=allTxns.filter(t=>{
-      const k=String(t.transaction_id||Math.random());
+      const k=String(t.transaction_id||'_'+Math.random());
       if(txnSeen.has(k)) return false;
-      txnSeen.add(k); return true;
+      txnSeen.add(k);
+      return true;
     });
 
-    // Sort oldest first, transaction_id as tiebreaker
+    // Sort chronologically: oldest first
+    // Primary: status_updated timestamp. Secondary: transaction_id (snowflake = monotonic)
     dedupedTxns.sort((a,b)=>{
-      const d=(a.status_updated||a.created||0)-(b.status_updated||b.created||0);
-      if(d!==0) return d;
+      const tsDiff=(a.status_updated||a.created||0)-(b.status_updated||b.created||0);
+      if(tsDiff!==0) return tsDiff;
       const aId=String(a.transaction_id||'0').padStart(20,'0');
       const bId=String(b.transaction_id||'0').padStart(20,'0');
       return aId<bId?-1:aId>bId?1:0;
     });
 
-    // Process each transaction: move picks from prev → now
-    // original_roster_id is null so we use previous_owner_id to find the pick
+    // Step 4: Walk every transaction in chronological order
+    // For each draft_pick: subtract 1 pick of (season, round) from prev owner
+    //                      add    1 pick of (season, round) to   new  owner
+    // YEAR AND ROUND ARE SACRED — never confused, always tracked separately
     dedupedTxns.forEach(txn=>{
-      const seenPks=new Set();
+      // Dedup within a single transaction (Sleeper sometimes lists same pick twice)
+      const seenInTxn=new Set();
       (txn.draft_picks||[]).forEach(pk=>{
         const yr=parseInt(pk.season)||0;
         const rd=parseInt(pk.round)||0;
-        if(yr<2027||!rd) return;
+
+        // Only process future picks (2027+), skip current/past season picks
+        if(yr<2027||!rd||rd<1||rd>4) return;
+
         const prevRid=toRid(pk.previous_owner_id)||toRid(pk.roster_id);
         const nowRid=toRid(pk.owner_id);
+
+        // Must have both sides and they must be different
         if(!prevRid||!nowRid||prevRid===nowRid) return;
+
+        // Dedup: same year+round+prev+now within one transaction = skip duplicate
         const key=`${yr}_${rd}_${prevRid}_${nowRid}`;
-        if(seenPks.has(key)) return;
-        seenPks.add(key);
-        // Find pick of this season+round on prev's roster
-        const arr=rosterPicksRaw[prevRid];
-        if(!arr) return;
-        const idx=arr.findIndex(p=>p.season===yr&&p.round===rd);
-        if(idx<0) return;
-        const pick=arr.splice(idx,1)[0];
+        if(seenInTxn.has(key)) return;
+        seenInTxn.add(key);
+
+        // Remove one pick of this EXACT year+round from prev owner
+        const prevArr=rosterPicksRaw[prevRid];
+        if(!prevArr) return;
+        const removeIdx=prevArr.findIndex(p=>p.season===yr&&p.round===rd);
+        if(removeIdx<0) return; // prev doesn't have this pick — skip
+        prevArr.splice(removeIdx,1);
+
+        // Add one pick of this EXACT year+round to new owner
         if(!rosterPicksRaw[nowRid]) rosterPicksRaw[nowRid]=[];
-        rosterPicksRaw[nowRid].push({...pick,isOwn:false});
+        rosterPicksRaw[nowRid].push({season:yr,round:rd});
       });
     });
 
-    // Commissioner overrides for league 1312091473377792000 only
-    if(id==='1312091473377792000'){
-      const COMMISSIONER_OVERRIDES=[
-        // Tim's 2027 1st was traded to Ian then reverted by commissioner back to Tim
-        {season:2027,round:1,from:'Steelerr43',to:'BigSteppaTim'},
-        // Ian's 2027 1st was traded to Tim then reverted by commissioner back to Ian
-        {season:2027,round:1,from:'BigSteppaTim',to:'Steelerr43'},
-      ];
-      const nameToRid2={};
-      rosters.forEach(r=>{ const u=umap[r.owner_id]; if(u) nameToRid2[u.name]=r.roster_id; });
-      COMMISSIONER_OVERRIDES.forEach(({season,round,from,to})=>{
-        const fromRid=nameToRid2[from];
-        const toRid2=nameToRid2[to];
-        if(!fromRid||!toRid2) return;
-        const arr=rosterPicksRaw[fromRid];
-        if(!arr) return;
-        const idx=arr.findIndex(p=>p.season===season&&p.round===round);
-        if(idx<0) return;
-        const pick=arr.splice(idx,1)[0];
-        if(!rosterPicksRaw[toRid2]) rosterPicksRaw[toRid2]=[];
-        rosterPicksRaw[toRid2].push({...pick,isOwn:false});
-      });
-    }
+    // Step 5: Invariant check — 144 total picks, 12 per year+round
+    // If any yr+rd has wrong total, replay that specific combo to find correct distribution
+    const N=rosters.length;
+    PICK_YEARS.forEach(yr=>PICK_ROUNDS.forEach(rd=>{
+      const actual={};
+      rosters.forEach(r=>{ actual[r.roster_id]=(rosterPicksRaw[r.roster_id]||[]).filter(p=>p.season===yr&&p.round===rd).length; });
+      const total=Object.values(actual).reduce((s,n)=>s+n,0);
+      if(total===N) return; // ✓ correct
 
-    // INVARIANT CHECK: replay transactions to compute correct pick counts per roster
-    const TOTAL_TEAMS=rosters.length;
-    [2027,2028,2029].forEach(yr=>[1,2,3,4].forEach(rd=>{
-      const expected={};
-      rosters.forEach(r=>{ expected[r.roster_id]=1; });
+      // Replay this yr+rd from scratch to find correct distribution
+      const correct={};
+      rosters.forEach(r=>{ correct[r.roster_id]=1; });
       dedupedTxns.forEach(txn=>{
-        // Dedup within single transaction only (same as main loop)
-        const seenPk=new Set();
+        const seenR=new Set();
         (txn.draft_picks||[]).forEach(pk=>{
           if(parseInt(pk.season)!==yr||parseInt(pk.round)!==rd) return;
           const prev=toRid(pk.previous_owner_id)||toRid(pk.roster_id);
           const now=toRid(pk.owner_id);
           if(!prev||!now||prev===now) return;
           const key=`${prev}_${now}`;
-          if(seenPk.has(key)) return; seenPk.add(key);
-          // Only move if prev actually has picks to give
-          if((expected[prev]||0)>0){ expected[prev]--; expected[now]=(expected[now]||0)+1; }
+          if(seenR.has(key)) return; seenR.add(key);
+          if((correct[prev]||0)>0){ correct[prev]--; correct[now]=(correct[now]||0)+1; }
         });
       });
 
-      // Check if replay total = TOTAL_TEAMS
-      const replayTotal=Object.values(expected).reduce((s,n)=>s+n,0);
-      if(replayTotal!==TOTAL_TEAMS){
-        // Replay missed some — top up to 12 by giving missing picks to whoever
-        // has the highest expected count (most active traders = most likely to have extra)
-        let diff=TOTAL_TEAMS-replayTotal;
-        const sorted=Object.entries(expected).sort((a,b)=>b[1]-a[1]);
-        for(let i=0;diff>0;i++,diff--) expected[parseInt(sorted[i%sorted.length][0])]++;
-      }
-
-      // Reconcile rosterPicksRaw to match expected counts
-      Object.entries(expected).forEach(([rid,exp])=>{
-        const ridN=parseInt(rid);
-        if(!rosterPicksRaw[ridN]) rosterPicksRaw[ridN]=[];
-        const actual=rosterPicksRaw[ridN].filter(p=>p.season===yr&&p.round===rd).length;
-        if(actual===exp) return;
-        if(actual>exp){
-          // Remove excess
-          let remove=actual-exp;
-          rosterPicksRaw[ridN]=rosterPicksRaw[ridN].filter(p=>{
+      // Reconcile rosterPicksRaw to match correct counts
+      rosters.forEach(r=>{
+        const rid=r.roster_id;
+        const have=(rosterPicksRaw[rid]||[]).filter(p=>p.season===yr&&p.round===rd).length;
+        const want=correct[rid]||0;
+        if(have===want) return;
+        if(have>want){
+          let remove=have-want;
+          rosterPicksRaw[rid]=rosterPicksRaw[rid].filter(p=>{
             if(p.season===yr&&p.round===rd&&remove>0){remove--;return false;}
             return true;
           });
         } else {
-          // Add missing
-          for(let i=0;i<exp-actual;i++){
-            rosterPicksRaw[ridN].push({season:yr,round:rd,isOwn:false,_orig:null,_id:`${yr}_${rd}_fix_${ridN}_${i}`});
-          }
+          for(let i=0;i<want-have;i++) rosterPicksRaw[rid].push({season:yr,round:rd});
         }
       });
     }));
+
+    // Commissioner overrides for league 1312091473377792000 only
+    if(id==='1312091473377792000'){
+      const nameToRid={};
+      rosters.forEach(r=>{ const u=umap[r.owner_id]; if(u) nameToRid[u.name]=r.roster_id; });
+      [
+        {season:2027,round:1,from:'Steelerr43',to:'BigSteppaTim'},
+        {season:2027,round:1,from:'BigSteppaTim',to:'Steelerr43'},
+      ].forEach(({season,round,from,to})=>{
+        const fRid=nameToRid[from], tRid=nameToRid[to];
+        if(!fRid||!tRid) return;
+        const idx=(rosterPicksRaw[fRid]||[]).findIndex(p=>p.season===season&&p.round===round);
+        if(idx<0) return;
+        rosterPicksRaw[fRid].splice(idx,1);
+        if(!rosterPicksRaw[tRid]) rosterPicksRaw[tRid]=[];
+        rosterPicksRaw[tRid].push({season,round});
+      });
+    }
+
+    // ─── END PICK ALLOCATION ──────────────────────────────────────────────────
 
     Object.entries(sp).forEach(([pid,p])=>{
       const key=normName(`${p.first_name||''} ${p.last_name||''}`);
