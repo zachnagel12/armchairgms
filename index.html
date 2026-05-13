@@ -2324,7 +2324,7 @@ async function renderMyTeam(rid){
       // selItem() is the canonical "select a player on rankings" function.
       const dbPlayer=!p.unranked?DATA.find(d=>d.type==='player'&&normName(d.name)===normName(p.name)):null;
       const nameHtml=dbPlayer
-        ?`<span onclick="selItem(${dbPlayer.rank});showPg('rankings',document.querySelectorAll('.nt')[0]);" style="font-family:'Oswald',sans-serif;font-size:13px;font-weight:600;color:var(--text);flex:1;cursor:pointer;text-decoration:underline;text-decoration-color:var(--border2);text-underline-offset:2px;">${p.name}</span>`
+        ?`<span onclick="showPlayerCardModal(${dbPlayer.rank})" style="font-family:'Oswald',sans-serif;font-size:13px;font-weight:600;color:var(--text);flex:1;cursor:pointer;text-decoration:underline;text-decoration-color:var(--border2);text-underline-offset:2px;">${p.name}</span>`
         :`<span style="font-family:'Oswald',sans-serif;font-size:13px;font-weight:600;color:var(--text);flex:1;">${p.name}${p.unranked?' <span style="font-family:Oswald,sans-serif;font-size:9px;letter-spacing:0.08em;color:var(--text3);font-weight:400;">· UNRANKED</span>':''}</span>`;
       const scoreDisplay=p.unranked?'<span style="font-family:Oswald,sans-serif;font-size:11px;color:var(--text3);">—</span>':`<span style="font-family:'Russo One',sans-serif;font-size:13px;color:var(--accent);">${liveScore.toFixed(1)}</span>`;
       return `<div style="display:flex;align-items:center;gap:12px;padding:7px 14px;background:var(--panel);border:1px solid var(--border);">
@@ -2451,7 +2451,7 @@ async function buildAllTimeLineup(rid){
       const score=dbPlayer?.score;
       const pts=player?.totalPts;
       const nameEl=dbPlayer
-        ?`<span onclick="selItem(${dbPlayer.rank});showPg('rankings',document.querySelectorAll('.nt')[0]);" style="font-family:'Oswald',sans-serif;font-size:13px;font-weight:600;color:var(--text);cursor:pointer;text-decoration:underline;text-decoration-color:var(--border2);">${player.name}</span>`
+        ?`<span onclick="showPlayerCardModal(${dbPlayer.rank})" style="font-family:'Oswald',sans-serif;font-size:13px;font-weight:600;color:var(--text);cursor:pointer;text-decoration:underline;text-decoration-color:var(--border2);">${player.name}</span>`
         :`<span style="font-family:'Oswald',sans-serif;font-size:13px;font-weight:600;color:var(--text);">${player?.name||'—'}</span>`;
       return `<div style="display:grid;grid-template-columns:70px 1fr auto auto auto;gap:10px;align-items:center;padding:7px 14px;background:var(--panel);border:1px solid var(--border);">
         <span style="font-family:'Oswald',sans-serif;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;color:var(--text3);">${slot}</span>
@@ -2635,6 +2635,33 @@ function analyzeTradeByKey(key){
 
 function closePlayerModal(){document.getElementById('player-modal').style.display='none';}
 
+// Show a player's card in the popup modal WITHOUT changing the current page or
+// disturbing the rankings table selection. Used when tapping a name from
+// elsewhere in the app (My Team, All-Time Lineup, etc.) where the user wants
+// to peek at the card and stay where they were.
+function showPlayerCardModal(rank){
+  const d=DATA.find(x=>x.rank===rank);
+  if(!d) return;
+  const prevSel=SEL;
+  SEL=d;
+  // Render into the offscreen #ac panel using the existing renderCard, then
+  // copy its HTML into the modal. Restore SEL so the rankings tab isn't
+  // affected when the user navigates back.
+  renderCard();
+  const modal=document.getElementById('player-modal');
+  const title=document.getElementById('player-modal-title');
+  const body=document.getElementById('player-modal-body');
+  if(modal&&body){
+    title.textContent=d.name;
+    body.innerHTML=document.getElementById('ac').innerHTML;
+    modal.style.display='flex';
+  }
+  // Restore the previous rankings-tab selection so going back to Rankings
+  // shows whatever the user had selected before, not this peeked-at player.
+  SEL=prevSel;
+  if(SEL){try{renderCard();}catch(e){}}
+}
+
 function selItem(rank){
   SEL=DATA.find(d=>d.rank===rank);
   renderTable();
@@ -2666,6 +2693,14 @@ function renderCard(){
   const ownerName=window._playerOwner&&window._playerOwner[normName(d.name)];
   const ownerTag=ownerName
     ?`<div style="font-family:Oswald,sans-serif;font-size:10px;color:var(--accent);margin-top:2px;">🏈 Owned by ${ownerName}</div>`
+    :'';
+
+  // ── CHAMPIONSHIP TALLY ──
+  // Built by loadHistory: maps normalized player name → list of championship
+  // seasons in which they were on the title-winning roster (in this league).
+  const titleData=window._playerTitles&&window._playerTitles[normName(d.name)];
+  const titleTag=titleData&&titleData.count
+    ?`<div style="font-family:Oswald,sans-serif;font-size:10px;color:var(--gold);margin-top:2px;" title="On the championship roster in ${titleData.seasons.join(', ')}">🏆 ${titleData.count}× Champion (${titleData.seasons.sort().join(', ')})</div>`
     :'';
 
   // ── POSITIONAL RANK ──
@@ -2722,6 +2757,7 @@ function renderCard(){
         <div class="pn">${d.name}</div>
         <div class="pm">${d.team==='FA'?'Free Agent':d.team} · ${d.pos}${d.age?' · Age '+d.age:''}</div>
         ${ownerTag}
+        ${titleTag}
         ${trajHtml}
       </div>
       <div style="text-align:right;">
@@ -4121,11 +4157,24 @@ async function loadHistory(leagueId, userMap, scored, currentAllM){
         if(wMax>highWeekPts){highWeekPts=wMax;highWeekOwner=name;}
       });
 
-      let champ=null,runnerUp=null;
+      let champ=null,runnerUp=null,champRosterId=null;
       if(Array.isArray(wb)&&wb.length){
         const maxRound=Math.max(...wb.map(m=>m.r||0));
         const champMatch=wb.filter(m=>m.r===maxRound)[0];
-        if(champMatch){champ=rm[champMatch.w]||null;runnerUp=rm[champMatch.l]||null;}
+        if(champMatch){
+          champ=rm[champMatch.w]||null;
+          runnerUp=rm[champMatch.l]||null;
+          champRosterId=champMatch.w;
+        }
+      }
+      // Pull the championship roster's player IDs (Sleeper returns the
+      // end-of-season roster for historical leagues — exactly what we want).
+      let champPids=[];
+      if(champRosterId!=null){
+        const cr=rosters.find(r=>r.roster_id===champRosterId);
+        if(cr){
+          champPids=[...(cr.players||[]),...(cr.taxi||[])];
+        }
       }
       const [lb]=await Promise.all([
         fetch(`https://api.sleeper.app/v1/league/${s.lid}/losers_bracket`).then(r=>r.json()).catch(()=>[])
@@ -4153,7 +4202,7 @@ async function loadHistory(leagueId, userMap, scored, currentAllM){
 
       seasonData.push({season:s.season,lid:s.lid,leagueName:s.name,champ,runnerUp,whizzer,recs,
         standings,avgPPG,highScorer,highWeekOwner,highWeekPts:Math.round(highWeekPts*10)/10,
-        teamStats});
+        teamStats,champPids});
     }
 
     // H2H: collect regular-season matchup results across all seasons
@@ -4199,7 +4248,27 @@ async function loadHistory(leagueId, userMap, scored, currentAllM){
       });
     }
 
-    HIST_DATA={seasons:seasonData,userMap,scored,h2h};
+    // Build a normalized-name → list of championship seasons map. Used by
+    // the player card to show a 🏆 N× champion tally when a champion roster
+    // contained that player at the end of that season.
+    const playerTitles={};
+    const sp=window._sleeperPlayers||{};
+    seasonData.forEach(sd=>{
+      if(!sd.champ||!Array.isArray(sd.champPids)) return;
+      sd.champPids.forEach(pid=>{
+        const p=sp[pid]; if(!p) return;
+        const nm=`${p.first_name||''} ${p.last_name||''}`.trim();
+        if(!nm) return;
+        const key=normName(nm);
+        if(!playerTitles[key]) playerTitles[key]={count:0,seasons:[],owner:sd.champ};
+        playerTitles[key].count++;
+        playerTitles[key].seasons.push(sd.season);
+      });
+    });
+
+    HIST_DATA={seasons:seasonData,userMap,scored,h2h,playerTitles};
+    // Expose for renderCard
+    window._playerTitles=playerTitles;
     renderHistory();
   }catch(e){console.error('History load error:',e);}
 }
@@ -4426,6 +4495,22 @@ function renderHistory(){
       <div><div class="champ-name" style="color:var(--rt);">${s.whizzer}</div><div class="champ-sub">Whizzer's Court Bowl</div></div>
     </div>`).join('');
 
+  // Jerry Jones Move of the Year roll. Only show entries for COMPLETED
+  // seasons (champ exists) that have a Jerry pick from loadTradeHistory.
+  const jerryBy=window._tradesData?.jerryBySeason||{};
+  const jerryRows=seasons.filter(s=>s.champ&&jerryBy[s.season]).reverse().map(s=>{
+    const j=jerryBy[s.season];
+    const marginRound=Math.round(j.margin);
+    return `<div class="whizz-row" style="border-color:var(--accent);">
+      <div class="whizz-year" style="color:var(--accent);">${s.season}</div>
+      <div style="font-size:18px;">🤠</div>
+      <div style="flex:1;min-width:0;">
+        <div class="champ-name" style="color:var(--accent);">${j.loser}</div>
+        <div class="champ-sub">Fleeced by ${j.winner} · ${marginRound}-pt swing</div>
+      </div>
+    </div>`;
+  }).join('');
+
   // All-time records
   const atRecs={};
   seasons.forEach(s=>{Object.entries(s.recs).forEach(([name,rec])=>{
@@ -4501,6 +4586,7 @@ function renderHistory(){
     <div class="hist-section"><div class="hist-section-title">📅 Season-by-Season Recap</div>${seasonRecap(seasons)}</div>
     <div class="hist-section"><div class="hist-section-title">🏆 Championship Roll</div>${champRows||'<div class="no-data">No championship data found</div>'}</div>
     <div class="hist-section"><div class="hist-section-title">🚽 Whizzer's Court Bowl</div>${whizzRows||'<div class="no-data">No loser bracket data found</div>'}</div>
+    <div class="hist-section"><div class="hist-section-title">🤠 Jerry Jones Move of the Year</div>${jerryRows||'<div class="no-data">No qualifying lopsided trades yet — needs both sides ≥20 pts of value and a completed season.</div>'}</div>
     <div class="hist-section"><div class="hist-section-title">All-Time Records</div><div class="record-grid">${recCards||'<div class="no-data">No records found</div>'}</div></div>
     <div class="hist-section"><div class="hist-section-title">Head-to-Head Records</div>${h2hHtml}</div>`;
 }
