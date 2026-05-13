@@ -740,8 +740,9 @@ tbody tr.sel{background:rgba(192,120,72,0.13);border-left:3px solid var(--accent
   <div class="nav-r">
     <span class="nav-user" id="nu"></span>
     <div id="nav-sleeper-row" style="display:flex;align-items:center;gap:6px;">
-      <input type="text" id="nav-lid" placeholder="Sleeper League ID..." oninput="document.getElementById('lid').value=this.value" style="background:var(--bg3);border:1px solid var(--border2);color:var(--text);font-family:'Barlow Condensed',sans-serif;font-size:12px;padding:5px 9px;outline:none;width:180px;border-radius:4px;" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border2)'">
-      <button onclick="syncNavLeague()" style="font-family:Oswald,sans-serif;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;padding:5px 12px;border:none;background:var(--accent);color:var(--bg2);cursor:pointer;border-radius:4px;white-space:nowrap;">Sync League</button>
+      <select id="nav-lg-select" onchange="onLgSelect()" style="background:var(--bg3);border:1px solid var(--border2);color:var(--text);font-family:'Barlow Condensed',sans-serif;font-size:12px;padding:5px 8px;outline:none;max-width:200px;border-radius:4px;cursor:pointer;" title="Switch between saved leagues" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border2)'"></select>
+      <input type="text" id="nav-lid" placeholder="Paste new League ID..." oninput="document.getElementById('lid').value=this.value" onkeydown="if(event.key==='Enter'){event.preventDefault();syncNavLeague();}" style="background:var(--bg3);border:1px solid var(--border2);color:var(--text);font-family:'Barlow Condensed',sans-serif;font-size:12px;padding:5px 9px;outline:none;width:150px;border-radius:4px;" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border2)'">
+      <button id="nav-sync-btn" onclick="syncNavLeague()" style="font-family:Oswald,sans-serif;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;padding:5px 12px;border:none;background:var(--accent);color:var(--bg2);cursor:pointer;border-radius:4px;white-space:nowrap;">Sync</button>
     </div>
     <div style="display:flex;align-items:center;gap:0;background:var(--bg3);border:1px solid var(--border2);border-radius:6px;overflow:hidden;">
       <button class="scoring-btn active" data-s="SF" onclick="setScoring('SF')" style="font-family:Oswald,sans-serif;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;padding:6px 14px;border:none;background:var(--accent);color:var(--bg2);cursor:pointer;font-weight:600;white-space:nowrap;">⚡ Superflex</button>
@@ -1334,11 +1335,18 @@ function launch(u){
     const age=existing?Date.now()-existing.ts:Infinity;
     if(age>23*60*60*1000) saveMoversSnapshot();
   }catch(e){}
-  if(u.lid){
-    document.getElementById('lid').value=u.lid;
-    showPg('rankings',document.querySelectorAll('.nt')[0]);
-    loadLeague();
-  }
+  // Initialize multi-league state from local storage, then merge from remote.
+  loadLeaguesLocal();
+  renderLeagueDropdown();
+  loadLeaguesRemote().then(()=>{renderLeagueDropdown();
+    // Decide which league to auto-load: explicit session lid > stored default > first saved
+    const auto=(u.lid&&u.lid.trim())||DEFAULT_LID||LEAGUES[0]?.id||'';
+    if(auto){
+      document.getElementById('lid').value=auto;
+      showPg('rankings',document.querySelectorAll('.nt')[0]);
+      loadLeague();
+    }
+  });
 }
 window.addEventListener('DOMContentLoaded',()=>{const s=lSess();if(s)launch(s);});
 
@@ -1450,6 +1458,10 @@ function setScoring(mode){
   const moversEl=document.getElementById('movers-content');
   if(moversEl&&moversEl.innerHTML) renderMovers();
   if(SS_A&&SS_B) renderSSVerdict();
+  // Re-render My Team if open (roster value + per-player scores depend on SCORING)
+  if(typeof MY_TEAM_RID!=='undefined'&&MY_TEAM_RID&&MODAL_DATA&&MODAL_DATA.length){
+    try{renderMyTeam(MY_TEAM_RID);}catch(e){}
+  }
 }
 
 function showFlockRefresh(){
@@ -2052,10 +2064,128 @@ function renderRosterNeedsContext(){
   el.innerHTML=rows||'<div style="font-size:11px;color:var(--text3);">No clear imbalances found.</div>';
 }
 
+// ── MULTI-LEAGUE MANAGEMENT ───────────────────────────────────────────────
+// LEAGUES: array of {id, name} saved across sessions for this user.
+// DEFAULT_LID: the league that auto-loads on startup (first one synced).
+let LEAGUES=[];
+let DEFAULT_LID='';
+let LOAD_TOKEN=0; // increments each time a load starts; stale loads are abandoned
+
+function _lgStoreKey(){const k=(CU&&CU.uid)?CU.uid:(CU&&CU.em)?CU.em:'guest';return 'agm_leagues_'+k;}
+function _defStoreKey(){const k=(CU&&CU.uid)?CU.uid:(CU&&CU.em)?CU.em:'guest';return 'agm_default_lid_'+k;}
+
+function loadLeaguesLocal(){
+  try{LEAGUES=JSON.parse(localStorage.getItem(_lgStoreKey())||'[]');}catch(e){LEAGUES=[];}
+  try{DEFAULT_LID=localStorage.getItem(_defStoreKey())||'';}catch(e){DEFAULT_LID='';}
+  // Migration: if CU has a legacy lid and it's not in LEAGUES yet, seed it
+  if(CU&&CU.lid&&!LEAGUES.find(l=>l.id===CU.lid)){
+    LEAGUES.push({id:CU.lid,name:''});
+    if(!DEFAULT_LID) DEFAULT_LID=CU.lid;
+    saveLeaguesLocal();
+  }
+}
+function saveLeaguesLocal(){
+  try{localStorage.setItem(_lgStoreKey(),JSON.stringify(LEAGUES));}catch(e){}
+  try{localStorage.setItem(_defStoreKey(),DEFAULT_LID||'');}catch(e){}
+}
+async function saveLeaguesRemote(){
+  // Attempt to persist to Supabase. Field name `leagues` is JSONB; if the column
+  // doesn't exist, this is a no-op (localStorage remains source of truth).
+  if(!CU?.token||!CU?.uid||CU.em==='Guest') return;
+  try{
+    await sbUpsertProfile(CU.token,CU.uid,{
+      email:CU.em,
+      league_id:DEFAULT_LID||CU.lid||'',
+      scoring:SCORING||'SF',
+      leagues:LEAGUES
+    });
+  }catch(e){}
+}
+async function loadLeaguesRemote(){
+  if(!CU?.token||CU.em==='Guest') return;
+  try{
+    const pr=await sbGetProfile(CU.token);
+    if(pr.ok&&pr.data?.length){
+      const row=pr.data[0];
+      if(Array.isArray(row.leagues)&&row.leagues.length){
+        // Merge remote into local (remote wins for any duplicates by id)
+        const byId={};
+        LEAGUES.forEach(l=>{byId[l.id]=l;});
+        row.leagues.forEach(l=>{if(l&&l.id) byId[l.id]={id:l.id,name:l.name||byId[l.id]?.name||''};});
+        LEAGUES=Object.values(byId);
+      }
+      if(row.league_id&&!DEFAULT_LID) DEFAULT_LID=row.league_id;
+      saveLeaguesLocal();
+    }
+  }catch(e){}
+}
+
+function addOrUpdateLeague(id,name){
+  if(!id) return;
+  const existing=LEAGUES.find(l=>l.id===id);
+  if(existing){
+    if(name) existing.name=name;
+  } else {
+    LEAGUES.push({id,name:name||''});
+  }
+  if(!DEFAULT_LID) DEFAULT_LID=id;
+  saveLeaguesLocal();
+  saveLeaguesRemote();
+  renderLeagueDropdown();
+}
+
+function removeLeague(id){
+  LEAGUES=LEAGUES.filter(l=>l.id!==id);
+  if(DEFAULT_LID===id) DEFAULT_LID=LEAGUES[0]?.id||'';
+  saveLeaguesLocal();
+  saveLeaguesRemote();
+  renderLeagueDropdown();
+}
+
+function renderLeagueDropdown(){
+  const sel=document.getElementById('nav-lg-select');
+  if(!sel) return;
+  const cur=window._lastLeagueId||DEFAULT_LID||'';
+  if(!LEAGUES.length){
+    sel.innerHTML='<option value="">No leagues saved</option>';
+    sel.style.display='none';
+    return;
+  }
+  sel.style.display='';
+  sel.innerHTML=LEAGUES.map(l=>{
+    const label=l.name?`${l.name} — ${l.id}`:l.id;
+    const sel2=l.id===cur?' selected':'';
+    return `<option value="${l.id}"${sel2}>${label}</option>`;
+  }).join('');
+}
+
+function onLgSelect(){
+  const sel=document.getElementById('nav-lg-select');
+  if(!sel||!sel.value) return;
+  const id=sel.value;
+  if(id===window._lastLeagueId) return; // already loaded
+  document.getElementById('lid').value=id;
+  document.getElementById('nav-lid').value='';
+  showPg('rankings',document.querySelectorAll('.nt')[0]);
+  loadLeague();
+}
+
 function syncNavLeague(){
-  const val=(document.getElementById('nav-lid').value||'').trim();
-  if(!val) return;
-  document.getElementById('lid').value=val;
+  // Priority: paste field has content → use it (new league). Otherwise dropdown.
+  const pasted=(document.getElementById('nav-lid').value||'').trim();
+  const dropdownVal=(document.getElementById('nav-lg-select')?.value||'').trim();
+  const id=pasted||dropdownVal;
+  if(!id){
+    document.getElementById('lerr').textContent='Paste a Sleeper League ID first.';
+    document.getElementById('lerr').style.display='block';
+    return;
+  }
+  document.getElementById('lid').value=id;
+  // Clear the paste field so subsequent syncs pick from the dropdown unless re-pasted
+  document.getElementById('nav-lid').value='';
+  // Brief visual feedback on the sync button
+  const sb=document.getElementById('nav-sync-btn');
+  if(sb){const orig=sb.textContent;sb.textContent='Syncing...';sb.disabled=true;setTimeout(()=>{sb.textContent=orig;sb.disabled=false;},900);}
   showPg('rankings',document.querySelectorAll('.nt')[0]);
   loadLeague();
 }
@@ -2139,24 +2269,30 @@ async function renderMyTeam(rid){
   if(!roster) return;
   document.getElementById('myteam-content').style.display='block';
 
-  // Header
-  const leagueRank=(MODAL_DATA.slice().sort((a,b)=>b.total-a.total).findIndex(r=>r.rid===rid))+1;
+  // Header — use totalScore (scoring-mode-aware, recomputed by reRenderLeague)
+  const leagueRank=(MODAL_DATA.slice().sort((a,b)=>b.totalScore-a.totalScore).findIndex(r=>r.rid===rid))+1;
   document.getElementById('mt-owner-name').textContent=roster.owner;
   document.getElementById('mt-record').textContent=`${roster.wins||0}W – ${roster.losses||0}L`;
-  document.getElementById('mt-roster-val').textContent=(roster.total||0).toFixed(1);
+  document.getElementById('mt-roster-val').textContent=(roster.totalScore||0).toFixed(1);
   document.getElementById('mt-rank').textContent=`#${leagueRank}`;
 
-  // Current roster
+  // Current roster — sort by live (scoring-mode aware) score, names link to rankings card
   const posOrder=['QB','WR','RB','TE','PICK'];
   const PC={'QB':'var(--qb)','WR':'var(--wr)','RB':'var(--rb)','TE':'var(--te)','PICK':'var(--pick)'};
-  const allPlayers=[...(roster.all||[])].sort((a,b)=>b.score-a.score);
+  const allPlayers=[...(roster.all||[])].sort((a,b)=>getScore(b)-getScore(a));
   document.getElementById('mt-current-roster').innerHTML=allPlayers.length
-    ?allPlayers.map(p=>`
-      <div style="display:flex;align-items:center;gap:12px;padding:7px 14px;background:var(--panel);border:1px solid var(--border);">
+    ?allPlayers.map(p=>{
+      const liveScore=getScore(p);
+      // Match against the rankings DB so we can jump to that player's card on tap
+      const dbPlayer=DATA.find(d=>d.type==='player'&&normName(d.name)===normName(p.name));
+      const nameHtml=dbPlayer
+        ?`<span onclick="selectItem(${dbPlayer.rank});showPg('rankings',document.querySelectorAll('.nt')[0]);" style="font-family:'Oswald',sans-serif;font-size:13px;font-weight:600;color:var(--text);flex:1;cursor:pointer;text-decoration:underline;text-decoration-color:var(--border2);text-underline-offset:2px;">${p.name}</span>`
+        :`<span style="font-family:'Oswald',sans-serif;font-size:13px;font-weight:600;color:var(--text);flex:1;">${p.name}</span>`;
+      return `<div style="display:flex;align-items:center;gap:12px;padding:7px 14px;background:var(--panel);border:1px solid var(--border);">
         <span style="font-family:'Oswald',sans-serif;font-size:9px;letter-spacing:0.08em;border:1px solid ${PC[p.pos]||'var(--text3)'};color:${PC[p.pos]||'var(--text3)'};padding:1px 5px;flex-shrink:0;">${p.pos}</span>
-        <span style="font-family:'Oswald',sans-serif;font-size:13px;font-weight:600;color:var(--text);flex:1;">${p.name}</span>
-        <span style="font-family:'Russo One',sans-serif;font-size:13px;color:var(--accent);">${p.score.toFixed(1)}</span>
-      </div>`).join('')
+        ${nameHtml}
+        <span style="font-family:'Russo One',sans-serif;font-size:13px;color:var(--accent);">${liveScore.toFixed(1)}</span>
+      </div>`;}).join('')
     :'<div style="font-size:12px;color:var(--text3);padding:12px;">No players found.</div>';
 
   // Draft picks
@@ -2951,9 +3087,16 @@ function renderTS(){
 async function loadLeague(){
   const id=(document.getElementById('lid').value||'').trim();
   if(!id){document.getElementById('lerr').textContent='Please enter a League ID.';document.getElementById('lerr').style.display='block';return;}
-  // Save league ID to session and Supabase profile
-  if(CU&&CU.em!=='Guest'){CU.lid=id;sSess(CU);saveProfile();}
-  else if(CU){CU.lid=id;sSess(CU);}
+  // Bump the load token. Any in-flight load with an older token will see it's
+  // stale and abandon writes, so a fresh paste+sync always wins.
+  const myToken=++LOAD_TOKEN;
+  const isStale=()=>myToken!==LOAD_TOKEN;
+  // Only set the default league ID on the very first sync. After that, switching
+  // leagues does NOT change which league auto-loads on startup — the default
+  // stays pinned to whatever the user first synced.
+  if(CU){
+    if(!CU.lid){CU.lid=id;sSess(CU);if(CU.em!=='Guest') saveProfile();}
+  }
   const btn=document.getElementById('lbtn');btn.disabled=true;btn.textContent='Loading...';
   document.getElementById('lerr').style.display='none';
   document.getElementById('llod').style.display='block';
@@ -3530,6 +3673,8 @@ async function loadLeague(){
     await new Promise(r=>setTimeout(r,80));
     loadStep(6);
     await new Promise(r=>setTimeout(r,80));
+    // If a newer sync has started, abandon: don't overwrite its results.
+    if(isStale()) return;
     MODAL_DATA=[...scored];
     // Build player→owner lookup map for use in rankings and trade analyzer
     window._playerOwner={};
@@ -3542,6 +3687,9 @@ async function loadLeague(){
     window._lastLeague=league;
     window._lastLeagueId=id;
 
+    // Register this league in the user's saved leagues + update dropdown
+    try{addOrUpdateLeague(id,league.name||'');}catch(e){}
+
     renderLeague(league,scored,id);
     renderTargets();
     renderRosterNeedsContext();
@@ -3549,10 +3697,14 @@ async function loadLeague(){
     loadHistory(id, umap, scored, allM);
     loadTradeHistory(id, umap, sp);
   }catch(e){
+    if(isStale()) return;
     document.getElementById('lerr').textContent=e.message||'Failed to load. Check your League ID.';
     document.getElementById('lerr').style.display='block';
     document.getElementById('lemp').style.display='block';
-  }finally{btn.disabled=false;btn.textContent='Reload';document.getElementById('llod').style.display='none';}
+  }finally{
+    // Only the latest load resets the button UI
+    if(!isStale()){btn.disabled=false;btn.textContent='Reload';document.getElementById('llod').style.display='none';}
+  }
 }
 
 let MODAL_DATA=[];
@@ -4141,6 +4293,37 @@ async function loadTradeHistory(leagueId, userMap, sleeperPlayers){
     TRADES_DATA={trades:allTrades,topTraded,teamTrades,teamWaivers};
     window._tradesData=TRADES_DATA;
 
+    // ── JERRY JONES MOVE OF THE YEAR ──────────────────────────────────────
+    // Per season, find the most lopsided 2-team trade where BOTH sides gave
+    // value ≥ 20 (current scores). Filters out throwaway trades that are
+    // proportionally lopsided but quantitatively meaningless.
+    const JERRY_MIN_VALUE=20;
+    const jerryBySeason={};
+    allTrades.forEach(t=>{
+      if(!t.sides||t.sides.length!==2) return; // 2-team only — multi-team gets complex
+      const [s1,s2]=t.sides;
+      if((s1.value||0)<JERRY_MIN_VALUE||(s2.value||0)<JERRY_MIN_VALUE) return;
+      const margin=Math.abs((s1.value||0)-(s2.value||0));
+      if(margin<5) return; // need at least a meaningful gap to be "lopsided"
+      const winner=s1.value<s2.value?s1:s2; // gave less, got more
+      const loser =s1.value<s2.value?s2:s1;
+      // Track per season
+      const yr=t.season||'';
+      if(!jerryBySeason[yr]||margin>jerryBySeason[yr].margin){
+        jerryBySeason[yr]={
+          trade:t,
+          margin,
+          winner:winner.name,
+          loser:loser.name,
+          winnerGave:winner.value,    // value of assets winner shipped out
+          winnerRecv:loser.value,     // value of assets winner received
+          loserGave:loser.value,
+          loserRecv:winner.value
+        };
+      }
+    });
+    TRADES_DATA.jerryBySeason=jerryBySeason;
+
     // Net trade value per manager (today's value of what they received minus what they gave)
     const netTradeValue={};
     allTrades.forEach(t=>{
@@ -4155,6 +4338,12 @@ async function loadTradeHistory(leagueId, userMap, sleeperPlayers){
     });
     TRADES_DATA.netTradeValue=netTradeValue;
     renderTrades();
+    // If history page has already rendered (it loads in parallel), refresh it so
+    // the Jerry Jones cards now show up under each season.
+    try{
+      const hc=document.getElementById('hist-content');
+      if(HIST_DATA&&HIST_DATA.seasons?.length&&hc&&hc.innerHTML) renderHistory();
+    }catch(e){}
   }catch(e){console.error('Trade history error:',e);}
 }
 
@@ -4266,6 +4455,7 @@ function seasonRecap(seasons){
     const hasData=s.standings&&s.standings.length;
     const champLine=s.champ?`🏆 ${s.champ}`:'Champion unknown';
     const whizLine=s.whizzer?`🚽 ${s.whizzer}`:'';
+    const jerryHtml=buildJerryJonesCard(s);
     return `<div class="season-card">
       <div class="season-card-header" onclick="toggleSeason('sc_${s.season}',this)">
         <div>
@@ -4285,6 +4475,7 @@ function seasonRecap(seasons){
           ${s.highWeekOwner?`<div class="season-stat"><div class="season-stat-val" style="font-size:12px;">${s.highWeekOwner.split(' ')[0]}</div><div class="season-stat-lbl">High Scorer</div></div>`:''}
           ${s.standings?`<div class="season-stat"><div class="season-stat-val">${s.standings.length}</div><div class="season-stat-lbl">Teams</div></div>`:''}
         </div>
+        ${jerryHtml}
         ${hasData?`<div style="font-family:Oswald,sans-serif;font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:var(--text3);margin-bottom:8px;">Final Standings</div>
         <div class="season-standings">
           ${s.standings.slice(0,12).map((t,i)=>`<div class="season-standing-row">
@@ -4297,6 +4488,95 @@ function seasonRecap(seasons){
       </div>
     </div>`;
   }).join('');
+}
+
+// ── JERRY JONES MOVE OF THE YEAR ──────────────────────────────────────────
+// Renders the per-season "most lopsided trade" card. Pulls from TRADES_DATA
+// which loads in parallel with HIST_DATA; if trades aren't ready yet, returns
+// empty and the card appears on the next render (we re-render history when
+// trade data finishes loading).
+function buildJerryJonesCard(season){
+  const j=window._tradesData?.jerryBySeason?.[season.season];
+  if(!j) return '';
+  const t=j.trade;
+  const [s1,s2]=t.sides;
+  const winnerSide=s1.name===j.winner?s1:s2;
+  const loserSide =s1.name===j.winner?s2:s1;
+  // Format the actual assets exchanged
+  function assetsHtml(side){
+    const players=side.players.map(p=>{
+      const m=NM_EXACT[p.name.toLowerCase()]||NM_NORM[normName(p.name)];
+      const sc=m?getScore(m).toFixed(1):'?';
+      return `<div style="font-size:11px;color:var(--text2);line-height:1.5;">${p.name} <span style="color:var(--text3);font-family:Oswald,sans-serif;font-size:10px;">(${sc})</span></div>`;
+    }).join('');
+    const picks=side.picks.map(pk=>`<div style="font-size:11px;color:var(--pick);line-height:1.5;">${pk}</div>`).join('');
+    return players+picks||'<div style="font-size:11px;color:var(--text3);font-style:italic;">—</div>';
+  }
+  // Compute the "consequence" — how much of winner's CURRENT roster value
+  // is still tied to assets received in this trade.
+  let stillRosteredVal=0, stillRosteredNames=[];
+  try{
+    const winnerRoster=(window.MODAL_DATA||[]).find(r=>r.owner===j.winner);
+    if(winnerRoster){
+      loserSide.players.forEach(p=>{
+        const onRoster=winnerRoster.all.find(rp=>normName(rp.name)===normName(p.name));
+        if(onRoster){
+          stillRosteredVal+=getScore(onRoster);
+          stillRosteredNames.push(onRoster.name);
+        }
+      });
+    }
+  }catch(e){}
+  // Margin tier for flair copy
+  const marginRound=Math.round(j.margin);
+  let tier, tagline;
+  if(j.margin>=60){
+    tier='⚠️ Franchise-Altering Heist';
+    tagline=`${j.winner} robbed ${j.loser} in broad daylight. This trade alone could swing a championship window — ${marginRound} points of net value changed hands.`;
+  } else if(j.margin>=40){
+    tier='🚨 Roster-Tilting Swindle';
+    tagline=`${j.winner} walked away with a ${marginRound}-point haul. Roster construction was permanently rearranged.`;
+  } else if(j.margin>=25){
+    tier='💼 Lopsided Steal';
+    tagline=`${j.winner} took ${j.loser} to the cleaners — a ${marginRound}-point net swing that reshaped both rosters.`;
+  } else {
+    tier='🔪 Sharp Move';
+    tagline=`${j.winner} netted ${marginRound} extra points of value over ${j.loser}. Not a blowout, but a clear win on the wire.`;
+  }
+  // If any of the acquired assets are STILL on the winner's current roster, add a punch line
+  let consequence='';
+  if(stillRosteredVal>=15){
+    const top=stillRosteredNames.slice(0,3).join(', ');
+    consequence=`<div style="margin-top:10px;padding:8px 12px;background:rgba(192,122,74,0.08);border-left:3px solid var(--accent);font-size:11px;color:var(--text2);line-height:1.55;">
+      <span style="font-family:Oswald,sans-serif;font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:var(--accent);">Real Consequence</span><br>
+      ${top} ${stillRosteredNames.length>1?'are':'is'} still on ${j.winner.split(' ')[0]}'s roster today, worth ${stillRosteredVal.toFixed(1)} points of current value. This trade is the foundation that's still paying dividends.
+    </div>`;
+  } else if(stillRosteredNames.length){
+    consequence=`<div style="margin-top:10px;font-size:11px;color:var(--text3);font-style:italic;">Acquired pieces still on roster: ${stillRosteredNames.join(', ')}.</div>`;
+  }
+
+  return `<div style="margin:14px 0 18px;padding:14px 16px;background:linear-gradient(135deg,rgba(192,122,74,0.10),rgba(155,138,191,0.06));border:1px solid var(--accent);border-radius:10px;">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap;">
+      <span style="font-size:18px;">🤠</span>
+      <span style="font-family:'Russo One',sans-serif;font-size:13px;color:var(--accent);letter-spacing:0.04em;">JERRY JONES MOVE OF THE YEAR</span>
+      <span style="font-family:Oswald,sans-serif;font-size:10px;letter-spacing:0.12em;text-transform:uppercase;background:var(--accent);color:var(--bg2);padding:2px 8px;border-radius:3px;">${tier.replace(/^[^\s]+\s/,'')}</span>
+    </div>
+    <div style="font-size:12px;color:var(--text2);line-height:1.6;margin-bottom:10px;">${tagline}</div>
+    <div style="display:grid;grid-template-columns:1fr auto 1fr;gap:12px;align-items:start;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;">
+      <div>
+        <div style="font-family:Oswald,sans-serif;font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:var(--gt);margin-bottom:4px;">🏆 ${j.winner} received</div>
+        ${assetsHtml(loserSide)}
+        <div style="font-family:'Russo One',sans-serif;font-size:12px;color:var(--gt);margin-top:6px;">${(j.winnerRecv||0).toFixed(1)} value</div>
+      </div>
+      <div style="font-family:'Russo One',sans-serif;font-size:20px;color:var(--text3);padding-top:14px;">↔</div>
+      <div>
+        <div style="font-family:Oswald,sans-serif;font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:var(--rt);margin-bottom:4px;">📉 ${j.loser} received</div>
+        ${assetsHtml(winnerSide)}
+        <div style="font-family:'Russo One',sans-serif;font-size:12px;color:var(--rt);margin-top:6px;">${(j.loserRecv||0).toFixed(1)} value</div>
+      </div>
+    </div>
+    ${consequence}
+  </div>`;
 }
 
 function buildSeasonSparklines(teamStats){
