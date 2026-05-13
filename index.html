@@ -731,6 +731,7 @@ tbody tr.sel{background:rgba(192,120,72,0.13);border-left:3px solid var(--accent
   <div class="nav-tabs">
     <div class="nt active" onclick="showPg('rankings',this)">Rankings</div>
     <div class="nt" onclick="showPg('sleeper',this)">League</div>
+    <div class="nt" onclick="showPg('myteam',this)">My Team</div>
     <div class="nt" onclick="showPg('history',this)">History</div>
     <div class="nt" onclick="showPg('trade',this)">Trade</div>
     <div class="nt" onclick="showPg('trades',this)">Trade History</div>
@@ -1052,7 +1053,65 @@ tbody tr.sel{background:rgba(192,120,72,0.13);border-left:3px solid var(--accent
 </div>
 
 <!-- HISTORY PAGE -->
-<div class="page" id="page-history">
+<div class="page" id="page-myteam">
+  <div style="max-width:900px;margin:0 auto;padding:24px 20px;">
+
+    <!-- Team selector -->
+    <div style="margin-bottom:20px;">
+      <div style="font-family:'Russo One',sans-serif;font-size:26px;color:var(--text);margin-bottom:6px;">MY <span style="color:var(--accent);">TEAM</span></div>
+      <div style="font-size:13px;color:var(--text2);font-weight:300;line-height:1.5;margin-bottom:16px;">Select your team to see your current roster, all-time starting lineup, and dynasty value breakdown.</div>
+      <div id="myteam-selector" style="display:none;">
+        <div style="font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:0.16em;text-transform:uppercase;color:var(--text3);margin-bottom:8px;">Select Your Team</div>
+        <div id="myteam-team-btns" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:20px;"></div>
+      </div>
+      <div id="myteam-no-league" style="font-family:'Oswald',sans-serif;font-size:12px;letter-spacing:0.1em;color:var(--text3);display:block;">Load your Sleeper league on the League tab first.</div>
+    </div>
+
+    <!-- My Team content -->
+    <div id="myteam-content" style="display:none;">
+
+      <!-- Header -->
+      <div style="background:var(--panel);border:1px solid var(--border);padding:16px 20px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;">
+        <div>
+          <div style="font-family:'Russo One',sans-serif;font-size:22px;color:var(--text);" id="mt-owner-name">—</div>
+          <div style="font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:var(--text3);margin-top:3px;" id="mt-record">—</div>
+        </div>
+        <div style="display:flex;gap:10px;">
+          <div style="background:var(--bg3);border:1px solid var(--border);padding:8px 16px;text-align:center;">
+            <div style="font-family:'Russo One',sans-serif;font-size:20px;color:var(--accent);" id="mt-roster-val">—</div>
+            <div style="font-family:'Oswald',sans-serif;font-size:9px;letter-spacing:0.12em;text-transform:uppercase;color:var(--text3);margin-top:2px;">Roster Value</div>
+          </div>
+          <div style="background:var(--bg3);border:1px solid var(--border);padding:8px 16px;text-align:center;">
+            <div style="font-family:'Russo One',sans-serif;font-size:20px;color:var(--text);" id="mt-rank">—</div>
+            <div style="font-family:'Oswald',sans-serif;font-size:9px;letter-spacing:0.12em;text-transform:uppercase;color:var(--text3);margin-top:2px;">League Rank</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- All-Time Starting Lineup -->
+      <div style="margin-bottom:20px;">
+        <div style="font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:0.18em;text-transform:uppercase;color:var(--text3);margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--border);">All-Time Starting Lineup — Most Starts Per Position</div>
+        <div id="mt-alltime-lineup" style="display:flex;flex-direction:column;gap:2px;"></div>
+        <div style="font-size:11px;color:var(--text3);margin-top:8px;font-style:italic;">Based on your league's historical matchup data. Includes players no longer on your roster.</div>
+      </div>
+
+      <!-- Current Roster -->
+      <div style="margin-bottom:20px;">
+        <div style="font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:0.18em;text-transform:uppercase;color:var(--text3);margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--border);">Current Roster</div>
+        <div id="mt-current-roster" style="display:flex;flex-direction:column;gap:2px;"></div>
+      </div>
+
+      <!-- Draft Capital -->
+      <div>
+        <div style="font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:0.18em;text-transform:uppercase;color:var(--text3);margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--border);">Draft Capital</div>
+        <div id="mt-picks" style="display:flex;flex-direction:column;gap:2px;"></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+
   <div class="sw2">
     <div class="stop">
       <div class="stitle">LEAGUE <span>History</span></div>
@@ -2040,10 +2099,185 @@ function showPg(id,el){
   if(id==='trades') renderTrades();
   if(id==='targets') renderTargets();
   if(id==='trade') renderRosterNeedsContext();
+  if(id==='myteam') initMyTeam();
   if(id==='startsit'){SS_A=null;SS_B=null;document.getElementById('ss-a-search').value='';document.getElementById('ss-b-search').value='';document.getElementById('ss-a-card').innerHTML='';document.getElementById('ss-b-card').innerHTML='';document.getElementById('ss-verdict').style.display='none';}
   if(id==='rookies') renderRookies();
   if(id==='rankings'){try{const top=DATA.find(d=>d.rank===1);if(top){SEL=top;renderTable();renderCard();}}catch(e){}}
 }
+
+// ===== MY TEAM PAGE =====
+let MY_TEAM_RID=localStorage.getItem('myteam_rid')?parseInt(localStorage.getItem('myteam_rid')):null;
+
+function initMyTeam(){
+  if(!MODAL_DATA||!MODAL_DATA.length){
+    document.getElementById('myteam-no-league').style.display='block';
+    document.getElementById('myteam-selector').style.display='none';
+    document.getElementById('myteam-content').style.display='none';
+    return;
+  }
+  document.getElementById('myteam-no-league').style.display='none';
+  document.getElementById('myteam-selector').style.display='block';
+
+  // Build team selector buttons
+  const btns=document.getElementById('myteam-team-btns');
+  btns.innerHTML=MODAL_DATA.map(r=>`
+    <button onclick="selectMyTeam(${r.rid})" style="font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;padding:6px 14px;border:1px solid ${MY_TEAM_RID===r.rid?'var(--accent)':'var(--border2)'};background:${MY_TEAM_RID===r.rid?'var(--accent)':'transparent'};color:${MY_TEAM_RID===r.rid?'var(--bg2)':'var(--text3)'};cursor:pointer;transition:all 0.15s;">${r.owner}</button>
+  `).join('');
+
+  if(MY_TEAM_RID) renderMyTeam(MY_TEAM_RID);
+}
+
+function selectMyTeam(rid){
+  MY_TEAM_RID=rid;
+  localStorage.setItem('myteam_rid',rid);
+  initMyTeam();
+}
+
+async function renderMyTeam(rid){
+  const roster=MODAL_DATA.find(r=>r.rid===rid);
+  if(!roster) return;
+  document.getElementById('myteam-content').style.display='block';
+
+  // Header
+  const leagueRank=(MODAL_DATA.slice().sort((a,b)=>b.total-a.total).findIndex(r=>r.rid===rid))+1;
+  document.getElementById('mt-owner-name').textContent=roster.owner;
+  document.getElementById('mt-record').textContent=`${roster.wins||0}W – ${roster.losses||0}L`;
+  document.getElementById('mt-roster-val').textContent=(roster.total||0).toFixed(1);
+  document.getElementById('mt-rank').textContent=`#${leagueRank}`;
+
+  // Current roster
+  const posOrder=['QB','WR','RB','TE','PICK'];
+  const PC={'QB':'var(--qb)','WR':'var(--wr)','RB':'var(--rb)','TE':'var(--te)','PICK':'var(--pick)'};
+  const allPlayers=[...(roster.all||[])].sort((a,b)=>b.score-a.score);
+  document.getElementById('mt-current-roster').innerHTML=allPlayers.length
+    ?allPlayers.map(p=>`
+      <div style="display:flex;align-items:center;gap:12px;padding:7px 14px;background:var(--panel);border:1px solid var(--border);">
+        <span style="font-family:'Oswald',sans-serif;font-size:9px;letter-spacing:0.08em;border:1px solid ${PC[p.pos]||'var(--text3)'};color:${PC[p.pos]||'var(--text3)'};padding:1px 5px;flex-shrink:0;">${p.pos}</span>
+        <span style="font-family:'Oswald',sans-serif;font-size:13px;font-weight:600;color:var(--text);flex:1;">${p.name}</span>
+        <span style="font-family:'Russo One',sans-serif;font-size:13px;color:var(--accent);">${p.score.toFixed(1)}</span>
+      </div>`).join('')
+    :'<div style="font-size:12px;color:var(--text3);padding:12px;">No players found.</div>';
+
+  // Draft picks
+  const picks=(roster.picks||[]).slice().sort((a,b)=>a.season-b.season||a.round-b.round);
+  function pickColor(rd){return rd===1?'#9b8abf':rd===2?'#7b9ec9':rd===3?'#c9a84c':'#c97b7b';}
+  document.getElementById('mt-picks').innerHTML=picks.length
+    ?picks.map(pk=>{
+      const rd=pk.round;const yr=pk.season;
+      const rdLabel=rd===1?'1st':rd===2?'2nd':rd===3?'3rd':'4th';
+      const pc=pickColor(rd);
+      const matched=DATA.find(d=>d.type==='pick'&&d.year==yr&&d.round==rd);
+      const val=matched?matched.score.toFixed(1):'—';
+      return `<div style="display:flex;align-items:center;gap:12px;padding:7px 14px;background:var(--panel);border:1px solid var(--border);">
+        <span style="font-family:'Oswald',sans-serif;font-size:9px;letter-spacing:0.08em;border:1px solid ${pc};color:${pc};padding:1px 5px;flex-shrink:0;">PICK</span>
+        <span style="font-family:'Oswald',sans-serif;font-size:13px;font-weight:600;color:var(--text);flex:1;">${yr} ${rdLabel} · Mid</span>
+        <span style="font-family:'Russo One',sans-serif;font-size:13px;color:${pc};">${val}</span>
+      </div>`;}).join('')
+    :'<div style="font-size:12px;color:var(--text3);padding:12px;">No draft picks.</div>';
+
+  // All-time starting lineup — fetch matchup history
+  await buildAllTimeLineup(rid);
+}
+
+async function buildAllTimeLineup(rid){
+  const el=document.getElementById('mt-alltime-lineup');
+  el.innerHTML='<div style="font-size:12px;color:var(--text3);padding:12px;">Loading matchup history...</div>';
+
+  const id=window._lastLeagueId;
+  if(!id){el.innerHTML='<div style="font-size:12px;color:var(--text3);padding:12px;">Load a league first.</div>';return;}
+
+  try{
+    // Fetch matchups across all weeks of current + previous seasons
+    const startCounts={}; // sleeper_player_id → {name,pos,starts}
+
+    let scanId=id;
+    const seenLeagues=new Set();
+    for(let s=0;s<8;s++){
+      if(seenLeagues.has(scanId)) break;
+      seenLeagues.add(scanId);
+      const lgRes=await fetch(`https://api.sleeper.app/v1/league/${scanId}`).then(r=>r.ok?r.json():null).catch(()=>null);
+      // Fetch all weeks (1-18)
+      const weekData=await Promise.all(Array.from({length:18},(_,i)=>
+        fetch(`https://api.sleeper.app/v1/league/${scanId}/matchups/${i+1}`)
+          .then(r=>r.ok?r.json():[]).catch(()=>[])
+      ));
+      weekData.forEach(week=>{
+        if(!Array.isArray(week)) return;
+        const myEntry=week.find(m=>m.roster_id===rid);
+        if(!myEntry) return;
+        const starters=myEntry.starters||[];
+        starters.forEach(pid=>{
+          if(!pid||pid==='0') return;
+          if(!startCounts[pid]) startCounts[pid]={pid,starts:0};
+          startCounts[pid].starts++;
+        });
+      });
+      if(!lgRes?.previous_league_id) break;
+      scanId=lgRes.previous_league_id;
+    }
+
+    // Map pids to player names/positions via sp (Sleeper players object)
+    // sp is the full player dictionary fetched during league load
+    const sp=window._sleeperPlayers||{};
+    const withInfo=Object.values(startCounts).map(({pid,starts})=>{
+      const p=sp[pid];
+      if(!p) return null;
+      const name=`${p.first_name||''} ${p.last_name||''}`.trim();
+      const pos=p.fantasy_positions?.[0]||p.position||'?';
+      return {pid,name,pos,starts};
+    }).filter(Boolean);
+
+    // Determine lineup slots based on scoring mode
+    const isSF=document.querySelector('.scoring-btn.active')?.dataset?.s==='SF';
+    const slots=isSF
+      ?['QB','QB','WR','WR','WR','RB','RB','TE','FLEX','SFLEX']
+      :['QB','WR','WR','WR','RB','RB','TE','FLEX'];
+
+    // For each slot, find best player (most starts at that position)
+    // FLEX = WR/RB/TE, SFLEX = QB/WR/RB/TE
+    const used=new Set();
+    function bestFor(positions){
+      return withInfo
+        .filter(p=>positions.includes(p.pos)&&!used.has(p.pid))
+        .sort((a,b)=>b.starts-a.starts)[0]||null;
+    }
+
+    const lineup=slots.map(slot=>{
+      let positions;
+      if(slot==='FLEX') positions=['WR','RB','TE'];
+      else if(slot==='SFLEX') positions=['QB','WR','RB','TE'];
+      else positions=[slot];
+      const best=bestFor(positions);
+      if(best) used.add(best.pid);
+      return {slot,player:best};
+    });
+
+    const PC={'QB':'var(--qb)','WR':'var(--wr)','RB':'var(--rb)','TE':'var(--te)','K':'var(--gold)'};
+    el.innerHTML=lineup.map(({slot,player})=>{
+      const pc=PC[player?.pos]||'var(--text3)';
+      const score=player?DATA.find(d=>d.type==='player'&&d.name===player.name)?.score:null;
+      return `<div style="display:grid;grid-template-columns:70px 1fr auto auto;gap:12px;align-items:center;padding:7px 14px;background:var(--panel);border:1px solid var(--border);">
+        <span style="font-family:'Oswald',sans-serif;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;color:var(--text3);">${slot}</span>
+        ${player?`
+          <span style="font-family:'Oswald',sans-serif;font-size:13px;font-weight:600;color:var(--text);">${player.name} <span style="font-size:9px;border:1px solid ${pc};color:${pc};padding:1px 4px;margin-left:3px;">${player.pos}</span></span>
+          <span style="font-size:11px;color:var(--text3);font-family:'Oswald',sans-serif;">${player.starts} start${player.starts!==1?'s':''}</span>
+          <span style="font-family:'Russo One',sans-serif;font-size:13px;color:var(--accent);">${score?score.toFixed(1):'—'}</span>
+        `:`
+          <span style="font-size:12px;color:var(--text3);font-style:italic;">No starter data</span>
+          <span></span><span></span>
+        `}
+      </div>`;
+    }).join('');
+
+    if(!withInfo.length){
+      el.innerHTML='<div style="font-size:12px;color:var(--text3);padding:12px;">No matchup history found. This requires at least one completed season.</div>';
+    }
+
+  }catch(e){
+    el.innerHTML=`<div style="font-size:12px;color:var(--text3);padding:12px;">Failed to load matchup history.</div>`;
+  }
+}
+// ===== END MY TEAM PAGE =====
 
 function setMode(m,btn){MODE=m;document.querySelectorAll('.mb').forEach(b=>b.classList.remove('active'));btn.classList.add('active');renderTable();}
 
@@ -2935,6 +3169,7 @@ async function loadLeague(){
 
     // ─── END PICK ALLOCATION ──────────────────────────────────────────────────
 
+    window._sleeperPlayers=sp;
     Object.entries(sp).forEach(([pid,p])=>{
       const key=normName(`${p.first_name||''} ${p.last_name||''}`);
       if(key) SLEEPER_PID[key]=pid;
