@@ -448,7 +448,7 @@ tbody tr.sel{background:rgba(192,120,72,0.13);border-left:3px solid var(--accent
 .dg-stat-v{font-family:'Russo One',sans-serif;font-size:18px;color:var(--accent);}
 .dg-stat-l{font-family:Oswald,sans-serif;font-size:9px;letter-spacing:0.12em;text-transform:uppercase;color:var(--text3);margin-top:2px;}
 /* ROSTER BREAKDOWN MODAL */
-.rb-pos-row{display:grid;grid-template-columns:60px 1fr 60px 30px;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid rgba(37,40,54,0.4);}
+.rb-pos-row{display:grid;grid-template-columns:60px 1fr 30px;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid rgba(37,40,54,0.4);}
 .rb-bar-wrap{height:5px;background:var(--border);border-radius:3px;}
 .rb-bar-fill{height:100%;border-radius:3px;transition:width 0.4s;}
 
@@ -786,7 +786,7 @@ tbody tr.sel{background:rgba(192,120,72,0.13);border-left:3px solid var(--accent
       <div class="tw">
         <table>
           <colgroup><col style="width:42px;"><col><col style="width:72px;"><col style="width:60px;"></colgroup>
-          <thead><tr><th style="width:42px;">#</th><th>Player / Pick</th><th style="width:72px;text-align:right;">Score</th><th style="width:60px;text-align:right;">Value</th></tr></thead>
+          <thead><tr><th style="width:42px;">#</th><th>Player / Pick</th><th style="width:72px;text-align:right;">Tier</th><th style="width:60px;text-align:right;">Strength</th></tr></thead>
           <tbody id="tbody"></tbody>
         </table>
         <div id="nr" class="nr" style="display:none;">No results found</div>
@@ -861,15 +861,15 @@ tbody tr.sel{background:rgba(192,120,72,0.13);border-left:3px solid var(--accent
     <div style="background:var(--panel);border:1px solid var(--border);padding:16px 20px;margin-bottom:16px;border-radius:var(--r8);">
       <div id="trade-totals-row" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
         <div style="text-align:center;background:var(--bg3);border:1px solid var(--border);padding:10px;border-radius:var(--r6);">
-          <div style="font-family:Oswald,sans-serif;font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--text3);margin-bottom:4px;">Give Total</div>
-          <div style="font-family:'Russo One',sans-serif;font-size:26px;color:var(--rt);" id="gtf">—</div>
+          <div style="font-family:Oswald,sans-serif;font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--text3);margin-bottom:4px;">You Give</div>
+          <div style="font-family:'Russo One',sans-serif;font-size:18px;color:var(--rt);" id="gtf">—</div>
         </div>
         <div style="text-align:center;background:var(--bg3);border:1px solid var(--border);padding:10px;border-radius:var(--r6);">
-          <div style="font-family:Oswald,sans-serif;font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--text3);margin-bottom:4px;">Receive Total</div>
-          <div style="font-family:'Russo One',sans-serif;font-size:26px;color:var(--gt);" id="rtf">—</div>
+          <div style="font-family:Oswald,sans-serif;font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--text3);margin-bottom:4px;">You Receive</div>
+          <div style="font-family:'Russo One',sans-serif;font-size:18px;color:var(--gt);" id="rtf">—</div>
         </div>
       </div>
-      <div class="vbw" style="height:8px;margin-bottom:12px;"><div class="vbg" id="vgf" style="width:50%"></div><div class="vbr" id="vrf" style="width:50%"></div></div>
+      <div class="vbw" style="height:14px;margin-bottom:14px;border-radius:7px;overflow:hidden;transition:none;"><div class="vbg" id="vgf" style="width:50%;transition:width 0.35s ease-out;"></div><div class="vbr" id="vrf" style="width:50%;transition:width 0.35s ease-out;"></div></div>
       <div style="font-family:Oswald,sans-serif;font-size:16px;letter-spacing:0.06em;text-align:center;" id="vtf"><span style="color:var(--text3)">Add players to both sides</span></div>
       <div id="dynasty-impact" style="display:none;"></div>
     </div>
@@ -1073,7 +1073,7 @@ tbody tr.sel{background:rgba(192,120,72,0.13);border-left:3px solid var(--accent
     <div id="myteam-content" style="display:none;">
 
       <!-- Header -->
-      <div style="background:var(--panel);border:1px solid var(--border);padding:16px 20px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;">
+      <div style="background:var(--panel);border:1px solid var(--border);padding:16px 20px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;">
         <div>
           <div style="font-family:'Russo One',sans-serif;font-size:22px;color:var(--text);" id="mt-owner-name">—</div>
           <div style="font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:var(--text3);margin-top:3px;" id="mt-record">—</div>
@@ -1090,29 +1090,43 @@ tbody tr.sel{background:rgba(192,120,72,0.13);border-left:3px solid var(--accent
         </div>
       </div>
 
-      <!-- All-Time Starting Lineup -->
-      <div style="margin-bottom:20px;">
-        <div style="font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:0.18em;text-transform:uppercase;color:var(--text3);margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--border);">All-Time Starting Lineup — Most Starts Per Position</div>
-        <div id="mt-alltime-lineup" style="display:flex;flex-direction:column;gap:2px;"></div>
-        <div style="font-size:11px;color:var(--text3);margin-top:8px;font-style:italic;">Based on your league's historical matchup data. Includes players no longer on your roster.</div>
+      <!-- Sub-tab bar -->
+      <div style="display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:18px;overflow-x:auto;">
+        <button class="mt-subtab active" data-sub="current" onclick="showMtSub('current',this)" style="background:none;border:none;font-family:'Oswald',sans-serif;font-size:12px;letter-spacing:0.12em;text-transform:uppercase;color:var(--text);font-weight:600;padding:10px 18px;cursor:pointer;border-bottom:3px solid var(--accent);white-space:nowrap;">Current Roster</button>
+        <button class="mt-subtab" data-sub="alltime" onclick="showMtSub('alltime',this)" style="background:none;border:none;font-family:'Oswald',sans-serif;font-size:12px;letter-spacing:0.12em;text-transform:uppercase;color:var(--text3);font-weight:400;padding:10px 18px;cursor:pointer;border-bottom:3px solid transparent;white-space:nowrap;">All-Time Roster</button>
+        <button class="mt-subtab" data-sub="recs" onclick="showMtSub('recs',this)" style="background:none;border:none;font-family:'Oswald',sans-serif;font-size:12px;letter-spacing:0.12em;text-transform:uppercase;color:var(--text3);font-weight:400;padding:10px 18px;cursor:pointer;border-bottom:3px solid transparent;white-space:nowrap;">Recommended Moves</button>
       </div>
 
-      <!-- Current Roster -->
-      <div style="margin-bottom:20px;">
-        <div style="font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:0.18em;text-transform:uppercase;color:var(--text3);margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--border);">Current Roster</div>
-        <div id="mt-current-roster" style="display:flex;flex-direction:column;gap:2px;"></div>
+      <!-- Sub-view: Current Roster (default) -->
+      <div id="mt-sub-current" class="mt-sub-view">
+        <!-- Current Roster -->
+        <div style="margin-bottom:20px;">
+          <div style="font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:0.18em;text-transform:uppercase;color:var(--text3);margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--border);">Current Roster</div>
+          <div id="mt-current-roster" style="display:flex;flex-direction:column;gap:2px;"></div>
+        </div>
+
+        <!-- Draft Capital -->
+        <div>
+          <div style="font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:0.18em;text-transform:uppercase;color:var(--text3);margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--border);">Draft Capital</div>
+          <div id="mt-picks" style="display:flex;flex-direction:column;gap:2px;"></div>
+        </div>
       </div>
 
-      <!-- Draft Capital -->
-      <div style="margin-bottom:20px;">
-        <div style="font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:0.18em;text-transform:uppercase;color:var(--text3);margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--border);">Draft Capital</div>
-        <div id="mt-picks" style="display:flex;flex-direction:column;gap:2px;"></div>
+      <!-- Sub-view: All-Time Roster -->
+      <div id="mt-sub-alltime" class="mt-sub-view" style="display:none;">
+        <div style="margin-bottom:20px;">
+          <div style="font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:0.18em;text-transform:uppercase;color:var(--text3);margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--border);">All-Time Starting Lineup — Most Starts Per Position</div>
+          <div id="mt-alltime-lineup" style="display:flex;flex-direction:column;gap:2px;"></div>
+          <div style="font-size:11px;color:var(--text3);margin-top:8px;font-style:italic;">Based on your league's historical matchup data. Includes players no longer on your roster.</div>
+        </div>
       </div>
 
-      <!-- Trade Recommendations -->
-      <div>
-        <div style="font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:0.18em;text-transform:uppercase;color:var(--text3);margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--border);">🎯 Trade Recommendations</div>
-        <div id="mt-trade-recs" style="display:flex;flex-direction:column;gap:10px;"></div>
+      <!-- Sub-view: Recommended Moves -->
+      <div id="mt-sub-recs" class="mt-sub-view" style="display:none;">
+        <div>
+          <div style="font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:0.18em;text-transform:uppercase;color:var(--text3);margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--border);">🎯 Recommended Moves</div>
+          <div id="mt-trade-recs" style="display:flex;flex-direction:column;gap:10px;"></div>
+        </div>
       </div>
 
     </div>
@@ -1448,6 +1462,22 @@ function getScore(d){
     : base;
 }
 
+// Tier letter for a player/pick — used everywhere we'd normally show a raw
+// numeric value. Coarse-grained signal that doesn't crowd the UI or break
+// immersion the way decimals do. Score thresholds chosen to match the
+// existing curve so tier S = top ~12 players, A = top 13-30, etc.
+function tierLetter(score){
+  if(score>=85) return 'S';
+  if(score>=65) return 'A';
+  if(score>=40) return 'B';
+  if(score>=20) return 'C';
+  if(score>=8)  return 'D';
+  return 'F';
+}
+function tierColor(letter){
+  return {S:'var(--accent)',A:'var(--gt)',B:'var(--gold)',C:'var(--text2)',D:'var(--text3)',F:'var(--text3)'}[letter]||'var(--text3)';
+}
+
 function setScoring(mode){
   SCORING=mode;
   document.querySelectorAll('.scoring-btn').forEach(b=>{
@@ -1547,10 +1577,11 @@ function ssSearch(side){
   res.style.display='block';
   res.innerHTML=matches.map(p=>{
     const pc=POS_COLORS[p.pos]||'var(--text)';
+    const tier=tierLetter(getScore(p));
     return `<div style="padding:8px 12px;cursor:pointer;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;" onclick="ssSelect('${side}',${p.rank})">
       <div><div style="font-family:Oswald,sans-serif;font-size:12px;font-weight:600;color:var(--text);">${p.name} <span class="pb2 pos-${p.pos}">${p.pos}</span></div>
       <div style="font-size:10px;color:var(--text3);">${p.team} · Age ${p.age}</div></div>
-      <div style="font-family:'Russo One',sans-serif;font-size:13px;color:${pc};">${getScore(p).toFixed(1)}</div>
+      <div style="font-family:'Russo One',sans-serif;font-size:13px;color:${tierColor(tier)};">${tier}</div>
     </div>`;
   }).join('');
 }
@@ -1584,7 +1615,7 @@ function renderSSCard(side,p){
         <div class="ss-name">${p.name} <span class="pb2 pos-${p.pos}">${p.pos}</span></div>
         <div class="ss-meta">${p.team==='FA'?'Free Agent':p.team} · Age ${p.age||'?'} · #${p.rank} Overall</div>
       </div>
-      <div class="ss-score" style="color:${pc};">${score.toFixed(1)}</div>
+      <div class="ss-score" style="color:${tierColor(tierLetter(score))};">${tierLetter(score)}</div>
     </div>
     ${posCtx?`<div style="font-size:11px;color:var(--text3);line-height:1.5;padding-top:8px;border-top:1px solid var(--border);">${posCtx}</div>`:''}
   </div>`;
@@ -1611,18 +1642,18 @@ function renderSSVerdict(){
   el.innerHTML=`<div style="text-align:center;margin-bottom:14px;">
     <div style="font-family:Oswald,sans-serif;font-size:10px;letter-spacing:0.16em;text-transform:uppercase;color:var(--text3);margin-bottom:6px;">Start</div>
     <div style="font-family:'Russo One',sans-serif;font-size:22px;color:${pc};">${winner.name}${ageCtx}</div>
-    <div style="font-family:Oswald,sans-serif;font-size:13px;color:var(--text2);margin-top:4px;">${clarity} +${diff.toFixed(1)} pts over ${loser.name.split(' ').pop()}.</div>
+    <div style="font-family:Oswald,sans-serif;font-size:13px;color:var(--text2);margin-top:4px;">${clarity} Over ${loser.name.split(' ').pop()}.</div>
     ${warning}
   </div>
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
     <div style="background:var(--bg3);border:1px solid ${va>=vb?'var(--gt)':'var(--border)'};border-radius:var(--r6);padding:10px;text-align:center;">
       <div style="font-family:Oswald,sans-serif;font-size:11px;font-weight:600;color:var(--text);margin-bottom:4px;">${SS_A.name.split(' ').pop()}</div>
-      <div style="font-family:'Russo One',sans-serif;font-size:20px;color:${POS_COLORS[SS_A.pos]||'var(--accent)'};">${va.toFixed(1)}</div>
+      <div style="font-family:'Russo One',sans-serif;font-size:20px;color:${tierColor(tierLetter(va))};">${tierLetter(va)}</div>
       <div style="font-size:10px;color:var(--text3);margin-top:2px;">${SS_A.pos} · ${SS_A.team}</div>
     </div>
     <div style="background:var(--bg3);border:1px solid ${vb>va?'var(--gt)':'var(--border)'};border-radius:var(--r6);padding:10px;text-align:center;">
       <div style="font-family:Oswald,sans-serif;font-size:11px;font-weight:600;color:var(--text);margin-bottom:4px;">${SS_B.name.split(' ').pop()}</div>
-      <div style="font-family:'Russo One',sans-serif;font-size:20px;color:${POS_COLORS[SS_B.pos]||'var(--accent)'};">${vb.toFixed(1)}</div>
+      <div style="font-family:'Russo One',sans-serif;font-size:20px;color:${tierColor(tierLetter(vb))};">${tierLetter(vb)}</div>
       <div style="font-size:10px;color:var(--text3);margin-top:2px;">${SS_B.pos} · ${SS_B.team}</div>
     </div>
   </div>`;
@@ -1668,8 +1699,10 @@ function renderRookies(){
     const score=getScore(p);
     const altScore=p.type==='pick'?p.score:Math.min(99.9,Math.round(p.score*(altMults[p.pos]||1)*10)/10);
     const delta=score-altScore;
-    const deltaStr=Math.abs(delta)>1?` <span style="font-size:9px;color:${delta>0?'var(--gt)':'var(--rt)'};">${delta>0?'+':''}${delta.toFixed(1)} vs ${altScoring}</span>`:'';
+    // Direction-only indicator vs other scoring mode
+    const deltaStr=Math.abs(delta)>1?` <span style="font-size:9px;color:${delta>0?'var(--gt)':'var(--rt)'};">${delta>0?'▲':'▼'} vs ${altScoring}</span>`:'';
     const pc=POS_COLORS[p.pos]||'var(--text)';
+    const tier=tierLetter(score);
     const pid=SLEEPER_PID[normName(p.name)];
     const photo=pid?`<img src="https://sleepercdn.com/content/nfl/players/${pid}.jpg" style="width:34px;height:34px;border-radius:50%;object-fit:cover;object-position:top center;border:1px solid var(--border);" onerror="this.style.display='none'">`:`<div style="width:34px;height:34px;border-radius:50%;background:var(--bg3);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-family:Oswald,sans-serif;font-size:9px;color:${pc};">${p.pos}</div>`;
     const age=p.age||22;
@@ -1682,7 +1715,7 @@ function renderRookies(){
         <div class="rookie-meta">${p.team==='FA'?'Pre-draft':p.team} · #${p.rank} Overall${deltaStr}</div>
       </div>
       ${ageBadge}
-      <div class="rookie-score" style="color:${pc};">${score.toFixed(1)}</div>
+      <div class="rookie-score" style="color:${tierColor(tier)};">${tier}</div>
     </div>`;
   }).join('');
 
@@ -1753,13 +1786,14 @@ function renderMovers(){
     const pc=POS_COLORS[p.pos]||'var(--text)';
     const dc=up?'var(--gt)':'var(--rt)';
     const arrow=up?'▲':'▼';
+    const tier=tierLetter(p.now);
     return `<div class="mover-row">
       <div>
         <div style="font-family:Oswald,sans-serif;font-size:13px;font-weight:600;color:var(--text);">${p.name} <span class="pb2 pos-${p.pos}">${p.pos}</span></div>
         <div style="font-size:10px;color:var(--text3);">${p.team==='FA'?'Free Agent':p.team} · Age ${p.age} · #${p.rank} Overall</div>
       </div>
-      <div style="font-family:'Russo One',sans-serif;font-size:14px;color:${pc};">${p.now.toFixed(1)}</div>
-      <div class="mover-delta" style="color:${dc};">${up?'+':''}${p.delta.toFixed(1)}</div>
+      <div style="font-family:'Russo One',sans-serif;font-size:14px;color:${tierColor(tier)};">${tier}</div>
+      <div class="mover-delta" style="color:${dc};">${arrow}</div>
     </div>`;
   }).join('');
 
@@ -1801,7 +1835,7 @@ function renderTargets(){
       ${players.map(p=>`<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 16px;border-bottom:1px solid rgba(37,40,54,0.4);">
         <div><div style="font-family:Oswald,sans-serif;font-size:13px;font-weight:600;color:var(--text);">${p.name} <span class="pb2 pos-${p.pos}">${p.pos}</span></div>
         <div style="font-size:10px;color:var(--text3);">${p.team} · Age ${p.age}</div></div>
-        <div style="font-family:'Russo One',sans-serif;font-size:14px;color:${posColor};">${getScore(p).toFixed(1)}</div>
+        <div style="font-family:'Russo One',sans-serif;font-size:14px;color:${tierColor(tierLetter(getScore(p)))};">${tierLetter(getScore(p))}</div>
       </div>`).join('')}
       </div>`;
     return;
@@ -1832,8 +1866,8 @@ function renderTargets(){
       return `<div class="target-team-card">
         <div class="target-team-head"><div class="target-team-name">${t.owner}</div>
         <span class="target-surplus ${t.surplus>20?'surplus-high':'surplus-med'}">${t.surplus>20?'Deep surplus':'Has depth'}</span></div>
-        <div class="target-players">${t.players.slice(0,4).map(p=>`<span style="background:var(--bg3);border:1px solid rgba(220,136,136,0.4);color:var(--rb);font-family:Oswald,sans-serif;font-size:10px;padding:3px 8px;border-radius:3px;">${p.name.split(' ').pop()} ${getScore(p).toFixed(1)}</span>`).join('')}</div>
-        <div class="target-ask">Fair ask: ${fairReturn.map(p=>`${p.name.split(' ').pop()} (${getScore(p).toFixed(1)})`).join(' · ')}</div>
+        <div class="target-players">${t.players.slice(0,4).map(p=>`<span style="background:var(--bg3);border:1px solid rgba(220,136,136,0.4);color:var(--rb);font-family:Oswald,sans-serif;font-size:10px;padding:3px 8px;border-radius:3px;">${p.name.split(' ').pop()}</span>`).join('')}</div>
+        <div class="target-ask">Fair ask: ${fairReturn.map(p=>p.name.split(' ').pop()).join(' · ')}</div>
       </div>`;
     }).join('')}
   </div>`;
@@ -1844,7 +1878,7 @@ function renderTargets(){
       return `<div class="target-team-card">
         <div class="target-team-head"><div class="target-team-name">${t.owner}</div>
         <span class="target-surplus" style="background:rgba(136,170,220,0.12);color:var(--qb);">Needs ${pos}</span></div>
-        <div class="target-players">${offers.map(p=>`<span style="background:var(--bg3);border:1px solid var(--border);color:var(--text2);font-family:Oswald,sans-serif;font-size:10px;padding:3px 8px;border-radius:3px;">${p.name.split(' ').pop()} <span style="color:${POS_COLORS[p.pos]}">${p.pos}</span> ${getScore(p).toFixed(1)}</span>`).join('')}</div>
+        <div class="target-players">${offers.map(p=>`<span style="background:var(--bg3);border:1px solid var(--border);color:var(--text2);font-family:Oswald,sans-serif;font-size:10px;padding:3px 8px;border-radius:3px;">${p.name.split(' ').pop()} <span style="color:${POS_COLORS[p.pos]}">${p.pos}</span></span>`).join('')}</div>
         <div class="target-ask">Can offer: ${offers.slice(0,2).map(p=>p.name.split(' ').pop()).join(' + ')}</div>
       </div>`;
     }).join(''):`<div style="font-size:12px;color:var(--text3);padding:20px;">No obvious buyers at ${pos}.</div>`}
@@ -1992,8 +2026,7 @@ function showRosterBreakdown(rosterIdx){
       <div style="font-family:Oswald,sans-serif;font-size:12px;font-weight:600;color:${pc};">${pos}</div>
       <div><div style="font-family:Oswald,sans-serif;font-size:12px;color:var(--text);">${best?best.name:'None'}</div>
       <div class="rb-bar-wrap" style="margin-top:4px;"><div class="rb-bar-fill" style="width:${pct}%;background:${pc};opacity:0.7;"></div></div>
-      <div style="font-size:10px;color:var(--text3);margin-top:2px;">${depth} rostered · <span style="color:${vc};">${vsAvg>0?'+':''}${vsAvg.toFixed(1)} vs avg</span></div></div>
-      <div style="font-family:'Russo One',sans-serif;font-size:14px;color:${pc};">${score.toFixed(1)}</div>
+      <div style="font-size:10px;color:var(--text3);margin-top:2px;">${depth} rostered · <span style="color:${vc};">${vsAvg>0?'Above':vsAvg<-5?'Below':'Near'} league avg</span></div></div>
       <div class="dg-grade dg-grade-${grade}" style="font-size:14px;">${grade}</div>
     </div>`;
   }).join('');
@@ -2003,7 +2036,7 @@ function showRosterBreakdown(rosterIdx){
   r.all.slice(0,10).forEach(p=>{const pk={QB:30,WR:27,RB:25,TE:28}[p.pos]||27;const age=p.age||pk;if(age<pk-2)ageCounts.young++;else if(age<=pk+1)ageCounts.peak++;else ageCounts.old++;});
   const tradeTargets=holes.length?holes.map(pos=>{
     const top=DATA.filter(d=>d.pos===pos&&d.type==='player').slice(0,3);
-    return `<div style="margin-bottom:8px;"><span style="font-family:Oswald,sans-serif;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:${POS_COLORS[pos]};margin-right:6px;">${pos}</span>${top.map(p=>`${p.name} (${getScore(p).toFixed(1)})`).join(', ')}</div>`;
+    return `<div style="margin-bottom:8px;"><span style="font-family:Oswald,sans-serif;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:${POS_COLORS[pos]};margin-right:6px;">${pos}</span>${top.map(p=>p.name).join(', ')}</div>`;
   }).join(''):'<div style="font-size:12px;color:var(--gt);">No major holes.</div>';
 
   let html=posRankSection+`<div style="padding:8px 20px 0;"><div style="font-family:Oswald,sans-serif;font-size:10px;letter-spacing:0.16em;text-transform:uppercase;color:var(--text3);margin-bottom:4px;">Full Roster</div></div>`;
@@ -2016,7 +2049,7 @@ function showRosterBreakdown(rosterIdx){
     const pid=p.sleeper_id||SLEEPER_PID[normName(p.name)];
     const pc=POS_COLORS[p.pos]||'var(--text3)';
     const photo=pid?`<img style="width:36px;height:36px;border-radius:50%;object-fit:cover;object-position:top center;border:1px solid var(--border);" src="https://sleepercdn.com/content/nfl/players/${pid}.jpg" onerror="this.style.display='none'">`:`<div style="width:36px;height:36px;border-radius:50%;background:var(--bg3);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-family:Oswald,sans-serif;font-size:10px;color:${pc};">${p.pos}</div>`;
-    playerHtml+=`<div class="modal-player-row" onclick="selectFromModal(${p.rank})" style="cursor:pointer;">${photo}<div style="flex:1;"><div class="modal-player-name" style="text-decoration:underline;text-decoration-color:rgba(176,96,48,0.3);text-underline-offset:2px;">${p.name}</div><div class="modal-player-meta">${p.team==='FA'?'Free Agent':p.team}${p.age?' · Age '+p.age:''}</div></div><div class="modal-player-score">${getScore(p).toFixed(1)}</div><div style="color:var(--border2);font-size:12px;margin-left:4px;">›</div></div>`;
+    playerHtml+=`<div class="modal-player-row" onclick="selectFromModal(${p.rank})" style="cursor:pointer;">${photo}<div style="flex:1;"><div class="modal-player-name" style="text-decoration:underline;text-decoration-color:rgba(176,96,48,0.3);text-underline-offset:2px;">${p.name}</div><div class="modal-player-meta">${p.team==='FA'?'Free Agent':p.team}${p.age?' · Age '+p.age:''}</div></div><div class="modal-player-score" style="color:${tierColor(tierLetter(getScore(p)))};font-family:'Russo One',sans-serif;">${tierLetter(getScore(p))}</div><div style="color:var(--border2);font-size:12px;margin-left:4px;">›</div></div>`;
   });
   const picks=(r.picks||[]).slice().sort((a,b)=>a.season-b.season||a.round-b.round);
 
@@ -2033,13 +2066,13 @@ function showRosterBreakdown(rosterIdx){
     });
     picks.forEach(pk=>{
       const slot='Mid';
-      const val=(pk.matchedScore||0).toFixed(1);
+      const tier=tierLetter(pk.matchedScore||0);
       const rd=pk.round;
       const yr=pk.season;
       const rdLabel=rd===1?'1st':rd===2?'2nd':rd===3?'3rd':'4th';
       const pickLabel=`${yr} ${rdLabel} · ${slot}`;
       const pc=pickColor(rd);
-      playerHtml+=`<div class="modal-player-row"><div style="width:36px;height:36px;border-radius:50%;background:rgba(155,138,191,0.12);border:1px solid ${pc};display:flex;align-items:center;justify-content:center;font-family:Oswald,sans-serif;font-size:9px;font-weight:600;color:${pc};flex-shrink:0;">R${rd}</div><div style="flex:1;"><div class="modal-player-name" style="color:${pc};">${pickLabel}</div><div class="modal-player-meta">Dynasty Pick · ${val} pts</div></div><div class="modal-player-score" style="color:${pc};">${val}</div></div>`;
+      playerHtml+=`<div class="modal-player-row"><div style="width:36px;height:36px;border-radius:50%;background:rgba(155,138,191,0.12);border:1px solid ${pc};display:flex;align-items:center;justify-content:center;font-family:Oswald,sans-serif;font-size:9px;font-weight:600;color:${pc};flex-shrink:0;">R${rd}</div><div style="flex:1;"><div class="modal-player-name" style="color:${pc};">${pickLabel}</div><div class="modal-player-meta">Dynasty Pick</div></div><div class="modal-player-score" style="color:${tierColor(tier)};font-family:'Russo One',sans-serif;">${tier}</div></div>`;
     });
   }
   body.innerHTML=html+playerHtml;
@@ -2305,6 +2338,27 @@ function selectMyTeam(rid){
   MY_TEAM_RID=rid;
   localStorage.setItem('myteam_rid',rid);
   initMyTeam();
+  // Reset to the default sub-tab on team switch so user lands on Current Roster
+  const defaultBtn=document.querySelector('.mt-subtab[data-sub="current"]');
+  if(defaultBtn) showMtSub('current', defaultBtn);
+}
+
+// Switch between the three My Team sub-views (Current / All-Time / Recs).
+// Default on team load is 'current'.
+function showMtSub(sub, btnEl){
+  document.querySelectorAll('.mt-sub-view').forEach(el=>{el.style.display='none';});
+  const target=document.getElementById('mt-sub-'+sub);
+  if(target) target.style.display='block';
+  document.querySelectorAll('.mt-subtab').forEach(b=>{
+    b.style.color='var(--text3)';
+    b.style.fontWeight='400';
+    b.style.borderBottom='3px solid transparent';
+  });
+  if(btnEl){
+    btnEl.style.color='var(--text)';
+    btnEl.style.fontWeight='600';
+    btnEl.style.borderBottom='3px solid var(--accent)';
+  }
 }
 
 async function renderMyTeam(rid){
@@ -2332,7 +2386,7 @@ async function renderMyTeam(rid){
       const nameHtml=dbPlayer
         ?`<span onclick="showPlayerCardModal(${dbPlayer.rank})" style="font-family:'Oswald',sans-serif;font-size:13px;font-weight:600;color:var(--text);flex:1;cursor:pointer;text-decoration:underline;text-decoration-color:var(--border2);text-underline-offset:2px;">${p.name}</span>`
         :`<span style="font-family:'Oswald',sans-serif;font-size:13px;font-weight:600;color:var(--text);flex:1;">${p.name}${p.unranked?' <span style="font-family:Oswald,sans-serif;font-size:9px;letter-spacing:0.08em;color:var(--text3);font-weight:400;">· UNRANKED</span>':''}</span>`;
-      const scoreDisplay=p.unranked?'<span style="font-family:Oswald,sans-serif;font-size:11px;color:var(--text3);">—</span>':`<span style="font-family:'Russo One',sans-serif;font-size:13px;color:var(--accent);">${liveScore.toFixed(1)}</span>`;
+      const scoreDisplay=p.unranked?'<span style="font-family:Oswald,sans-serif;font-size:11px;color:var(--text3);">—</span>':`<span style="font-family:'Russo One',sans-serif;font-size:13px;color:${tierColor(tierLetter(liveScore))};">${tierLetter(liveScore)}</span>`;
       return `<div style="display:flex;align-items:center;gap:12px;padding:7px 14px;background:var(--panel);border:1px solid var(--border);">
         <span style="font-family:'Oswald',sans-serif;font-size:9px;letter-spacing:0.08em;border:1px solid ${PC[p.pos]||'var(--text3)'};color:${PC[p.pos]||'var(--text3)'};padding:1px 5px;flex-shrink:0;">${p.pos}</span>
         ${nameHtml}
@@ -2349,11 +2403,12 @@ async function renderMyTeam(rid){
       const rdLabel=rd===1?'1st':rd===2?'2nd':rd===3?'3rd':'4th';
       const pc=pickColor(rd);
       const matched=DATA.find(d=>d.type==='pick'&&d.year==yr&&d.round==rd);
-      const val=matched?matched.score.toFixed(1):'—';
+      const tier=matched?tierLetter(matched.score):'—';
+      const tierC=matched?tierColor(tier):'var(--text3)';
       return `<div style="display:flex;align-items:center;gap:12px;padding:7px 14px;background:var(--panel);border:1px solid var(--border);">
         <span style="font-family:'Oswald',sans-serif;font-size:9px;letter-spacing:0.08em;border:1px solid ${pc};color:${pc};padding:1px 5px;flex-shrink:0;">PICK</span>
         <span style="font-family:'Oswald',sans-serif;font-size:13px;font-weight:600;color:var(--text);flex:1;">${yr} ${rdLabel} · Mid</span>
-        <span style="font-family:'Russo One',sans-serif;font-size:13px;color:${pc};">${val}</span>
+        <span style="font-family:'Russo One',sans-serif;font-size:13px;color:${tierC};">${tier}</span>
       </div>`;}).join('')
     :'<div style="font-size:12px;color:var(--text3);padding:12px;">No draft picks.</div>';
 
@@ -2447,7 +2502,11 @@ function renderTradeRecs(roster){
   // Also flag deep picks (3rd+ rounds) as available for sweetener
   myPicks.forEach(pk=>{if(pk.round>=3&&!surplusPicks.includes(pk)) surplusPicks.push(pk);});
 
-  // ── CONTENTION WINDOW: weighted age of top-9 by score ─────────────────
+  // ── CONTENTION WINDOW: weighted age of top-9 AND projected strength ──
+  // A young team isn't a "contender" if their projected production is in the
+  // league's bottom half — age alone is misleading. Combine both signals:
+  // age tells us the timeline, projected roster value tells us if they
+  // actually have enough firepower to contend right now.
   const topNine=roster.all.slice().sort((a,b)=>getScore(b)-getScore(a)).slice(0,9);
   const weighted=topNine.reduce((acc,p)=>{
     const pk={QB:30,WR:27,RB:25,TE:28}[p.pos]||27;
@@ -2456,11 +2515,32 @@ function renderTradeRecs(roster){
     return {sum:acc.sum+age*w,w:acc.w+w};
   },{sum:0,w:0});
   const coreAge=weighted.w>0?weighted.sum/weighted.w:26;
+
+  // Projected strength: where this team's totalScore ranks among the league.
+  // Bottom half (rank > halfway) can't be a contender no matter their age.
+  const valueRanked=MODAL_DATA.slice().sort((a,b)=>b.totalScore-a.totalScore);
+  const myValueRank=valueRanked.findIndex(r=>r.rid===roster.rid)+1;
+  const inBottomHalf=myValueRank>Math.floor(MODAL_DATA.length/2);
+  const inTopThird=myValueRank<=Math.ceil(MODAL_DATA.length/3);
+
   let windowLabel, windowMode;
-  if(coreAge<=25.0){windowLabel='Rebuilding'; windowMode='build';}
-  else if(coreAge<=26.5){windowLabel='Ascending'; windowMode='ascend';}
-  else if(coreAge<=28.0){windowLabel='Contention'; windowMode='contend';}
-  else {windowLabel='Closing Window'; windowMode='closing';}
+  if(coreAge<=25.0){
+    windowLabel='Rebuilding'; windowMode='build';
+  } else if(coreAge<=26.5){
+    // Ascending normally, but if firepower is bottom-half they're still
+    // really rebuilding regardless of age. Young AND weak = rebuild.
+    if(inBottomHalf){windowLabel='Rebuilding'; windowMode='build';}
+    else {windowLabel='Ascending'; windowMode='ascend';}
+  } else if(coreAge<=28.0){
+    // Prime age. Only a contender if firepower confirms it.
+    if(inBottomHalf){windowLabel='Stuck in the Middle'; windowMode='ascend';}
+    else if(inTopThird){windowLabel='Contention'; windowMode='contend';}
+    else {windowLabel='Ascending'; windowMode='ascend';}
+  } else {
+    // Old AND bottom-half = needs reset, not "closing"
+    if(inBottomHalf){windowLabel='Needs Reset'; windowMode='build';}
+    else {windowLabel='Closing Window'; windowMode='closing';}
+  }
 
   // ── BUILD per-team profiles for matchmaking ───────────────────────────
   // For each rival, identify their holes (what they need) and surplus
@@ -2883,6 +2963,144 @@ function renderTradeRecs(roster){
     uptierRecs.push(...filtered);
   }
 
+  // ── FALLBACK RECS: guarantee at least 3 actionable moves per roster ──
+  // If the strict logic above produced fewer than 3 recs across all three
+  // categories, generate window-appropriate fallback moves. These relax the
+  // hole/surplus/mutual-fit constraints so we always have at least three
+  // ideas to surface — but they still respect the team's window so we
+  // never recommend "win-now vets" to a rebuilder, etc.
+  const totalRecsCount=()=>topRecs.length+downtierRecs.length+uptierRecs.length;
+  if(totalRecsCount()<3){
+    // Universe of usable surplus pieces for offer-building (same logic as
+    // earlier — exclude core top-2 at each position from being traded away).
+    const coreNames=new Set();
+    POSITIONS.forEach(p=>{
+      roster.all.filter(x=>x.pos===p).sort((a,b)=>getScore(b)-getScore(a))
+        .slice(0,2).forEach(x=>coreNames.add(x.name));
+    });
+    const myUsable=roster.all.filter(p=>!coreNames.has(p.name)&&getScore(p)>=3)
+      .sort((a,b)=>getScore(b)-getScore(a));
+    const myAllPicks=(roster.picks||[]).slice().sort((a,b)=>(b.matchedScore||0)-(a.matchedScore||0));
+
+    // Helper to assemble a 1-player + 1-pick package targeting `targetVal`
+    function makePkg(targetVal){
+      const tMin=targetVal-4, tMax=targetVal+10;
+      // Try single player
+      for(const p of myUsable){
+        const v=getScore(p);
+        if(v>=tMin&&v<=tMax) return {pkg:[{type:'player',item:p,val:v}], val:v};
+      }
+      // Try player + pick (preferred shape)
+      for(const p of myUsable){
+        const v=getScore(p);
+        if(v>=tMax) continue;
+        for(const pk of myAllPicks){
+          const pv=pk.matchedScore||0;
+          const total=v+pv;
+          if(total>=tMin&&total<=tMax){
+            return {pkg:[{type:'player',item:p,val:v},{type:'pick',item:pk,val:pv}], val:total};
+          }
+        }
+      }
+      // Try picks alone (rebuilders may want to combine picks)
+      for(let i=0;i<myAllPicks.length;i++){
+        const pv=myAllPicks[i].matchedScore||0;
+        if(pv>=tMin&&pv<=tMax) return {pkg:[{type:'pick',item:myAllPicks[i],val:pv}], val:pv};
+        for(let j=i+1;j<myAllPicks.length;j++){
+          const total=pv+(myAllPicks[j].matchedScore||0);
+          if(total>=tMin&&total<=tMax){
+            return {pkg:[{type:'pick',item:myAllPicks[i],val:pv},{type:'pick',item:myAllPicks[j],val:myAllPicks[j].matchedScore||0}], val:total};
+          }
+        }
+      }
+      return null;
+    }
+
+    // Window-tailored fallback target search
+    // - build/needs-reset: pick up YOUNG players + future picks. Trade old
+    //   vets for younger pieces at any position. Or trade good-enough players
+    //   for cheaper-younger + a pick.
+    // - ascend / stuck-middle: take whatever upgrade is attainable at any
+    //   relative weakness; lateral upgrades OK.
+    // - contend: target proven prime-age players at any soft spot; OK to use
+    //   future picks since you need now-value.
+    // - closing: same as contend but more aggressive on future capital
+    const fallbackTargets=[];
+    // Pool of all rival-owned players we could potentially target
+    const allRivalPlayers=rivals.flatMap(rv=>{
+      return rv.roster.all.map(p=>({
+        player:p, owner:rv.roster.owner, rid:rv.roster.rid,
+        val:getScore(p), riv:rv
+      }));
+    });
+
+    function isWindowFit(p){
+      const age=p.age||PEAK[p.pos]||27;
+      const pk=PEAK[p.pos]||27;
+      if(windowMode==='build'){return age<=pk;}     // young or peak only
+      if(windowMode==='contend'){return age>=pk-3&&age<=pk+2;}
+      if(windowMode==='closing'){return age>=pk-2;}
+      return true; // ascend = neutral
+    }
+
+    // For each candidate target, try to build a fair-ish package. Score by
+    // (target value × age fit) to surface the most upside-rich pieces first.
+    // Don't recommend targets that are core to their owner (top-1 at their pos
+    // for that rival — they likely won't trade them).
+    const rankedTargets=[];
+    for(const c of allRivalPlayers){
+      if(c.val<10) continue; // skip benchwarmers
+      if(!isWindowFit(c.player)) continue;
+      // Skip if already covered by topRecs/uptier
+      const alreadyIn=topRecs.some(r=>r.target.name===c.player.name)
+        ||uptierRecs.some(r=>r.target.name===c.player.name);
+      if(alreadyIn) continue;
+      // Skip rival's #1 at this position (they won't trade)
+      const theirAtPos=c.riv.roster.all.filter(p=>p.pos===c.player.pos)
+        .sort((a,b)=>getScore(b)-getScore(a));
+      if(theirAtPos[0]&&theirAtPos[0].name===c.player.name) continue;
+      // Loose upgrade threshold: target must be at least 80% of our worst
+      // non-core piece at that position. Allows lateral moves with picks.
+      const myAtPos=roster.all.filter(p=>p.pos===c.player.pos)
+        .sort((a,b)=>getScore(b)-getScore(a));
+      const myWorstNonCore=myAtPos[2]?getScore(myAtPos[2]):0;
+      if(c.val<myWorstNonCore*0.8) continue;
+      const fit=ageFitMultiplier(c.player.age||PEAK[c.player.pos], c.player.pos);
+      rankedTargets.push({...c, fit, score:c.val*fit});
+    }
+    rankedTargets.sort((a,b)=>b.score-a.score);
+
+    // Pull from rankedTargets until we have ≥3 total recs across all types
+    for(const c of rankedTargets){
+      if(totalRecsCount()>=3) break;
+      const pkg=makePkg(c.val);
+      if(!pkg) continue;
+      // Don't generate fallbacks that are massive overpays
+      if(pkg.val>c.val*1.4) continue;
+      // De-dupe vs existing recs by target name
+      const seen=topRecs.some(r=>r.target.name===c.player.name)
+        ||uptierRecs.some(r=>r.target.name===c.player.name)
+        ||fallbackTargets.some(r=>r.target.name===c.player.name);
+      if(seen) continue;
+
+      fallbackTargets.push({
+        target:c.player,
+        targetVal:c.val,
+        fromOwner:c.owner,
+        mutualPos:null,
+        pkg:pkg.pkg,
+        pkgVal:pkg.val,
+        desirability:c.score,
+        hole:c.player.pos, // pretend the rec is "at this position"
+        kind:'fallback',
+        windowMode, coreAge
+      });
+    }
+
+    // Append fallbacks to topRecs so they render alongside the strict recs
+    topRecs.push(...fallbackTargets);
+  }
+
   // ── RENDER ─────────────────────────────────────────────────────────────
   const PC={QB:'var(--qb)',WR:'var(--wr)',RB:'var(--rb)',TE:'var(--te)',PICK:'var(--pick)'};
   const windowColor=windowMode==='build'?'var(--qb)':windowMode==='contend'?'var(--accent)':windowMode==='closing'?'var(--rt)':'var(--gold)';
@@ -2926,33 +3144,46 @@ function renderTradeRecs(roster){
         const nm=dbP
           ?`<span onclick="showPlayerCardModal(${dbP.rank})" style="cursor:pointer;text-decoration:underline;text-decoration-color:var(--border2);">${item.item.name}</span>`
           :item.item.name;
-        return `<div style="display:flex;justify-content:space-between;align-items:center;font-size:11px;padding:3px 0;">
-          <div><span style="font-family:Oswald,sans-serif;font-size:9px;color:${PC[item.item.pos]};margin-right:6px;">${item.item.pos}</span>${nm}</div>
-          <div style="font-family:Oswald,sans-serif;color:var(--text3);">${item.val.toFixed(1)}</div>
+        return `<div style="display:flex;align-items:center;font-size:11px;padding:3px 0;">
+          <span style="font-family:Oswald,sans-serif;font-size:9px;color:${PC[item.item.pos]};margin-right:6px;">${item.item.pos}</span>${nm}
         </div>`;
       }
       // pick
       const pk=item.item;
       const rdLabel=pk.round===1?'1st':pk.round===2?'2nd':pk.round===3?'3rd':'4th';
-      return `<div style="display:flex;justify-content:space-between;align-items:center;font-size:11px;padding:3px 0;">
-        <div><span style="font-family:Oswald,sans-serif;font-size:9px;color:${PC.PICK};margin-right:6px;">PICK</span>${pk.season} ${rdLabel}</div>
-        <div style="font-family:Oswald,sans-serif;color:var(--text3);">${item.val.toFixed(1)}</div>
+      return `<div style="display:flex;align-items:center;font-size:11px;padding:3px 0;">
+        <span style="font-family:Oswald,sans-serif;font-size:9px;color:${PC.PICK};margin-right:6px;">PICK</span>${pk.season} ${rdLabel}
       </div>`;
     }).join('');
 
+    // Fairness indicator — no numbers, just a word. Same thresholds as before
+    // but expressed as labels so the user reads intent, not points.
     const diff=r.pkgVal-r.targetVal;
-    const diffStr=diff>=0?`+${diff.toFixed(1)} overpay`:`${diff.toFixed(1)} discount`;
-    const diffCol=diff>5?'var(--rt)':diff<-2?'var(--gt)':'var(--text3)';
+    let fairnessTxt, fairnessCol;
+    if(diff>r.targetVal*0.10){fairnessTxt='Slight overpay'; fairnessCol='var(--rt)';}
+    else if(diff<-r.targetVal*0.05){fairnessTxt='Discount play'; fairnessCol='var(--gt)';}
+    else {fairnessTxt='Fair offer'; fairnessCol='var(--gold)';}
 
     // Rationale line — explain why this fits
     const holeMeta=myHoles.find(h=>h.pos===r.hole);
     const isRelative=holeMeta?.kind==='relative';
-    let rationale=isRelative
-      ? `Upgrades your weakest area — ${r.hole} is your roster's relative soft spot.`
-      : `Fills your ${r.hole} hole.`;
+    const isFallback=r.kind==='fallback';
+    let rationale;
+    if(isFallback){
+      // Fallback recs aren't filling a hole — they're window-fit upgrades
+      // anywhere on the roster. Frame as "fits your window".
+      if(r.windowMode==='build') rationale=`Adds young ${r.target.pos} talent that fits your rebuild timeline.`;
+      else if(r.windowMode==='contend') rationale=`Prime-age ${r.target.pos} you can plug in immediately while your window is open.`;
+      else if(r.windowMode==='closing') rationale=`Win-now ${r.target.pos} for a closing window — production over potential.`;
+      else rationale=`Solid ${r.target.pos} upgrade — fits where your roster is heading.`;
+    } else {
+      rationale=isRelative
+        ? `Upgrades your weakest area — ${r.hole} is your roster's relative soft spot.`
+        : `Fills your ${r.hole} hole.`;
+    }
     if(r.mutualPos) rationale+=` ${r.fromOwner} needs ${r.mutualPos}, where you're deep — likely receptive.`;
-    if(r.windowMode==='build'&&(r.target.age||99)<=PEAK[r.target.pos]) rationale+=` Young enough to mature with your core.`;
-    if(r.windowMode==='contend'&&(r.target.age||99)>=PEAK[r.target.pos]-2&&(r.target.age||99)<=PEAK[r.target.pos]+1) rationale+=` Prime-age — moves the needle this year.`;
+    if(r.windowMode==='build'&&(r.target.age||99)<=PEAK[r.target.pos]&&!isFallback) rationale+=` Young enough to mature with your core.`;
+    if(r.windowMode==='contend'&&(r.target.age||99)>=PEAK[r.target.pos]-2&&(r.target.age||99)<=PEAK[r.target.pos]+1&&!isFallback) rationale+=` Prime-age — moves the needle this year.`;
 
     return `<div style="background:var(--panel);border:1px solid var(--border);padding:12px 14px;">
       <div style="display:flex;align-items:start;gap:10px;margin-bottom:8px;flex-wrap:wrap;">
@@ -2962,7 +3193,6 @@ function renderTradeRecs(roster){
             <span style="color:${PC[r.target.pos]};">${r.target.pos}</span>
             ${ageStr?'· '+ageStr:''}
             · Owned by ${r.fromOwner}
-            · Value ${r.targetVal.toFixed(1)}
           </div>
         </div>
         ${fitTag}
@@ -2971,13 +3201,9 @@ function renderTradeRecs(roster){
       <div style="background:var(--bg2);border:1px solid var(--border);padding:8px 10px;">
         <div style="display:flex;justify-content:space-between;align-items:center;font-family:Oswald,sans-serif;font-size:9px;letter-spacing:0.12em;text-transform:uppercase;color:var(--text3);margin-bottom:4px;">
           <span>Your offer</span>
-          <span style="color:${diffCol};">${diffStr}</span>
+          <span style="color:${fairnessCol};">${fairnessTxt}</span>
         </div>
         ${pkgRows}
-        <div style="display:flex;justify-content:space-between;align-items:center;font-family:'Russo One',sans-serif;font-size:12px;color:var(--accent);border-top:1px solid var(--border);padding-top:5px;margin-top:5px;">
-          <span>Package total</span>
-          <span>${r.pkgVal.toFixed(1)}</span>
-        </div>
       </div>
     </div>`;
   }).join('');
@@ -2998,10 +3224,12 @@ function renderTradeRecs(roster){
             ?`<span onclick="showPlayerCardModal(${recvDb.rank})" style="cursor:pointer;text-decoration:underline;text-decoration-color:var(--border2);">${d.returnPlayer.name}</span>`
             :d.returnPlayer.name;
           const rdLabel=d.sweetener.round===1?'1st':d.sweetener.round===2?'2nd':d.sweetener.round===3?'3rd':'4th';
-          const sweetenerVal=(d.sweetener.matchedScore||0).toFixed(1);
           const diff=d.returnVal-d.moveVal;
-          const diffStr=diff>=0?`+${diff.toFixed(1)} net gain`:`${diff.toFixed(1)} small downgrade`;
-          const diffCol=diff>=0?'var(--gt)':'var(--gold)';
+          // Net effect as word, no numbers
+          let netTxt, netCol;
+          if(diff>=2){netTxt='Net gain'; netCol='var(--gt)';}
+          else if(diff>=-5){netTxt='Fair swap'; netCol='var(--gold)';}
+          else {netTxt='Small downgrade for picks'; netCol='var(--gold)';}
           return `<div style="background:var(--panel);border:1px solid var(--border);padding:12px 14px;margin-bottom:8px;">
             <div style="display:flex;align-items:start;gap:10px;margin-bottom:6px;flex-wrap:wrap;">
               <div style="flex:1;min-width:180px;">
@@ -3014,25 +3242,22 @@ function renderTradeRecs(roster){
             <div style="display:grid;grid-template-columns:1fr auto 1fr;gap:10px;align-items:center;">
               <div style="background:var(--bg2);border:1px solid var(--border);padding:8px 10px;">
                 <div style="font-family:Oswald,sans-serif;font-size:9px;letter-spacing:0.12em;text-transform:uppercase;color:var(--rt);margin-bottom:4px;">You send</div>
-                <div style="display:flex;justify-content:space-between;font-size:11px;padding:2px 0;">
-                  <div><span style="font-family:Oswald,sans-serif;font-size:9px;color:${PC[d.pos]};margin-right:6px;">${d.pos}</span>${moveNm}</div>
-                  <div style="font-family:Oswald,sans-serif;color:var(--text3);">${d.moveVal.toFixed(1)}</div>
+                <div style="display:flex;align-items:center;font-size:11px;padding:2px 0;">
+                  <span style="font-family:Oswald,sans-serif;font-size:9px;color:${PC[d.pos]};margin-right:6px;">${d.pos}</span>${moveNm}
                 </div>
               </div>
               <div style="font-family:'Russo One',sans-serif;font-size:18px;color:var(--text3);">↔</div>
               <div style="background:var(--bg2);border:1px solid var(--border);padding:8px 10px;">
                 <div style="font-family:Oswald,sans-serif;font-size:9px;letter-spacing:0.12em;text-transform:uppercase;color:var(--gt);margin-bottom:4px;">You receive</div>
-                <div style="display:flex;justify-content:space-between;font-size:11px;padding:2px 0;">
-                  <div><span style="font-family:Oswald,sans-serif;font-size:9px;color:${PC[d.pos]};margin-right:6px;">${d.pos}</span>${recvNm}</div>
-                  <div style="font-family:Oswald,sans-serif;color:var(--text3);">${getScore(d.returnPlayer).toFixed(1)}</div>
+                <div style="display:flex;align-items:center;font-size:11px;padding:2px 0;">
+                  <span style="font-family:Oswald,sans-serif;font-size:9px;color:${PC[d.pos]};margin-right:6px;">${d.pos}</span>${recvNm}
                 </div>
-                <div style="display:flex;justify-content:space-between;font-size:11px;padding:2px 0;">
-                  <div><span style="font-family:Oswald,sans-serif;font-size:9px;color:${PC.PICK};margin-right:6px;">PICK</span>${d.sweetener.season} ${rdLabel}</div>
-                  <div style="font-family:Oswald,sans-serif;color:var(--text3);">${sweetenerVal}</div>
+                <div style="display:flex;align-items:center;font-size:11px;padding:2px 0;">
+                  <span style="font-family:Oswald,sans-serif;font-size:9px;color:${PC.PICK};margin-right:6px;">PICK</span>${d.sweetener.season} ${rdLabel}
                 </div>
               </div>
             </div>
-            <div style="text-align:right;font-family:Oswald,sans-serif;font-size:10px;color:${diffCol};margin-top:6px;letter-spacing:0.08em;">${diffStr}</div>
+            <div style="text-align:right;font-family:Oswald,sans-serif;font-size:10px;color:${netCol};margin-top:6px;letter-spacing:0.08em;">${netTxt}</div>
           </div>`;
         }).join('')}
       </div>`
@@ -3057,21 +3282,22 @@ function renderTradeRecs(roster){
               const nm=dbP
                 ?`<span onclick="showPlayerCardModal(${dbP.rank})" style="cursor:pointer;text-decoration:underline;text-decoration-color:var(--border2);">${item.item.name}</span>`
                 :item.item.name;
-              return `<div style="display:flex;justify-content:space-between;align-items:center;font-size:11px;padding:3px 0;">
-                <div><span style="font-family:Oswald,sans-serif;font-size:9px;color:${PC[item.item.pos]};margin-right:6px;">${item.item.pos}</span>${nm}</div>
-                <div style="font-family:Oswald,sans-serif;color:var(--text3);">${item.val.toFixed(1)}</div>
+              return `<div style="display:flex;align-items:center;font-size:11px;padding:3px 0;">
+                <span style="font-family:Oswald,sans-serif;font-size:9px;color:${PC[item.item.pos]};margin-right:6px;">${item.item.pos}</span>${nm}
               </div>`;
             }
             const pk=item.item;
             const rdL=pk.round===1?'1st':pk.round===2?'2nd':pk.round===3?'3rd':'4th';
-            return `<div style="display:flex;justify-content:space-between;align-items:center;font-size:11px;padding:3px 0;">
-              <div><span style="font-family:Oswald,sans-serif;font-size:9px;color:${PC.PICK};margin-right:6px;">PICK</span>${pk.season} ${rdL}</div>
-              <div style="font-family:Oswald,sans-serif;color:var(--text3);">${item.val.toFixed(1)}</div>
+            return `<div style="display:flex;align-items:center;font-size:11px;padding:3px 0;">
+              <span style="font-family:Oswald,sans-serif;font-size:9px;color:${PC.PICK};margin-right:6px;">PICK</span>${pk.season} ${rdL}
             </div>`;
           }).join('');
+          // Fairness as a word
           const diff=u.pkgVal-u.targetVal;
-          const diffStr=diff>=0?`+${diff.toFixed(1)} overpay`:`${diff.toFixed(1)} discount`;
-          const diffCol=diff>5?'var(--rt)':diff<-2?'var(--gt)':'var(--text3)';
+          let fairnessTxt, fairnessCol;
+          if(diff>u.targetVal*0.10){fairnessTxt='Slight overpay'; fairnessCol='var(--rt)';}
+          else if(diff<-u.targetVal*0.05){fairnessTxt='Discount play'; fairnessCol='var(--gt)';}
+          else {fairnessTxt='Fair offer'; fairnessCol='var(--gold)';}
           // Rationale — why this fit makes sense
           let why=`You have multiple solid ${u.pos}s but no league-elite asset. Convert a depth piece + a 1st into a true difference-maker.`;
           if(u.targetAge<=26.0) why+=` ${u.fromOwner}'s core is young — they'd value quantity to build around.`;
@@ -3084,7 +3310,6 @@ function renderTradeRecs(roster){
                   <span style="color:${PC[u.pos]};">${u.pos}</span>
                   ${ageStr?'· '+ageStr:''}
                   · Owned by ${u.fromOwner}
-                  · Value ${u.targetVal.toFixed(1)}
                 </div>
               </div>
               <span style="font-family:Oswald,sans-serif;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;color:var(--accent);background:rgba(192,122,74,0.12);padding:2px 7px;border-radius:3px;">${eliteRankStr}</span>
@@ -3093,13 +3318,9 @@ function renderTradeRecs(roster){
             <div style="background:var(--bg2);border:1px solid var(--border);padding:8px 10px;">
               <div style="display:flex;justify-content:space-between;align-items:center;font-family:Oswald,sans-serif;font-size:9px;letter-spacing:0.12em;text-transform:uppercase;color:var(--text3);margin-bottom:4px;">
                 <span>Your offer (${u.pkg.length} pieces)</span>
-                <span style="color:${diffCol};">${diffStr}</span>
+                <span style="color:${fairnessCol};">${fairnessTxt}</span>
               </div>
               ${pkgRows}
-              <div style="display:flex;justify-content:space-between;align-items:center;font-family:'Russo One',sans-serif;font-size:12px;color:var(--accent);border-top:1px solid var(--border);padding-top:5px;margin-top:5px;">
-                <span>Package total</span>
-                <span>${u.pkgVal.toFixed(1)}</span>
-              </div>
             </div>
           </div>`;
         }).join('')}
@@ -3213,7 +3434,7 @@ async function buildAllTimeLineup(rid){
           <span>${nameEl} <span style="font-size:9px;border:1px solid ${pc};color:${pc};padding:1px 4px;margin-left:3px;">${player.pos}</span></span>
           <span style="font-size:11px;color:var(--text3);font-family:'Oswald',sans-serif;">${player.starts} start${player.starts!==1?'s':''}</span>
           <span style="font-size:11px;color:var(--gold);font-family:'Oswald',sans-serif;">${pts?pts.toFixed(1)+' pts':''}</span>
-          <span style="font-family:'Russo One',sans-serif;font-size:13px;color:var(--accent);">${score?score.toFixed(1):'—'}</span>
+          <span style="font-family:'Russo One',sans-serif;font-size:13px;color:${score?tierColor(tierLetter(score)):'var(--text3)'};">${score?tierLetter(score):'—'}</span>
         `:`
           <span style="font-size:12px;color:var(--text3);font-style:italic;">No starter data</span>
           <span></span><span></span><span></span>
@@ -3301,8 +3522,8 @@ function renderTable(){
     let delta='';
     if(snap&&snap.scores&&snap.scores[d.rank]!==undefined&&d.type==='player'){
       const diff=Math.round((sc-snap.scores[d.rank])*10)/10;
-      if(diff>=1.0) delta=`<span style="font-family:Oswald,sans-serif;font-size:9px;color:var(--gt);margin-left:4px;">▲${diff.toFixed(1)}</span>`;
-      else if(diff<=-1.0) delta=`<span style="font-family:Oswald,sans-serif;font-size:9px;color:var(--rt);margin-left:4px;">▼${Math.abs(diff).toFixed(1)}</span>`;
+      if(diff>=1.0) delta=`<span style="font-family:Oswald,sans-serif;font-size:9px;color:var(--gt);margin-left:4px;">▲</span>`;
+      else if(diff<=-1.0) delta=`<span style="font-family:Oswald,sans-serif;font-size:9px;color:var(--rt);margin-left:4px;">▼</span>`;
     }
 
     // Positional rank
@@ -3325,7 +3546,7 @@ function renderTable(){
     rows.push(`<tr onclick="selItem(${d.rank})" class="${iS?'sel':''} ${iP?'pr':''}">
       <td class="rn">${dr}</td>
       <td style="padding:5px 10px;">${nh}</td>
-      <td class="rs">${sc.toFixed(1)}</td>
+      <td class="rs"><span style="font-family:'Russo One',sans-serif;color:${tierColor(tierLetter(sc))};">${tierLetter(sc)}</span></td>
       <td class="rbc"><div class="rbw"><div class="rb" style="width:${bw}%;background:${bc};"></div></div></td>
     </tr>`);
   });
@@ -3437,7 +3658,7 @@ function renderCard(){
   const av=avatarHtml(d,52);
   const sc=getScore(d);
   if(d.type==='pick'){
-    el.innerHTML=`<div class="pc"><div style="display:flex;align-items:center;gap:14px;margin-bottom:12px;">${av}<div><div style="font-family:'Russo One',sans-serif;font-size:18px;color:var(--pick);">${d.year} Round ${d.round}</div><div style="font-family:'Oswald',sans-serif;font-size:11px;color:var(--text3);">${d.slot} Pick</div></div></div><div style="background:var(--bg3);border:1px solid var(--border);padding:8px;margin-bottom:10px;text-align:center;"><div style="font-family:'Russo One',sans-serif;font-size:22px;color:var(--pick);">${sc.toFixed(1)}</div><div style="font-family:'Oswald',sans-serif;font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--text3);">Trade Value</div></div><div class="pbr"><button class="pcb" style="background:var(--red);color:#fff;" onclick="addT(${d.rank},'give')">+ Give</button><button class="pcb" style="background:var(--green);color:#fff;" onclick="addT(${d.rank},'recv')">+ Recv</button></div></div>`;
+    el.innerHTML=`<div class="pc"><div style="display:flex;align-items:center;gap:14px;margin-bottom:12px;">${av}<div><div style="font-family:'Russo One',sans-serif;font-size:18px;color:var(--pick);">${d.year} Round ${d.round}</div><div style="font-family:'Oswald',sans-serif;font-size:11px;color:var(--text3);">${d.slot} Pick</div></div></div><div style="background:var(--bg3);border:1px solid var(--border);padding:8px;margin-bottom:10px;text-align:center;"><div style="font-family:'Russo One',sans-serif;font-size:22px;color:${tierColor(tierLetter(sc))};">${tierLetter(sc)}</div><div style="font-family:'Oswald',sans-serif;font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--text3);">Pick Tier</div></div><div class="pbr"><button class="pcb" style="background:var(--red);color:#fff;" onclick="addT(${d.rank},'give')">+ Give</button><button class="pcb" style="background:var(--green);color:#fff;" onclick="addT(${d.rank},'recv')">+ Recv</button></div></div>`;
     return;
   }
   const pc=POS_COLORS[d.pos]||'var(--text)';
@@ -3482,7 +3703,7 @@ function renderCard(){
       const hrs=Math.round((Date.now()-snap.ts)/(1000*60*60));
       const col=diff>1?'var(--gt)':diff<-1?'var(--rt)':'var(--text3)';
       const arrow=diff>1?'▲':diff<-1?'▼':'→';
-      trajHtml=`<div style="font-size:11px;color:${col};font-family:Oswald,sans-serif;">${arrow} ${diff>0?'+':''}${diff.toFixed(1)} pts since ${hrs}h ago</div>`;
+      trajHtml=`<div style="font-size:11px;color:${col};font-family:Oswald,sans-serif;">${arrow} Trending ${diff>1?'up':diff<-1?'down':'flat'} since ${hrs}h ago</div>`;
     }
   }catch(e){}
 
@@ -3493,7 +3714,7 @@ function renderCard(){
     Math.abs((p.age||25)-age)<2
   ).slice(0,3);
   const compHtml=comps.length
-    ?comps.map(p=>`<span style="font-size:11px;color:var(--text2);font-family:Oswald,sans-serif;">${p.name.split(' ').pop()} (${getScore(p).toFixed(1)})</span>`).join('<span style="color:var(--text3);margin:0 4px;">·</span>')
+    ?comps.map(p=>`<span style="font-size:11px;color:var(--text2);font-family:Oswald,sans-serif;">${p.name.split(' ').pop()}</span>`).join('<span style="color:var(--text3);margin:0 4px;">·</span>')
     :'<span style="font-size:11px;color:var(--text3);">No close comps</span>';
 
   // ── DYNASTY WINDOW ──
@@ -3515,8 +3736,8 @@ function renderCard(){
         ${trajHtml}
       </div>
       <div style="text-align:right;">
-        <div class="psb" style="color:${pc}">${sc.toFixed(1)}</div>
-        <div class="psl">${SCORING==='SF'?'SF':'1QB'} Value</div>
+        <div class="psb" style="color:${tierColor(tierLetter(sc))};font-family:'Russo One',sans-serif;">${tierLetter(sc)}</div>
+        <div class="psl">${SCORING==='SF'?'SF':'1QB'} Tier</div>
       </div>
     </div>
     ${lk}
@@ -3571,13 +3792,15 @@ function clearTrade(){GP=[];RP=[];RP2=[];renderTA();}
 
 function ttag(d,s){
   const av=avatarHtml(d,22);
-  return `<div class="ttag"><div style="display:flex;align-items:center;gap:6px;flex:1;min-width:0;">${av}<div class="ttn">${(d.displayName||d.name).split(' ').pop()}</div></div><div style="display:flex;align-items:center;gap:3px;flex-shrink:0;"><span class="tts">${getScore(d).toFixed(1)}</span><span class="trm" onclick="remT(${d.rank},'${s}')">×</span></div></div>`;
+  const tier=tierLetter(getScore(d));
+  return `<div class="ttag"><div style="display:flex;align-items:center;gap:6px;flex:1;min-width:0;">${av}<div class="ttn">${(d.displayName||d.name).split(' ').pop()}</div></div><div style="display:flex;align-items:center;gap:3px;flex-shrink:0;"><span class="tts" style="color:${tierColor(tier)};font-family:'Russo One',sans-serif;">${tier}</span><span class="trm" onclick="remT(${d.rank},'${s}')">×</span></div></div>`;
 }
 
 function tradeTagFull(d,side){
   const owner=window._playerOwner&&d.type==='player'?window._playerOwner[normName(d.name)]:'';
   const ownerLine=owner?`<div style="font-size:9px;color:var(--accent);font-family:'Oswald',sans-serif;">🏈 ${owner}</div>`:'';
-  return `<div class="ttag" style="margin-bottom:5px;"><div><div class="ttn" style="max-width:160px;">${d.displayName||d.name}</div><div style="font-size:9px;color:var(--text3);font-family:'Oswald',sans-serif;">${d.pos} · ${d.team}</div>${ownerLine}</div><div style="display:flex;align-items:center;gap:6px;"><span class="tts" style="font-size:12px;">${getScore(d).toFixed(1)}</span><span class="trm" onclick="remT(${d.rank},'${side}')">×</span></div></div>`;
+  const tier=tierLetter(getScore(d));
+  return `<div class="ttag" style="margin-bottom:5px;"><div><div class="ttn" style="max-width:160px;">${d.displayName||d.name}</div><div style="font-size:9px;color:var(--text3);font-family:'Oswald',sans-serif;">${d.pos} · ${d.team}</div>${ownerLine}</div><div style="display:flex;align-items:center;gap:6px;"><span class="tts" style="font-size:14px;color:${tierColor(tier)};font-family:'Russo One',sans-serif;">${tier}</span><span class="trm" onclick="remT(${d.rank},'${side}')">×</span></div></div>`;
 }
 
 function renderTA(){
@@ -3598,30 +3821,35 @@ function renderTA(){
   if(rf)rf.innerHTML=RP.length?RP.map(d=>tradeTagFull(d,'recv')).join(''):'<div style="font-size:12px;color:var(--text3);font-style:italic;">No players added</div>';
   if(r2f)r2f.innerHTML=RP2.length?RP2.map(d=>tradeTagFull(d,'recv2')).join(''):'<div style="font-size:12px;color:var(--text3);font-style:italic;">No players added</div>';
 
-  // Team totals in column headers
+  // Team labels in column headers — show only piece count, no numbers
   const ta=document.getElementById('team-a-total'),tb=document.getElementById('team-b-total'),tc=document.getElementById('team-c-total');
-  if(ta)ta.textContent=GP.length?gt.toFixed(1):'—';
-  if(tb)tb.textContent=RP.length?rt.toFixed(1):'—';
-  if(tc)tc.textContent=RP2.length?rt2.toFixed(1):'—';
+  if(ta)ta.textContent=GP.length?`${GP.length} ${GP.length===1?'piece':'pieces'}`:'—';
+  if(tb)tb.textContent=RP.length?`${RP.length} ${RP.length===1?'piece':'pieces'}`:'—';
+  if(tc)tc.textContent=RP2.length?`${RP2.length} ${RP2.length===1?'piece':'pieces'}`:'—';
 
   if(TRADE_TYPE===2){
     setV('f',gt,rt,gt+rt,dif2,abs2);
   } else {
-    // 3-way: show each team's balance
+    // 3-way: word-only verdict for each team's balance
     const gtf=document.getElementById('gtf'),rtf=document.getElementById('rtf');
     const vtf=document.getElementById('vtf');
-    if(gtf)gtf.textContent=GP.length?gt.toFixed(1):'—';
-    if(rtf)rtf.textContent=RP.length?rt.toFixed(1):'—';
+    if(gtf)gtf.textContent='';
+    if(rtf)rtf.textContent='';
     if(vtf){
       if(!GP.length||(!RP.length&&!RP2.length)){vtf.innerHTML='<span style="color:var(--text3)">Add players to all sides</span>';}
       else{
-        const dAB=(rt-gt).toFixed(1);
-        const dAC=(rt2-gt).toFixed(1);
-        const abColor=parseFloat(dAB)>5?'var(--gt)':parseFloat(dAB)<-5?'var(--rt)':'var(--gold)';
-        const acColor=parseFloat(dAC)>5?'var(--gt)':parseFloat(dAC)<-5?'var(--rt)':'var(--gold)';
+        const dAB=rt-gt;
+        const dAC=rt2-gt;
+        function verdictWord(diff){
+          const a=Math.abs(diff);
+          if(a<=5) return {txt:'Even',col:'var(--gold)'};
+          if(diff>0) return a>15?{txt:'Heavily favors you',col:'var(--gt)'}:{txt:'Slight edge your way',col:'var(--gt)'};
+          return a>15?{txt:'Bad deal',col:'var(--rt)'}:{txt:'Favors them',col:'var(--rt)'};
+        }
+        const v1=verdictWord(dAB), v2=verdictWord(dAC);
         vtf.innerHTML=`<div style="display:flex;gap:16px;justify-content:center;flex-wrap:wrap;">
-          <span style="color:${abColor}">A vs B: ${parseFloat(dAB)>0?'+':''}${dAB}</span>
-          ${RP2.length?`<span style="color:${acColor}">A vs C: ${parseFloat(dAC)>0?'+':''}${dAC}</span>`:''}
+          <span style="color:${v1.col}">A vs B: ${v1.txt}</span>
+          ${RP2.length?`<span style="color:${v2.col}">A vs C: ${v2.txt}</span>`:''}
         </div>`;
       }
     }
@@ -3661,10 +3889,10 @@ function renderFairValue(gt,rt){
   const needed=gt-rt; // positive = receiver needs to add value
 
   if(Math.abs(diff)<8){
-    html=`<div style="font-size:12px;color:var(--gt);font-family:Oswald,sans-serif;">Within 8 pts — fair.</div>`;
+    html=`<div style="font-size:12px;color:var(--gt);font-family:Oswald,sans-serif;">Trade is fair.</div>`;
   } else if(diff<-8){
     // Giver is losing value — suggest what receiver should add
-    html=`<div style="font-size:12px;color:var(--text2);margin-bottom:10px;">Short ~${absDiff.toFixed(0)} pts. Options to close the gap:</div>`;
+    html=`<div style="font-size:12px;color:var(--text2);margin-bottom:10px;">Your offer is short. Options to balance the trade:</div>`;
     // Find assets from other rosters worth ~absDiff
     const suggestions=DATA.filter(d=>d.type==='player'&&Math.abs(getScore(d)-absDiff)<absDiff*0.35&&!GP.find(g=>g.rank===d.rank)&&!RP.find(r=>r.rank===d.rank))
       .sort((a,b)=>Math.abs(getScore(a)-absDiff)-Math.abs(getScore(b)-absDiff))
@@ -3674,18 +3902,18 @@ function renderFairValue(gt,rt){
       suggestions.forEach(p=>{
         const pc=POS_COLORS[p.pos]||'var(--text)';
         html+=`<div style="background:var(--bg3);border:1px solid var(--border);padding:5px 10px;border-radius:4px;font-family:Oswald,sans-serif;font-size:11px;cursor:pointer;" onclick="addT(${p.rank},'recv')">
-          <span style="color:${pc};">${p.pos}</span> ${p.name} <span style="color:var(--accent);margin-left:4px;">${getScore(p).toFixed(1)}</span>
+          <span style="color:${pc};">${p.pos}</span> ${p.name}
         </div>`;
       });
       html+=`</div>`;
-      // Multi-player combos
+      // Multi-player combos (rendered without numeric labels)
       const combos=DATA.filter(d=>d.type==='player'&&getScore(d)<absDiff*0.7&&!GP.find(g=>g.rank===d.rank)&&!RP.find(r=>r.rank===d.rank))
         .sort((a,b)=>getScore(b)-getScore(a)).slice(0,20);
       for(let i=0;i<combos.length;i++){
         for(let j=i+1;j<combos.length;j++){
           const combo2=getScore(combos[i])+getScore(combos[j]);
           if(Math.abs(combo2-absDiff)<absDiff*0.2){
-            html+=`<div style="font-size:11px;color:var(--text3);margin-top:8px;">Or: ${combos[i].name} (${getScore(combos[i]).toFixed(1)}) + ${combos[j].name} (${getScore(combos[j]).toFixed(1)})</span> = ${combo2.toFixed(1)} pts</div>`;
+            html+=`<div style="font-size:11px;color:var(--text3);margin-top:8px;">Or: ${combos[i].name} + ${combos[j].name}</div>`;
             break;
           }
         }
@@ -3693,11 +3921,11 @@ function renderFairValue(gt,rt){
     }
   } else {
     // Receiver is getting more value — giver overpaying
-    html=`<div style="font-size:12px;color:var(--rt);">You're giving ${absDiff.toFixed(0)} pts more than you're getting.</div>`;
+    html=`<div style="font-size:12px;color:var(--rt);">You're giving up more than you're getting back.</div>`;
     if(fromRoster){
       // Suggest removing a piece from give side
       const removeSuggestion=GP.slice().sort((a,b)=>getScore(b)-getScore(a))[0];
-      if(removeSuggestion) html+=`<div style="font-size:11px;color:var(--text3);margin-top:6px;">Try dropping ${removeSuggestion.name} (−${getScore(removeSuggestion).toFixed(1)} pts) from your side.</div>`;
+      if(removeSuggestion) html+=`<div style="font-size:11px;color:var(--text3);margin-top:6px;">Try dropping ${removeSuggestion.name} from your side.</div>`;
     }
   }
 
@@ -3708,11 +3936,13 @@ function renderFairValue(gt,rt){
 function setV(id,gt,rt,tot,dif,abs){
   const gte=document.getElementById('gt'+id),rte=document.getElementById('rt'+id);
   const vg=document.getElementById('vg'+id),vr=document.getElementById('vr'+id),vt=document.getElementById('vt'+id);
-  if(gte)gte.textContent=GP.length?gt.toFixed(1):'—';
-  if(rte)rte.textContent=RP.length?rt.toFixed(1):'—';
+  // Replace numeric totals with piece counts. Per-piece values stay hidden;
+  // the bar (vg/vr) is the only quantitative signal.
+  if(gte)gte.textContent=GP.length?`${GP.length} ${GP.length===1?'piece':'pieces'}`:'—';
+  if(rte)rte.textContent=RP.length?`${RP.length} ${RP.length===1?'piece':'pieces'}`:'—';
   if(!GP.length||!RP.length){
     if(vg){vg.style.width='50%';vr.style.width='50%';}
-    if(vt)vt.innerHTML='<span style="color:var(--text3)">Add players to both sides</span>';
+    if(vt)vt.innerHTML='<span style="color:var(--text3)">Add pieces to both sides</span>';
     const di=document.getElementById('dynasty-impact');
     if(di) di.style.display='none';
     return;
@@ -3720,11 +3950,13 @@ function setV(id,gt,rt,tot,dif,abs){
   const gp=tot>0?Math.round((gt/tot)*100):50;
   if(vg){vg.style.width=gp+'%';vr.style.width=(100-gp)+'%';}
   if(vt){
-    if(dif>15)vt.innerHTML=`<span class="vwin">+${abs} pts · You win this trade.</span>`;
-    else if(dif>5)vt.innerHTML=`<span class="vwin">+${abs} pts · Slight edge your way.</span>`;
-    else if(dif>=-5)vt.innerHTML=`<span class="veven">${dif>=0?'+':''}${dif.toFixed(1)} pts · Even.</span>`;
-    else if(dif>=-15)vt.innerHTML=`<span class="vlose">−${abs} pts · You're short. Push back.</span>`;
-    else vt.innerHTML=`<span class="vlose">−${abs} pts · Bad deal.</span>`;
+    // Word-only verdicts. The bar tilt is the precise signal; the words
+    // tell the user how to read it.
+    if(dif>15)vt.innerHTML=`<span class="vwin">Heavily favors you.</span>`;
+    else if(dif>5)vt.innerHTML=`<span class="vwin">Slight edge your way.</span>`;
+    else if(dif>=-5)vt.innerHTML=`<span class="veven">Even — fair trade.</span>`;
+    else if(dif>=-15)vt.innerHTML=`<span class="vlose">You're short. Push back.</span>`;
+    else vt.innerHTML=`<span class="vlose">Bad deal — heavily favors them.</span>`;
   }
   // Dynasty impact (full trade page only)
   if(id==='f'){
@@ -3904,7 +4136,7 @@ function renderTS(){
   const clear=`document.getElementById('ts').value='';renderTS();`;
   el.innerHTML=res.map(d=>`<div style="display:flex;align-items:center;justify-content:space-between;padding:7px 10px;border-bottom:1px solid var(--border);background:var(--bg3);border-radius:4px;margin-bottom:2px;">
     <div><div style="font-family:'Oswald',sans-serif;font-size:13px;font-weight:600;color:var(--text);">${d.name}<span class="pb2 pos-${d.pos}" style="margin-left:6px;">${d.pos}</span></div>
-    <div style="font-size:10px;color:var(--text3);">${d.team==='FA'?'Free Agent':d.team}${d.age?' · Age '+d.age:''} · ${getScore(d).toFixed(1)}</div></div>
+    <div style="font-size:10px;color:var(--text3);">${d.team==='FA'?'Free Agent':d.team}${d.age?' · Age '+d.age:''} · <span style="color:${tierColor(tierLetter(getScore(d)))};font-family:'Russo One',sans-serif;">${tierLetter(getScore(d))}</span></div></div>
     <div style="display:flex;gap:5px;">
       <button onclick="addT(${d.rank},'give');${clear}" style="background:var(--red);border:none;color:#fff;font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:0.1em;padding:5px 9px;cursor:pointer;border-radius:3px;">+Give</button>
       <button onclick="addT(${d.rank},'recv');${clear}" style="background:var(--green);border:none;color:#fff;font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:0.1em;padding:5px 9px;cursor:pointer;border-radius:3px;">${TRADE_TYPE===3&&ACTIVE_RECV==='recv2'?'+Recv C':'+Recv'}</button>
@@ -4567,7 +4799,7 @@ function showRoster(idx){
     const photo=pid
       ?`<img style="width:36px;height:36px;border-radius:50%;object-fit:cover;object-position:top center;border:1px solid var(--border);" src="https://sleepercdn.com/content/nfl/players/${pid}.jpg" onerror="this.style.display='none'">`
       :`<div style="width:36px;height:36px;border-radius:50%;background:var(--bg3);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-family:Oswald,sans-serif;font-size:10px;color:${pc};">${p.pos}</div>`;
-    html+=`<div class="modal-player-row">${photo}<div style="flex:1;"><div class="modal-player-name">${p.name}</div><div class="modal-player-meta">${p.team==='FA'?'Free Agent':p.team}${p.age?' · Age '+p.age:''} · #${p.rank} Overall</div></div><div class="modal-player-score">${getScore(p).toFixed(1)}</div></div>`;
+    html+=`<div class="modal-player-row">${photo}<div style="flex:1;"><div class="modal-player-name">${p.name}</div><div class="modal-player-meta">${p.team==='FA'?'Free Agent':p.team}${p.age?' · Age '+p.age:''} · #${p.rank} Overall</div></div><div class="modal-player-score" style="color:${tierColor(tierLetter(getScore(p)))};font-family:'Russo One',sans-serif;">${tierLetter(getScore(p))}</div></div>`;
   });
   if(!sorted.length)html='<div style="padding:24px;text-align:center;color:var(--text3);font-size:13px;">No matched players found.</div>';
 
@@ -4579,15 +4811,15 @@ function showRoster(idx){
     MODAL_DATA.forEach(md=>{ if(md.rid!==undefined){ ridToOwner2[md.rid]=md.owner; ridToOwner2[parseInt(md.rid)]=md.owner; ridToOwner2[String(md.rid)]=md.owner; }});
     picks.forEach(pk=>{
       const slot=pk.slot||'Mid';
-      const val=(pk.matchedScore||0).toFixed(1);
+      const tier=tierLetter(pk.matchedScore||0);
       const rd=pk.round;
       const yr=pk.season;
       const rdLabel=rd===1?'1st':rd===2?'2nd':rd===3?'3rd':'4th';
       const origRid=pk._orig;
       html+=`<div class="modal-player-row">
         <div style="width:36px;height:36px;border-radius:50%;background:rgba(155,138,191,0.12);border:1px solid ${pickColor(rd)};display:flex;align-items:center;justify-content:center;font-family:Oswald,sans-serif;font-size:9px;font-weight:600;color:${pickColor(rd)};flex-shrink:0;">R${rd}</div>
-        <div style="flex:1;"><div class="modal-player-name" style="color:${pickColor(rd)};">${yr} ${rdLabel} · ${slot}</div><div class="modal-player-meta">Dynasty Pick · ${val} pts</div></div>
-        <div class="modal-player-score" style="color:${pickColor(rd)};">${val}</div>
+        <div style="flex:1;"><div class="modal-player-name" style="color:${pickColor(rd)};">${yr} ${rdLabel} · ${slot}</div><div class="modal-player-meta">Dynasty Pick</div></div>
+        <div class="modal-player-score" style="color:${tierColor(tier)};font-family:'Russo One',sans-serif;">${tier}</div>
       </div>`;
     });
   }
@@ -4691,7 +4923,7 @@ function renderLeague(league,rosters,lid){
           ${img}
           <div>
             <div style="font-family:Oswald,sans-serif;font-size:11px;font-weight:600;color:var(--text);line-height:1.1;">${p.name.split(' ').pop()}</div>
-            <div style="font-size:10px;color:var(--accent);font-family:'Russo One',sans-serif;">${getScore(p).toFixed(1)}</div>
+            <div style="font-size:10px;color:${tierColor(tierLetter(getScore(p)))};font-family:'Russo One',sans-serif;">${tierLetter(getScore(p))}</div>
           </div>
         </div>`;
       }).join('');
@@ -4785,9 +5017,9 @@ function buildBlurb(r, leagueAvg){
   const rb1     = rbs[0]?.name.split(' ').pop()||'';
   const wr1     = wrs[0]?.name.split(' ').pop()||'';
   const te1     = tes[0]?.name.split(' ').pop()||'';
-  const qbScore = qbs[0] ? getScore(qbs[0]).toFixed(1) : '—';
-  const rb1Score= rbs[0] ? getScore(rbs[0]).toFixed(1) : '—';
-  const wr1Score= wrs[0] ? getScore(wrs[0]).toFixed(1) : '—';
+  const qbScore = qbs[0] ? tierLetter(getScore(qbs[0])) : '—';
+  const rb1Score= rbs[0] ? tierLetter(getScore(rbs[0])) : '—';
+  const wr1Score= wrs[0] ? tierLetter(getScore(wrs[0])) : '—';
   const ppg     = r.projPPG||0;
   const apg     = r.actualPPG||0;
   const pickCount= picks.length;
@@ -4810,7 +5042,7 @@ function buildBlurb(r, leagueAvg){
   const observations = [];
 
   // QB situation
-  if(eliteQB)       observations.push(`${qb1} (${qbScore}) is a top-shelf QB asset.`);
+  if(eliteQB)       observations.push(`${qb1} (Tier ${qbScore}) is a top-shelf QB asset.`);
   else if(youngQB)  observations.push(`${qb1} is a developing QB worth watching.`);
   else if(noQB)     observations.push(`No reliable QB on roster — a real hole.`);
   else              observations.push(`QB is functional with ${qb1}.`);
@@ -5407,8 +5639,9 @@ function buildJerryJonesCard(season){
   function assetsHtml(side){
     const players=side.players.map(p=>{
       const m=NM_EXACT[p.name.toLowerCase()]||NM_NORM[normName(p.name)];
-      const sc=m?getScore(m).toFixed(1):'?';
-      return `<div style="font-size:11px;color:var(--text2);line-height:1.5;">${p.name} <span style="color:var(--text3);font-family:Oswald,sans-serif;font-size:10px;">(${sc})</span></div>`;
+      const tier=m?tierLetter(getScore(m)):'?';
+      const tc=m?tierColor(tier):'var(--text3)';
+      return `<div style="font-size:11px;color:var(--text2);line-height:1.5;">${p.name} <span style="color:${tc};font-family:'Russo One',sans-serif;font-size:10px;">${tier}</span></div>`;
     }).join('');
     const picks=side.picks.map(pk=>`<div style="font-size:11px;color:var(--pick);line-height:1.5;">${pk}</div>`).join('');
     return players+picks||'<div style="font-size:11px;color:var(--text3);font-style:italic;">—</div>';
@@ -5428,21 +5661,22 @@ function buildJerryJonesCard(season){
       });
     }
   }catch(e){}
-  // Margin tier for flair copy
+  // Margin tier for flair copy. Margin numbers are part of the storytelling
+  // (this is a "heist of the year" recap), so we keep them as round integers.
   const marginRound=Math.round(j.margin);
   let tier, tagline;
   if(j.margin>=60){
     tier='⚠️ Franchise-Altering Heist';
-    tagline=`${j.winner} robbed ${j.loser} in broad daylight. This trade alone could swing a championship window — ${marginRound} points of net value changed hands.`;
+    tagline=`${j.winner} robbed ${j.loser} in broad daylight. This trade alone could swing a championship window.`;
   } else if(j.margin>=40){
     tier='🚨 Roster-Tilting Swindle';
-    tagline=`${j.winner} walked away with a ${marginRound}-point haul. Roster construction was permanently rearranged.`;
+    tagline=`${j.winner} walked away with the haul of the year. Roster construction was permanently rearranged.`;
   } else if(j.margin>=25){
     tier='💼 Lopsided Steal';
-    tagline=`${j.winner} took ${j.loser} to the cleaners — a ${marginRound}-point net swing that reshaped both rosters.`;
+    tagline=`${j.winner} took ${j.loser} to the cleaners. A clear win that reshaped both rosters.`;
   } else {
     tier='🔪 Sharp Move';
-    tagline=`${j.winner} netted ${marginRound} extra points of value over ${j.loser}. Not a blowout, but a clear win on the wire.`;
+    tagline=`${j.winner} got the better end against ${j.loser}. Not a blowout, but a clear win on the wire.`;
   }
   // If any of the acquired assets are STILL on the winner's current roster, add a punch line
   let consequence='';
@@ -5450,7 +5684,7 @@ function buildJerryJonesCard(season){
     const top=stillRosteredNames.slice(0,3).join(', ');
     consequence=`<div style="margin-top:10px;padding:8px 12px;background:rgba(192,122,74,0.08);border-left:3px solid var(--accent);font-size:11px;color:var(--text2);line-height:1.55;">
       <span style="font-family:Oswald,sans-serif;font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:var(--accent);">Real Consequence</span><br>
-      ${top} ${stillRosteredNames.length>1?'are':'is'} still on ${j.winner.split(' ')[0]}'s roster today, worth ${stillRosteredVal.toFixed(1)} points of current value. This trade is the foundation that's still paying dividends.
+      ${top} ${stillRosteredNames.length>1?'are':'is'} still on ${j.winner.split(' ')[0]}'s roster today. This trade is the foundation that's still paying dividends.
     </div>`;
   } else if(stillRosteredNames.length){
     consequence=`<div style="margin-top:10px;font-size:11px;color:var(--text3);font-style:italic;">Acquired pieces still on roster: ${stillRosteredNames.join(', ')}.</div>`;
@@ -5467,13 +5701,11 @@ function buildJerryJonesCard(season){
       <div>
         <div style="font-family:Oswald,sans-serif;font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:var(--gt);margin-bottom:4px;">🏆 ${j.winner} gave up</div>
         ${assetsHtml(winnerSide)}
-        <div style="font-family:'Russo One',sans-serif;font-size:12px;color:var(--gt);margin-top:6px;">${(j.winnerGave||0).toFixed(1)} value</div>
       </div>
       <div style="font-family:'Russo One',sans-serif;font-size:20px;color:var(--text3);padding-top:14px;">↔</div>
       <div>
         <div style="font-family:Oswald,sans-serif;font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:var(--rt);margin-bottom:4px;">📉 ${j.loser} gave up</div>
         ${assetsHtml(loserSide)}
-        <div style="font-family:'Russo One',sans-serif;font-size:12px;color:var(--rt);margin-top:6px;">${(j.loserGave||0).toFixed(1)} value</div>
       </div>
     </div>
     ${consequence}
@@ -5830,17 +6062,23 @@ function renderTrades(){
     const s2col=t.s1net<0?'var(--gt)':'var(--rt)';
     const sideHtml=(side,net)=>{
       const col=net>0?'var(--gt)':'var(--rt)';
-      const sign=net>0?'+':'';
+      // Word verdict for this side's net — keep the directional signal,
+      // hide the raw point total.
+      let netWord;
+      const aNet=Math.abs(net);
+      if(aNet<5) netWord='Even';
+      else if(net>0) netWord=aNet>20?'Won big':'Won';
+      else netWord=aNet>20?'Lost big':'Lost';
       const players=side.players.slice(0,3).map(p=>{
         const m=NM_EXACT[p.name.toLowerCase()]||NM_NORM[normName(p.name)];
-        const sc=m?getScore(m).toFixed(1):'?';
-        return `<div style="font-size:11px;color:var(--text2);">${p.name} <span style="color:var(--text3);">(${sc})</span></div>`;
+        const tier=m?tierLetter(getScore(m)):'?';
+        const tc=m?tierColor(tier):'var(--text3)';
+        return `<div style="font-size:11px;color:var(--text2);">${p.name} <span style="color:${tc};font-family:'Russo One',sans-serif;font-size:10px;">${tier}</span></div>`;
       }).join('');
       const picks=side.picks.slice(0,2).map(pk=>`<div style="font-size:11px;color:var(--pick);">${pk}</div>`).join('');
       return `<div style="flex:1;min-width:120px;">
-        <div style="font-family:Oswald,sans-serif;font-size:11px;font-weight:600;color:var(--text);margin-bottom:4px;">${side.name} <span style="color:${col};font-size:10px;">${sign}${Math.round(net)} pts</span></div>
+        <div style="font-family:Oswald,sans-serif;font-size:11px;font-weight:600;color:var(--text);margin-bottom:4px;">${side.name} <span style="color:${col};font-size:10px;">${netWord}</span></div>
         ${players}${picks}
-        <div style="font-family:'Russo One',sans-serif;font-size:12px;color:var(--text3);margin-top:4px;">${side.value.toFixed(1)} total</div>
       </div>`;
     };
     return `<div class="trade-grade-row">
