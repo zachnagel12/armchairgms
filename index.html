@@ -741,6 +741,7 @@ tbody tr.sel{background:rgba(192,120,72,0.13);border-left:3px solid var(--accent
     <span class="nav-user" id="nu"></span>
     <div id="nav-sleeper-row" style="display:flex;align-items:center;gap:6px;">
       <select id="nav-lg-select" onchange="onLgSelect()" style="background:var(--bg3);border:1px solid var(--border2);color:var(--text);font-family:'Barlow Condensed',sans-serif;font-size:12px;padding:5px 8px;outline:none;max-width:200px;border-radius:4px;cursor:pointer;" title="Switch between saved leagues" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border2)'"></select>
+      <button id="nav-lg-default" onclick="toggleDefaultLeague()" style="background:transparent;border:1px solid var(--border2);color:var(--text3);font-size:14px;line-height:1;padding:3px 7px;cursor:pointer;border-radius:4px;display:none;" title="Set as default league">☆</button>
       <input type="text" id="nav-lid" placeholder="Paste new League ID..." oninput="document.getElementById('lid').value=this.value" onkeydown="if(event.key==='Enter'){event.preventDefault();syncNavLeague();}" style="background:var(--bg3);border:1px solid var(--border2);color:var(--text);font-family:'Barlow Condensed',sans-serif;font-size:12px;padding:5px 9px;outline:none;width:150px;border-radius:4px;" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border2)'">
       <button id="nav-sync-btn" onclick="syncNavLeague()" style="font-family:Oswald,sans-serif;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;padding:5px 12px;border:none;background:var(--accent);color:var(--bg2);cursor:pointer;border-radius:4px;white-space:nowrap;">Sync</button>
     </div>
@@ -2149,14 +2150,35 @@ function renderLeagueDropdown(){
   if(!LEAGUES.length){
     sel.innerHTML='<option value="">No leagues saved</option>';
     sel.style.display='none';
+    const star=document.getElementById('nav-lg-default');
+    if(star) star.style.display='none';
     return;
   }
   sel.style.display='';
   sel.innerHTML=LEAGUES.map(l=>{
-    const label=l.name?`${l.name} — ${l.id}`:l.id;
+    // Cleaner labels: just the league name. Prefix the default with ★ so it's
+    // obvious which one loads on startup. Fall back to a short ID if we
+    // somehow don't have a name yet (pre-sync edge case).
+    const base=l.name||('League '+(l.id||'').slice(-4));
+    const label=(l.id===DEFAULT_LID?'★ ':'')+base;
     const sel2=l.id===cur?' selected':'';
     return `<option value="${l.id}"${sel2}>${label}</option>`;
   }).join('');
+  // Update the star button to reflect whether the currently-loaded league is
+  // the default. Tap it to set/unset.
+  const star=document.getElementById('nav-lg-default');
+  if(star){
+    // Only meaningful when a league is actually loaded — otherwise hide
+    if(!window._lastLeagueId){
+      star.style.display='none';
+    } else {
+      const isDef=window._lastLeagueId===DEFAULT_LID;
+      star.style.display='';
+      star.textContent=isDef?'★':'☆';
+      star.style.color=isDef?'var(--accent)':'var(--text3)';
+      star.title=isDef?'This is your default league (loads on startup)':'Set this league as your default (loads on startup)';
+    }
+  }
 }
 
 function onLgSelect(){
@@ -2168,6 +2190,21 @@ function onLgSelect(){
   document.getElementById('nav-lid').value='';
   showPg('rankings',document.querySelectorAll('.nt')[0]);
   loadLeague();
+}
+
+// Toggle the currently-loaded league as the default. The default is what
+// auto-loads when the user opens the app — it's pinned to whatever was first
+// synced, but the user can change it from here at any time.
+function toggleDefaultLeague(){
+  const cur=window._lastLeagueId;
+  if(!cur||!LEAGUES.find(l=>l.id===cur)) return;
+  DEFAULT_LID=cur;
+  // Mirror to CU.lid so the existing launch-time auto-load picks this up
+  if(CU){CU.lid=cur;sSess(CU);}
+  saveLeaguesLocal();
+  saveLeaguesRemote();
+  if(CU&&CU.em!=='Guest') saveProfile();
+  renderLeagueDropdown();
 }
 
 function syncNavLeague(){
@@ -2283,15 +2320,17 @@ async function renderMyTeam(rid){
   document.getElementById('mt-current-roster').innerHTML=allPlayers.length
     ?allPlayers.map(p=>{
       const liveScore=getScore(p);
-      // Match against the rankings DB so we can jump to that player's card on tap
-      const dbPlayer=DATA.find(d=>d.type==='player'&&normName(d.name)===normName(p.name));
+      // Match against the rankings DB so we can jump to that player's card on tap.
+      // selItem() is the canonical "select a player on rankings" function.
+      const dbPlayer=!p.unranked?DATA.find(d=>d.type==='player'&&normName(d.name)===normName(p.name)):null;
       const nameHtml=dbPlayer
-        ?`<span onclick="selectItem(${dbPlayer.rank});showPg('rankings',document.querySelectorAll('.nt')[0]);" style="font-family:'Oswald',sans-serif;font-size:13px;font-weight:600;color:var(--text);flex:1;cursor:pointer;text-decoration:underline;text-decoration-color:var(--border2);text-underline-offset:2px;">${p.name}</span>`
-        :`<span style="font-family:'Oswald',sans-serif;font-size:13px;font-weight:600;color:var(--text);flex:1;">${p.name}</span>`;
+        ?`<span onclick="selItem(${dbPlayer.rank});showPg('rankings',document.querySelectorAll('.nt')[0]);" style="font-family:'Oswald',sans-serif;font-size:13px;font-weight:600;color:var(--text);flex:1;cursor:pointer;text-decoration:underline;text-decoration-color:var(--border2);text-underline-offset:2px;">${p.name}</span>`
+        :`<span style="font-family:'Oswald',sans-serif;font-size:13px;font-weight:600;color:var(--text);flex:1;">${p.name}${p.unranked?' <span style="font-family:Oswald,sans-serif;font-size:9px;letter-spacing:0.08em;color:var(--text3);font-weight:400;">· UNRANKED</span>':''}</span>`;
+      const scoreDisplay=p.unranked?'<span style="font-family:Oswald,sans-serif;font-size:11px;color:var(--text3);">—</span>':`<span style="font-family:'Russo One',sans-serif;font-size:13px;color:var(--accent);">${liveScore.toFixed(1)}</span>`;
       return `<div style="display:flex;align-items:center;gap:12px;padding:7px 14px;background:var(--panel);border:1px solid var(--border);">
         <span style="font-family:'Oswald',sans-serif;font-size:9px;letter-spacing:0.08em;border:1px solid ${PC[p.pos]||'var(--text3)'};color:${PC[p.pos]||'var(--text3)'};padding:1px 5px;flex-shrink:0;">${p.pos}</span>
         ${nameHtml}
-        <span style="font-family:'Russo One',sans-serif;font-size:13px;color:var(--accent);">${liveScore.toFixed(1)}</span>
+        ${scoreDisplay}
       </div>`;}).join('')
     :'<div style="font-size:12px;color:var(--text3);padding:12px;">No players found.</div>';
 
@@ -2412,7 +2451,7 @@ async function buildAllTimeLineup(rid){
       const score=dbPlayer?.score;
       const pts=player?.totalPts;
       const nameEl=dbPlayer
-        ?`<span onclick="selectItem(${dbPlayer.rank});showPg('rankings',document.querySelectorAll('.nt')[0]);" style="font-family:'Oswald',sans-serif;font-size:13px;font-weight:600;color:var(--text);cursor:pointer;text-decoration:underline;text-decoration-color:var(--border2);">${player.name}</span>`
+        ?`<span onclick="selItem(${dbPlayer.rank});showPg('rankings',document.querySelectorAll('.nt')[0]);" style="font-family:'Oswald',sans-serif;font-size:13px;font-weight:600;color:var(--text);cursor:pointer;text-decoration:underline;text-decoration-color:var(--border2);">${player.name}</span>`
         :`<span style="font-family:'Oswald',sans-serif;font-size:13px;font-weight:600;color:var(--text);">${player?.name||'—'}</span>`;
       return `<div style="display:grid;grid-template-columns:70px 1fr auto auto auto;gap:10px;align-items:center;padding:7px 14px;background:var(--panel);border:1px solid var(--border);">
         <span style="font-family:'Oswald',sans-serif;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;color:var(--text3);">${slot}</span>
@@ -3357,14 +3396,31 @@ async function loadLeague(){
       const owner=umap[r.owner_id]||{name:'Unknown'};
       const pids=[...(r.players||[]),...(r.taxi||[])];
       let tot=0;const found=[];const seen=new Set();
+      const seenPids=new Set();
       pids.forEach(pid=>{
         const p=sp[pid]; if(!p) return;
         const m=lookupInDB(p);
         if(m&&!seen.has(m.rank)){
           seen.add(m.rank);
+          seenPids.add(pid);
           tot+=m.score;
           // Store the actual Sleeper player ID so photos work
           found.push({...m,sleeper_id:pid});
+        } else if(!m && !seenPids.has(pid)){
+          // Player is rostered but not in the imported rankings (e.g. someone
+          // outside the user's Flock list). Surface them anyway with score 0
+          // so My Team / trade analyzer show the real roster. Doesn't affect
+          // totals or rankings because score is 0.
+          const name=`${p.first_name||''} ${p.last_name||''}`.trim();
+          if(!name) return;
+          const pos=(p.fantasy_positions&&p.fantasy_positions[0])||p.position||'?';
+          if(!['QB','RB','WR','TE'].includes(pos)) return;
+          seenPids.add(pid);
+          found.push({
+            name, pos, team:p.team||'FA',
+            age:p.age||0, score:0, rank:9999, type:'player',
+            hardcoded:false, sleeper_id:pid, unranked:true
+          });
         }
       });
 
@@ -4455,7 +4511,14 @@ function seasonRecap(seasons){
     const hasData=s.standings&&s.standings.length;
     const champLine=s.champ?`🏆 ${s.champ}`:'Champion unknown';
     const whizLine=s.whizzer?`🚽 ${s.whizzer}`:'';
-    const jerryHtml=buildJerryJonesCard(s);
+    // Jerry Jones only renders for COMPLETED seasons — gate on champ existing,
+    // which is set only after the championship match is played. In-progress
+    // seasons are excluded so trades from the live season don't surface here
+    // until the year wraps.
+    const seasonComplete=!!s.champ;
+    const jerry=seasonComplete?(window._tradesData?.jerryBySeason?.[s.season]):null;
+    const jerryLine=jerry?`🤠 ${jerry.loser}`:'';
+    const jerryHtml=seasonComplete?buildJerryJonesCard(s):'';
     return `<div class="season-card">
       <div class="season-card-header" onclick="toggleSeason('sc_${s.season}',this)">
         <div>
@@ -4465,6 +4528,7 @@ function seasonRecap(seasons){
         <div style="text-align:right;">
           <div style="font-family:Oswald,sans-serif;font-size:12px;color:var(--text);">${champLine}</div>
           ${whizLine?`<div style="font-family:Oswald,sans-serif;font-size:11px;color:var(--rt);">${whizLine}</div>`:''}
+          ${jerryLine?`<div style="font-family:Oswald,sans-serif;font-size:11px;color:var(--accent);">${jerryLine}</div>`:''}
         </div>
         <div style="font-size:14px;color:var(--text3);margin-left:12px;">▾</div>
       </div>
@@ -4564,15 +4628,15 @@ function buildJerryJonesCard(season){
     <div style="font-size:12px;color:var(--text2);line-height:1.6;margin-bottom:10px;">${tagline}</div>
     <div style="display:grid;grid-template-columns:1fr auto 1fr;gap:12px;align-items:start;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;">
       <div>
-        <div style="font-family:Oswald,sans-serif;font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:var(--gt);margin-bottom:4px;">🏆 ${j.winner} received</div>
-        ${assetsHtml(loserSide)}
-        <div style="font-family:'Russo One',sans-serif;font-size:12px;color:var(--gt);margin-top:6px;">${(j.winnerRecv||0).toFixed(1)} value</div>
+        <div style="font-family:Oswald,sans-serif;font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:var(--gt);margin-bottom:4px;">🏆 ${j.winner} gave up</div>
+        ${assetsHtml(winnerSide)}
+        <div style="font-family:'Russo One',sans-serif;font-size:12px;color:var(--gt);margin-top:6px;">${(j.winnerGave||0).toFixed(1)} value</div>
       </div>
       <div style="font-family:'Russo One',sans-serif;font-size:20px;color:var(--text3);padding-top:14px;">↔</div>
       <div>
-        <div style="font-family:Oswald,sans-serif;font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:var(--rt);margin-bottom:4px;">📉 ${j.loser} received</div>
-        ${assetsHtml(winnerSide)}
-        <div style="font-family:'Russo One',sans-serif;font-size:12px;color:var(--rt);margin-top:6px;">${(j.loserRecv||0).toFixed(1)} value</div>
+        <div style="font-family:Oswald,sans-serif;font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:var(--rt);margin-bottom:4px;">📉 ${j.loser} gave up</div>
+        ${assetsHtml(loserSide)}
+        <div style="font-family:'Russo One',sans-serif;font-size:12px;color:var(--rt);margin-top:6px;">${(j.loserGave||0).toFixed(1)} value</div>
       </div>
     </div>
     ${consequence}
