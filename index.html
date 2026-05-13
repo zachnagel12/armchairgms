@@ -4501,13 +4501,10 @@ function renderHistory(){
   const jerryRows=seasons.filter(s=>s.champ&&jerryBy[s.season]).reverse().map(s=>{
     const j=jerryBy[s.season];
     const marginRound=Math.round(j.margin);
-    return `<div class="whizz-row" style="border-color:var(--accent);">
-      <div class="whizz-year" style="color:var(--accent);">${s.season}</div>
+    return `<div class="whizz-row">
+      <div class="whizz-year">${s.season}</div>
       <div style="font-size:18px;">🤠</div>
-      <div style="flex:1;min-width:0;">
-        <div class="champ-name" style="color:var(--accent);">${j.loser}</div>
-        <div class="champ-sub">Fleeced by ${j.winner} · ${marginRound}-pt swing</div>
-      </div>
+      <div style="flex:1;min-width:0;"><div class="champ-name">${j.loser}</div><div class="champ-sub">Fleeced by ${j.winner} · ${marginRound}-pt swing</div></div>
     </div>`;
   }).join('');
 
