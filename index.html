@@ -2187,37 +2187,49 @@ async function buildAllTimeLineup(rid){
   if(!id){el.innerHTML='<div style="font-size:12px;color:var(--text3);padding:12px;">Load a league first.</div>';return;}
 
   try{
-    // Fetch matchups across all weeks of current + previous seasons
-    const startCounts={}; // sleeper_player_id → {name,pos,starts}
+    const startCounts={};
 
+    // Fetch all historical league IDs first
+    const leagueChain=[];
     let scanId=id;
-    const seenLeagues=new Set();
+    const seenL=new Set();
     for(let s=0;s<8;s++){
-      if(seenLeagues.has(scanId)) break;
-      seenLeagues.add(scanId);
+      if(seenL.has(scanId)) break;
+      seenL.add(scanId);
       const lgRes=await fetch(`https://api.sleeper.app/v1/league/${scanId}`).then(r=>r.ok?r.json():null).catch(()=>null);
-      // Fetch all weeks (1-18)
+      if(!lgRes) break;
+      // Only count past seasons — skip current season (status !== 'complete')
+      if(lgRes.status==='complete'||lgRes.season!==String(new Date().getFullYear())){
+        leagueChain.push({scanId,status:lgRes.status});
+      }
+      if(!lgRes.previous_league_id) break;
+      scanId=lgRes.previous_league_id;
+    }
+
+    // For each historical league, scan matchups week by week
+    for(const {scanId:lid} of leagueChain){
       const weekData=await Promise.all(Array.from({length:18},(_,i)=>
-        fetch(`https://api.sleeper.app/v1/league/${scanId}/matchups/${i+1}`)
+        fetch(`https://api.sleeper.app/v1/league/${lid}/matchups/${i+1}`)
           .then(r=>r.ok?r.json():[]).catch(()=>[])
       ));
       weekData.forEach(week=>{
-        if(!Array.isArray(week)) return;
+        if(!Array.isArray(week)||!week.length) return;
         const myEntry=week.find(m=>m.roster_id===rid);
         if(!myEntry) return;
         const starters=myEntry.starters||[];
+        // Only count this week if there are actual starters with real scores
+        const points=myEntry.players_points||{};
+        const hasRealScores=starters.some(pid=>pid&&pid!=='0'&&(points[pid]||0)>0);
+        if(!hasRealScores) return;
         starters.forEach(pid=>{
           if(!pid||pid==='0') return;
           if(!startCounts[pid]) startCounts[pid]={pid,starts:0};
           startCounts[pid].starts++;
         });
       });
-      if(!lgRes?.previous_league_id) break;
-      scanId=lgRes.previous_league_id;
     }
 
-    // Map pids to player names/positions via sp (Sleeper players object)
-    // sp is the full player dictionary fetched during league load
+    // Map pids to player names/positions via cached sp
     const sp=window._sleeperPlayers||{};
     const withInfo=Object.values(startCounts).map(({pid,starts})=>{
       const p=sp[pid];
@@ -2227,14 +2239,17 @@ async function buildAllTimeLineup(rid){
       return {pid,name,pos,starts};
     }).filter(Boolean);
 
+    if(!withInfo.length){
+      el.innerHTML='<div style="font-size:12px;color:var(--text3);padding:12px;">No completed season history found yet.</div>';
+      return;
+    }
+
     // Determine lineup slots based on scoring mode
     const isSF=document.querySelector('.scoring-btn.active')?.dataset?.s==='SF';
     const slots=isSF
       ?['QB','QB','WR','WR','WR','RB','RB','TE','FLEX','SFLEX']
       :['QB','WR','WR','WR','RB','RB','TE','FLEX'];
 
-    // For each slot, find best player (most starts at that position)
-    // FLEX = WR/RB/TE, SFLEX = QB/WR/RB/TE
     const used=new Set();
     function bestFor(positions){
       return withInfo
@@ -2252,7 +2267,7 @@ async function buildAllTimeLineup(rid){
       return {slot,player:best};
     });
 
-    const PC={'QB':'var(--qb)','WR':'var(--wr)','RB':'var(--rb)','TE':'var(--te)','K':'var(--gold)'};
+    const PC={'QB':'var(--qb)','WR':'var(--wr)','RB':'var(--rb)','TE':'var(--te)'};
     el.innerHTML=lineup.map(({slot,player})=>{
       const pc=PC[player?.pos]||'var(--text3)';
       const score=player?DATA.find(d=>d.type==='player'&&d.name===player.name)?.score:null;
@@ -2268,10 +2283,6 @@ async function buildAllTimeLineup(rid){
         `}
       </div>`;
     }).join('');
-
-    if(!withInfo.length){
-      el.innerHTML='<div style="font-size:12px;color:var(--text3);padding:12px;">No matchup history found. This requires at least one completed season.</div>';
-    }
 
   }catch(e){
     el.innerHTML=`<div style="font-size:12px;color:var(--text3);padding:12px;">Failed to load matchup history.</div>`;
