@@ -1111,7 +1111,8 @@ tbody tr.sel{background:rgba(192,120,72,0.13);border-left:3px solid var(--accent
   </div>
 </div>
 
-
+<!-- LEAGUE HISTORY PAGE -->
+<div class="page" id="page-history">
   <div class="sw2">
     <div class="stop">
       <div class="stitle">LEAGUE <span>History</span></div>
@@ -2248,8 +2249,8 @@ async function buildAllTimeLineup(rid){
     // Determine lineup slots based on scoring mode
     const isSF=document.querySelector('.scoring-btn.active')?.dataset?.s==='SF';
     const slots=isSF
-      ?['QB','QB','WR','WR','WR','RB','RB','TE','FLEX','SFLEX']
-      :['QB','WR','WR','WR','RB','RB','TE','FLEX'];
+      ?['QB','RB','RB','WR','WR','WR','TE','FLEX','SFLEX']
+      :['QB','RB','RB','WR','WR','WR','TE','FLEX'];
 
     const used=new Set();
     function bestFor(positions){
