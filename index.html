@@ -2395,16 +2395,34 @@ function renderTradeRecs(roster){
   });
 
   // ── HOLES: positions where this team's best is meaningfully below avg ──
-  const myHoles=[];
-  POSITIONS.forEach(pos=>{
+  // Compute hole score for every position so we can fall back to "relative
+  // weakest" if no absolute hole exists. Even a contender with the league's
+  // best QB/RB/WR has a relatively weakest position they could upgrade.
+  const posMeta=POSITIONS.map(pos=>{
     const pp=roster.all.filter(p=>p.pos===pos).sort((a,b)=>getScore(b)-getScore(a));
     const best=pp[0]?getScore(pp[0]):0;
     const deficit=posAvgTop[pos]-best;
-    // Real hole: best is at least 15% under league avg OR no player at all
-    if(!pp.length||best<posAvgTop[pos]*0.85){
-      myHoles.push({pos, best, deficit, bestPlayer:pp[0]?.name||'None'});
-    }
+    // League rank at this position (1 = best in league)
+    const allBests=MODAL_DATA.map(r=>{
+      const x=r.all.filter(p=>p.pos===pos).sort((a,b)=>getScore(b)-getScore(a))[0];
+      return {rid:r.rid, best:x?getScore(x):0};
+    }).sort((a,b)=>b.best-a.best);
+    const myLeagueRank=allBests.findIndex(x=>x.rid===roster.rid)+1;
+    return {pos, best, deficit, bestPlayer:pp[0]?.name||'None', leagueRank:myLeagueRank};
   });
+
+  const myHoles=[];
+  // Absolute holes first (deficit >15% under league avg, or no player at all)
+  posMeta.forEach(m=>{
+    const isAbsHole=m.best===0||m.best<posAvgTop[m.pos]*0.85;
+    if(isAbsHole) myHoles.push({...m, kind:'absolute'});
+  });
+  // Always include at least ONE hole — fall back to the position where this
+  // team ranks worst in the league. Even an elite team has a weakest area.
+  if(!myHoles.length){
+    const weakest=[...posMeta].sort((a,b)=>b.leagueRank-a.leagueRank)[0];
+    if(weakest) myHoles.push({...weakest, kind:'relative'});
+  }
   myHoles.sort((a,b)=>b.deficit-a.deficit);
 
   // ── SURPLUS: positions with multiple above-avg players + spare picks ──
@@ -2443,16 +2461,6 @@ function renderTradeRecs(roster){
   else if(coreAge<=26.5){windowLabel='Ascending'; windowMode='ascend';}
   else if(coreAge<=28.0){windowLabel='Contention'; windowMode='contend';}
   else {windowLabel='Closing Window'; windowMode='closing';}
-
-  // ── Early exit if nothing to work with ────────────────────────────────
-  if(!myHoles.length){
-    el.innerHTML=`<div style="background:var(--panel);border:1px solid var(--border);padding:14px 16px;">
-      <div style="font-family:'Russo One',sans-serif;font-size:14px;color:var(--gt);">No glaring holes detected.</div>
-      <div style="font-size:12px;color:var(--text3);margin-top:6px;line-height:1.5;">Your roster is positionally balanced — every starting position has a top-tier asset. Consider consolidating depth into a single elite acquisition if a contender emerges in your league.</div>
-      <div style="font-size:11px;color:var(--text3);margin-top:8px;">Core age: ${coreAge.toFixed(1)} · ${windowLabel}</div>
-    </div>`;
-    return;
-  }
 
   // ── BUILD per-team profiles for matchmaking ───────────────────────────
   // For each rival, identify their holes (what they need) and surplus
@@ -2519,76 +2527,132 @@ function renderTradeRecs(roster){
       const mutual=rv.holes.some(h=>mySurplusPositions.has(h));
       const mutualPos=rv.holes.find(h=>mySurplusPositions.has(h));
 
+      // For acquisition recs, the target must be an UPGRADE over what we
+      // currently have at that position. Otherwise we'd recommend trading
+      // away assets for someone worse than our existing starter.
+      const myBestAtPos=roster.all.filter(p=>p.pos===pos)
+        .sort((a,b)=>getScore(b)-getScore(a))[0];
+      const myBestVal=myBestAtPos?getScore(myBestAtPos):0;
+
       for(const target of candidates){
         const targetVal=getScore(target);
         if(targetVal<8) continue; // not worth chasing waiver-level depth
+        if(targetVal<=myBestVal) continue; // must be an upgrade
         const fitMult=ageFitMultiplier(target.age||PEAK[pos], pos);
         // Effective desirability = raw value × age-fit × mutual-fit bonus
         const desirability=targetVal*fitMult*(mutual?1.25:1.0);
 
-        // ── Build the package from my surplus ──
-        // Goal: total package value in [targetVal-3, targetVal+8] to be fair.
-        // Strategy: prefer surplus PLAYERS first (esp. from mutual-fit pos),
-        // then top up with PICKS, then accept small overpay if needed.
-        const pkg=[]; let pkgVal=0;
+        // ── Build the package from my surplus ──────────────────────────
+        // Prefer the most common dynasty trade shapes, in this order:
+        //   (a) Single surplus player whose value alone hits the target band
+        //   (b) One surplus player + one pick (the classic dynasty trade)
+        //   (c) Two surplus players (no pick needed)
+        //   (d) Two surplus players + one pick (only if nothing simpler works)
+        // Avoids stacking multiple picks on top of multiple players for a
+        // single target — that pattern doesn't match how real trades happen.
         const targetMin=targetVal-3;
         const targetMax=targetVal+8;
 
-        // First: try the rival's hole positions from my surplus
-        const surplusPlayersOrdered=[];
-        if(mutualPos){
-          const fromMutual=roster.all.filter(p=>p.pos===mutualPos)
-            .sort((a,b)=>getScore(b)-getScore(a)).slice(1); // skip my #1 there
-          surplusPlayersOrdered.push(...fromMutual);
-        }
-        // Then other surplus positions
-        mySurplusPos.forEach(s=>{
-          if(s.pos===mutualPos) return;
-          const fromPos=roster.all.filter(p=>p.pos===s.pos)
-            .sort((a,b)=>getScore(b)-getScore(a)).slice(2); // skip top 2 (keep depth)
-          surplusPlayersOrdered.push(...fromPos);
-        });
-        // De-dupe & filter to non-core (not in top-5 of any position by score
-        // for this team — those are too valuable to part with)
+        // Pool of usable surplus players (excludes core top-2 at each pos)
         const myCoreNames=new Set();
         POSITIONS.forEach(p=>{
           roster.all.filter(x=>x.pos===p).sort((a,b)=>getScore(b)-getScore(a))
             .slice(0,2).forEach(x=>myCoreNames.add(x.name));
+        });
+        const surplusPlayersOrdered=[];
+        if(mutualPos){
+          const fromMutual=roster.all.filter(p=>p.pos===mutualPos)
+            .sort((a,b)=>getScore(b)-getScore(a)).slice(1);
+          surplusPlayersOrdered.push(...fromMutual);
+        }
+        mySurplusPos.forEach(s=>{
+          if(s.pos===mutualPos) return;
+          const fromPos=roster.all.filter(p=>p.pos===s.pos)
+            .sort((a,b)=>getScore(b)-getScore(a)).slice(2);
+          surplusPlayersOrdered.push(...fromPos);
         });
         const seen=new Set();
         const usable=surplusPlayersOrdered.filter(p=>{
           if(myCoreNames.has(p.name)) return false;
           if(seen.has(p.name)) return false;
           seen.add(p.name);
-          return getScore(p)>=3; // skip benchwarmers
+          return getScore(p)>=3;
         });
-
-        // Greedy add largest-first
         usable.sort((a,b)=>getScore(b)-getScore(a));
-        for(const p of usable){
-          if(pkgVal>=targetMin) break;
-          if(pkgVal+getScore(p)<=targetMax){
-            pkg.push({type:'player',item:p,val:getScore(p)});
-            pkgVal+=getScore(p);
-          }
+        const sortedPicks=[...surplusPicks].sort((a,b)=>pickValue(b)-pickValue(a));
+
+        let pkg=[]; let pkgVal=0;
+        const inRange=(v)=>v>=targetMin&&v<=targetMax+5;
+
+        // (a) Try single player
+        const solo=usable.find(p=>inRange(getScore(p)));
+        if(solo){
+          pkg=[{type:'player',item:solo,val:getScore(solo)}];
+          pkgVal=getScore(solo);
         }
-        // Top up with picks if still short
-        if(pkgVal<targetMin){
-          const pickOpts=[...surplusPicks].sort((a,b)=>pickValue(b)-pickValue(a));
-          for(const pk of pickOpts){
-            if(pkgVal>=targetMin) break;
-            const v=pickValue(pk);
-            if(pkgVal+v<=targetMax+5 && !pkg.some(x=>x.type==='pick'&&x.item===pk)){
-              pkg.push({type:'pick',item:pk,val:v});
-              pkgVal+=v;
+
+        // (b) Try player + pick (the classic dynasty trade shape)
+        if(!pkg.length){
+          for(const p of usable){
+            const pv=getScore(p);
+            if(pv>=targetMax) continue; // alone would overpay
+            for(const pk of sortedPicks){
+              const total=pv+pickValue(pk);
+              if(inRange(total)){
+                pkg=[{type:'player',item:p,val:pv},{type:'pick',item:pk,val:pickValue(pk)}];
+                pkgVal=total;
+                break;
+              }
             }
+            if(pkg.length) break;
           }
         }
+
+        // (c) Try two players (no pick)
+        if(!pkg.length){
+          for(let i=0;i<usable.length;i++){
+            for(let j=i+1;j<usable.length;j++){
+              const total=getScore(usable[i])+getScore(usable[j]);
+              if(inRange(total)){
+                pkg=[
+                  {type:'player',item:usable[i],val:getScore(usable[i])},
+                  {type:'player',item:usable[j],val:getScore(usable[j])}
+                ];
+                pkgVal=total;
+                break;
+              }
+            }
+            if(pkg.length) break;
+          }
+        }
+
+        // (d) Last resort: two players + one pick
+        if(!pkg.length){
+          for(let i=0;i<usable.length;i++){
+            for(let j=i+1;j<usable.length;j++){
+              const pSum=getScore(usable[i])+getScore(usable[j]);
+              if(pSum>=targetMax) continue;
+              for(const pk of sortedPicks){
+                const total=pSum+pickValue(pk);
+                if(inRange(total)){
+                  pkg=[
+                    {type:'player',item:usable[i],val:getScore(usable[i])},
+                    {type:'player',item:usable[j],val:getScore(usable[j])},
+                    {type:'pick',item:pk,val:pickValue(pk)}
+                  ];
+                  pkgVal=total;
+                  break;
+                }
+              }
+              if(pkg.length) break;
+            }
+            if(pkg.length) break;
+          }
+        }
+
         // If we still can't reach the target value, skip — not attainable
-        if(pkgVal<targetMin-2) continue;
-        // If we massively overpay, also skip
-        if(pkgVal>targetVal*1.4) continue;
         if(!pkg.length) continue;
+        if(pkgVal>targetVal*1.4) continue;
 
         recs.push({
           target, targetVal,
@@ -2615,6 +2679,210 @@ function renderTradeRecs(roster){
     if(topRecs.length>=6) break;
   }
 
+  // ── DOWNTIER RECS ──────────────────────────────────────────────────────
+  // When this team has no ABSOLUTE holes (all positions top-tier), surface
+  // consolidation-in-reverse plays: trade a high-end starter at a strength
+  // position for a lesser but still solid player at the same position, PLUS
+  // a 1st or 2nd round pick as a sweetener. Net effect: take a small
+  // production hit at your best position to accumulate future capital.
+  const downtierRecs=[];
+  const hasAbsoluteHole=myHoles.some(h=>h.kind==='absolute');
+  if(!hasAbsoluteHole){
+    // Identify strength positions: this team ranks top-2 in the league AND
+    // has at least 2 quality starters there
+    const strengths=posMeta.filter(m=>{
+      const pp=roster.all.filter(p=>p.pos===m.pos&&getScore(p)>=posAvgTop[m.pos]*0.9);
+      return m.leagueRank<=2 && pp.length>=2;
+    });
+    for(const strength of strengths){
+      const pos=strength.pos;
+      const myAtPos=roster.all.filter(p=>p.pos===pos).sort((a,b)=>getScore(b)-getScore(a));
+      // The player we're moving = our #2 at the position (keep #1, the elite)
+      const movePlayer=myAtPos[1];
+      if(!movePlayer) continue;
+      const moveVal=getScore(movePlayer);
+      if(moveVal<15) continue; // not worth a downtier deal
+
+      // Find rivals who need help at this position
+      const needyRivals=rivals.filter(rv=>{
+        const theirBest=rv.roster.all.filter(p=>p.pos===pos).sort((a,b)=>getScore(b)-getScore(a))[0];
+        const theirVal=theirBest?getScore(theirBest):0;
+        // They have a real positional weakness AND have at least one quality
+        // pick to send back
+        const hasQualityPick=(rv.roster.picks||[]).some(pk=>(pk.matchedScore||0)>=15);
+        return theirVal<moveVal*0.85 && hasQualityPick;
+      });
+
+      for(const rv of needyRivals){
+        // What they send back: a clear tier-down player at the same position
+        // PLUS a 1st-round pick. The pick is the actual value bridge — the
+        // return player should be noticeably lesser, not nearly equal.
+        const theirPlayers=rv.roster.all.filter(p=>p.pos===pos)
+          .sort((a,b)=>getScore(b)-getScore(a));
+        const returnPlayer=theirPlayers.find(p=>{
+          const v=getScore(p);
+          return v>=moveVal*0.40 && v<=moveVal*0.70;
+        });
+        if(!returnPlayer) continue;
+
+        // Their best 1st-round pick (not 2nd — uptier/downtier deals are
+        // most commonly built around a 1st as the bridge)
+        const theirPicks=(rv.roster.picks||[]).slice()
+          .filter(pk=>pk.round===1)
+          .sort((a,b)=>(b.matchedScore||0)-(a.matchedScore||0));
+        const sweetener=theirPicks[0];
+        if(!sweetener) continue;
+
+        const returnVal=getScore(returnPlayer)+(sweetener.matchedScore||0);
+        // Deal needs to be roughly fair — within ±15% of what we send
+        if(returnVal<moveVal*0.85||returnVal>moveVal*1.20) continue;
+
+        downtierRecs.push({
+          movePlayer, moveVal,
+          returnPlayer, sweetener,
+          returnVal,
+          toOwner:rv.roster.owner,
+          pos,
+          strengthRank:strength.leagueRank
+        });
+      }
+    }
+    // De-dupe by (movePlayer, returnPlayer) and rank by smallest value gap (most fair)
+    downtierRecs.sort((a,b)=>Math.abs(b.returnVal-b.moveVal)-Math.abs(a.returnVal-a.moveVal));
+    // Actually we want the FAIREST deals first (smallest absolute gap)
+    downtierRecs.sort((a,b)=>Math.abs(a.returnVal-a.moveVal)-Math.abs(b.returnVal-b.moveVal));
+    const seenMove=new Set();
+    const filtered=[];
+    for(const r of downtierRecs){
+      const key=r.movePlayer.name+'→'+r.returnPlayer.name;
+      if(seenMove.has(key)) continue;
+      seenMove.add(key);
+      filtered.push(r);
+      if(filtered.length>=3) break;
+    }
+    downtierRecs.length=0;
+    downtierRecs.push(...filtered);
+  }
+
+  // ── UPTIER RECS ────────────────────────────────────────────────────────
+  // For contending teams that have depth but no league-elite asset at a
+  // position. The dynasty-standard uptier shape: send ONE quality starter +
+  // ONE 1st-round pick to acquire ONE league-elite player at that same
+  // position. Quantity converts to quality with a 1st as the bridge.
+  const uptierRecs=[];
+  const isWinningNow=windowMode==='contend'||windowMode==='closing';
+  if(isWinningNow&&mySurplusPos.length){
+    // Best 1st-round pick we have to send as the bridge piece
+    const my1sts=(roster.picks||[]).filter(pk=>pk.round===1)
+      .slice().sort((a,b)=>(b.matchedScore||0)-(a.matchedScore||0));
+    if(!my1sts.length){
+      // No 1st to use as bridge — uptier isn't really viable.
+    }
+
+    for(const surplus of mySurplusPos){
+      const pos=surplus.pos;
+      const myAtPos=roster.all.filter(p=>p.pos===pos).sort((a,b)=>getScore(b)-getScore(a));
+      // League-wide elite tier (top-3 at this position)
+      const allAtPos=MODAL_DATA.flatMap(r=>r.all.filter(p=>p.pos===pos)
+        .map(p=>({player:p, owner:r.owner, rid:r.rid, val:getScore(p)})));
+      allAtPos.sort((a,b)=>b.val-a.val);
+      const eliteTier=allAtPos.slice(0,3);
+      // If we already own an elite at this position, no uptier needed
+      if(eliteTier.find(e=>e.rid===roster.rid)) continue;
+
+      for(const elite of eliteTier){
+        if(elite.rid===roster.rid) continue;
+        const target=elite.player;
+        const targetVal=elite.val;
+
+        // Receptive seller check
+        const targetRoster=MODAL_DATA.find(r=>r.rid===elite.rid);
+        if(!targetRoster) continue;
+        const targetTopNine=targetRoster.all.slice().sort((a,b)=>getScore(b)-getScore(a)).slice(0,9);
+        const targetWeighted=targetTopNine.reduce((acc,p)=>{
+          const pk=PEAK[p.pos]||27;
+          const age=p.age||pk;
+          const w=getScore(p);
+          return {sum:acc.sum+age*w,w:acc.w+w};
+        },{sum:0,w:0});
+        const targetAge=targetWeighted.w>0?targetWeighted.sum/targetWeighted.w:26;
+        const targetHoleCount=POSITIONS.filter(p=>{
+          const tp=targetRoster.all.filter(x=>x.pos===p).sort((a,b)=>getScore(b)-getScore(a))[0];
+          return !tp||getScore(tp)<posAvgTop[p]*0.85;
+        }).length;
+        const receptive=targetAge<=26.0||targetHoleCount>=2;
+        if(!receptive) continue;
+
+        // Bridge piece: our #2 at the surplus position (depth piece we won't
+        // miss as much, but still has real trade value). Don't touch #1.
+        const bridgePlayer=myAtPos[1];
+        if(!bridgePlayer) continue;
+        const bridgeVal=getScore(bridgePlayer);
+        if(bridgeVal<10) continue; // need a real piece, not a flier
+
+        // Find a 1st-round pick that, combined with the bridge player, lands
+        // in the fair-value band for the target. Prefer the smallest pick
+        // that still gets us there — don't overpay with our best 1st when a
+        // later one suffices.
+        const targetMin=targetVal-4;
+        const targetMax=targetVal+8;
+        const picksAsc=my1sts.slice().sort((a,b)=>(a.matchedScore||0)-(b.matchedScore||0));
+        let chosenPick=null;
+        for(const pk of picksAsc){
+          const total=bridgeVal+(pk.matchedScore||0);
+          if(total>=targetMin&&total<=targetMax){
+            chosenPick=pk;
+            break;
+          }
+        }
+        // If no 1st works alone, allow a 2nd as fallback bridge (smaller deals)
+        if(!chosenPick){
+          const my2nds=(roster.picks||[]).filter(pk=>pk.round===2)
+            .sort((a,b)=>(b.matchedScore||0)-(a.matchedScore||0));
+          for(const pk of my2nds){
+            const total=bridgeVal+(pk.matchedScore||0);
+            if(total>=targetMin&&total<=targetMax){
+              chosenPick=pk;
+              break;
+            }
+          }
+        }
+        if(!chosenPick) continue;
+
+        const pkgVal=bridgeVal+(chosenPick.matchedScore||0);
+        uptierRecs.push({
+          target, targetVal,
+          pkg:[
+            {type:'player',item:bridgePlayer,val:bridgeVal},
+            {type:'pick',item:chosenPick,val:chosenPick.matchedScore||0}
+          ],
+          pkgVal,
+          fromOwner:elite.owner,
+          pos,
+          targetAge,
+          targetHoleCount,
+          eliteRank:allAtPos.findIndex(e=>e.player.name===target.name)+1
+        });
+      }
+    }
+    // De-dupe by target & rank by best (target value × age fit), tightest fair-value first
+    uptierRecs.sort((a,b)=>{
+      const aFit=ageFitMultiplier(a.target.age||PEAK[a.pos], a.pos);
+      const bFit=ageFitMultiplier(b.target.age||PEAK[b.pos], b.pos);
+      return b.targetVal*bFit-a.targetVal*aFit;
+    });
+    const seenT=new Set();
+    const filtered=[];
+    for(const r of uptierRecs){
+      if(seenT.has(r.target.name)) continue;
+      seenT.add(r.target.name);
+      filtered.push(r);
+      if(filtered.length>=3) break;
+    }
+    uptierRecs.length=0;
+    uptierRecs.push(...filtered);
+  }
+
   // ── RENDER ─────────────────────────────────────────────────────────────
   const PC={QB:'var(--qb)',WR:'var(--wr)',RB:'var(--rb)',TE:'var(--te)',PICK:'var(--pick)'};
   const windowColor=windowMode==='build'?'var(--qb)':windowMode==='contend'?'var(--accent)':windowMode==='closing'?'var(--rt)':'var(--gold)';
@@ -2626,8 +2894,8 @@ function renderTradeRecs(roster){
       <div><div style="font-family:Oswald,sans-serif;font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:var(--text3);">Core Age</div>
         <div style="font-family:'Russo One',sans-serif;font-size:14px;color:var(--text);">${coreAge.toFixed(1)}</div></div>
       <div style="flex:1;min-width:160px;">
-        <div style="font-family:Oswald,sans-serif;font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:var(--text3);">Holes</div>
-        <div>${myHoles.map(h=>`<span style="font-family:Oswald,sans-serif;font-size:11px;color:${PC[h.pos]};margin-right:8px;">${h.pos} <span style="color:var(--text3);font-size:10px;">(−${h.deficit.toFixed(1)})</span></span>`).join('')||'<span style="color:var(--gt);font-size:11px;">None</span>'}</div>
+        <div style="font-family:Oswald,sans-serif;font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:var(--text3);">${myHoles.some(h=>h.kind==='absolute')?'Holes':'Weakest Area'}</div>
+        <div>${myHoles.map(h=>`<span style="font-family:Oswald,sans-serif;font-size:11px;color:${PC[h.pos]};margin-right:8px;">${h.pos} <span style="color:var(--text3);font-size:10px;">${h.kind==='absolute'?'(−'+h.deficit.toFixed(1)+')':'(#'+h.leagueRank+' in lg)'}</span></span>`).join('')}</div>
       </div>
       <div style="flex:1;min-width:160px;">
         <div style="font-family:Oswald,sans-serif;font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:var(--text3);">Surplus</div>
@@ -2636,7 +2904,7 @@ function renderTradeRecs(roster){
     </div>
   </div>`;
 
-  if(!topRecs.length){
+  if(!topRecs.length&&!downtierRecs.length&&!uptierRecs.length){
     el.innerHTML=profileHtml+`<div style="background:var(--panel);border:1px solid var(--border);padding:14px 16px;color:var(--text3);font-size:12px;line-height:1.5;">
       Couldn't find a clean trade match. ${!mySurplusPos.length&&!surplusPicks.length?'Your roster is too thin to make competitive offers — focus on waiver pickups or wait for value to develop.':'Your league rivals don\'t currently have surplus matching your holes, or values don\'t line up. Try checking back after a few weeks of NFL games.'}
     </div>`;
@@ -2677,7 +2945,11 @@ function renderTradeRecs(roster){
     const diffCol=diff>5?'var(--rt)':diff<-2?'var(--gt)':'var(--text3)';
 
     // Rationale line — explain why this fits
-    let rationale=`Fills your ${r.hole} hole.`;
+    const holeMeta=myHoles.find(h=>h.pos===r.hole);
+    const isRelative=holeMeta?.kind==='relative';
+    let rationale=isRelative
+      ? `Upgrades your weakest area — ${r.hole} is your roster's relative soft spot.`
+      : `Fills your ${r.hole} hole.`;
     if(r.mutualPos) rationale+=` ${r.fromOwner} needs ${r.mutualPos}, where you're deep — likely receptive.`;
     if(r.windowMode==='build'&&(r.target.age||99)<=PEAK[r.target.pos]) rationale+=` Young enough to mature with your core.`;
     if(r.windowMode==='contend'&&(r.target.age||99)>=PEAK[r.target.pos]-2&&(r.target.age||99)<=PEAK[r.target.pos]+1) rationale+=` Prime-age — moves the needle this year.`;
@@ -2710,7 +2982,131 @@ function renderTradeRecs(roster){
     </div>`;
   }).join('');
 
-  el.innerHTML=profileHtml+recCardsHtml;
+  // ── DOWNTIER REC RENDERING ────────────────────────────────────────────
+  // Only renders when no absolute holes exist. Shows "consolidation in
+  // reverse" plays — small production hit for picks.
+  const downtierHtml=downtierRecs.length
+    ?`<div style="margin-top:14px;">
+        <div style="font-family:Oswald,sans-serif;font-size:10px;letter-spacing:0.16em;text-transform:uppercase;color:var(--text3);margin-bottom:8px;">Downtier Plays · Trade Strength for Picks</div>
+        ${downtierRecs.map(d=>{
+          const moveDb=DATA.find(p=>p.type==='player'&&normName(p.name)===normName(d.movePlayer.name));
+          const recvDb=DATA.find(p=>p.type==='player'&&normName(p.name)===normName(d.returnPlayer.name));
+          const moveNm=moveDb
+            ?`<span onclick="showPlayerCardModal(${moveDb.rank})" style="cursor:pointer;text-decoration:underline;text-decoration-color:var(--border2);text-underline-offset:2px;">${d.movePlayer.name}</span>`
+            :d.movePlayer.name;
+          const recvNm=recvDb
+            ?`<span onclick="showPlayerCardModal(${recvDb.rank})" style="cursor:pointer;text-decoration:underline;text-decoration-color:var(--border2);">${d.returnPlayer.name}</span>`
+            :d.returnPlayer.name;
+          const rdLabel=d.sweetener.round===1?'1st':d.sweetener.round===2?'2nd':d.sweetener.round===3?'3rd':'4th';
+          const sweetenerVal=(d.sweetener.matchedScore||0).toFixed(1);
+          const diff=d.returnVal-d.moveVal;
+          const diffStr=diff>=0?`+${diff.toFixed(1)} net gain`:`${diff.toFixed(1)} small downgrade`;
+          const diffCol=diff>=0?'var(--gt)':'var(--gold)';
+          return `<div style="background:var(--panel);border:1px solid var(--border);padding:12px 14px;margin-bottom:8px;">
+            <div style="display:flex;align-items:start;gap:10px;margin-bottom:6px;flex-wrap:wrap;">
+              <div style="flex:1;min-width:180px;">
+                <div style="font-family:'Russo One',sans-serif;font-size:14px;color:var(--text);">Consolidation Play · ${d.pos}</div>
+                <div style="font-family:Oswald,sans-serif;font-size:10px;color:var(--text3);margin-top:2px;">Trading with ${d.toOwner}</div>
+              </div>
+              <span style="font-family:Oswald,sans-serif;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;color:var(--pick);background:rgba(155,138,191,0.12);padding:2px 7px;border-radius:3px;">Stockpile picks</span>
+            </div>
+            <div style="font-size:11px;color:var(--text2);line-height:1.5;margin-bottom:8px;">You're #${d.strengthRank} at ${d.pos} in the league. Send your #2 there to a team that needs depth, take their starter back + their best ${rdLabel}-round pick to fuel future moves.</div>
+            <div style="display:grid;grid-template-columns:1fr auto 1fr;gap:10px;align-items:center;">
+              <div style="background:var(--bg2);border:1px solid var(--border);padding:8px 10px;">
+                <div style="font-family:Oswald,sans-serif;font-size:9px;letter-spacing:0.12em;text-transform:uppercase;color:var(--rt);margin-bottom:4px;">You send</div>
+                <div style="display:flex;justify-content:space-between;font-size:11px;padding:2px 0;">
+                  <div><span style="font-family:Oswald,sans-serif;font-size:9px;color:${PC[d.pos]};margin-right:6px;">${d.pos}</span>${moveNm}</div>
+                  <div style="font-family:Oswald,sans-serif;color:var(--text3);">${d.moveVal.toFixed(1)}</div>
+                </div>
+              </div>
+              <div style="font-family:'Russo One',sans-serif;font-size:18px;color:var(--text3);">↔</div>
+              <div style="background:var(--bg2);border:1px solid var(--border);padding:8px 10px;">
+                <div style="font-family:Oswald,sans-serif;font-size:9px;letter-spacing:0.12em;text-transform:uppercase;color:var(--gt);margin-bottom:4px;">You receive</div>
+                <div style="display:flex;justify-content:space-between;font-size:11px;padding:2px 0;">
+                  <div><span style="font-family:Oswald,sans-serif;font-size:9px;color:${PC[d.pos]};margin-right:6px;">${d.pos}</span>${recvNm}</div>
+                  <div style="font-family:Oswald,sans-serif;color:var(--text3);">${getScore(d.returnPlayer).toFixed(1)}</div>
+                </div>
+                <div style="display:flex;justify-content:space-between;font-size:11px;padding:2px 0;">
+                  <div><span style="font-family:Oswald,sans-serif;font-size:9px;color:${PC.PICK};margin-right:6px;">PICK</span>${d.sweetener.season} ${rdLabel}</div>
+                  <div style="font-family:Oswald,sans-serif;color:var(--text3);">${sweetenerVal}</div>
+                </div>
+              </div>
+            </div>
+            <div style="text-align:right;font-family:Oswald,sans-serif;font-size:10px;color:${diffCol};margin-top:6px;letter-spacing:0.08em;">${diffStr}</div>
+          </div>`;
+        }).join('')}
+      </div>`
+    :'';
+
+  // ── UPTIER REC RENDERING ──────────────────────────────────────────────
+  // For contenders with depth but no star power: package multiple solid
+  // players to acquire ONE league-elite player at the same position.
+  const uptierHtml=uptierRecs.length
+    ?`<div style="margin-top:14px;">
+        <div style="font-family:Oswald,sans-serif;font-size:10px;letter-spacing:0.16em;text-transform:uppercase;color:var(--text3);margin-bottom:8px;">Uptier Plays · Consolidate Depth into a Star</div>
+        ${uptierRecs.map(u=>{
+          const targetDb=DATA.find(p=>p.type==='player'&&normName(p.name)===normName(u.target.name));
+          const targetNm=targetDb
+            ?`<span onclick="showPlayerCardModal(${targetDb.rank})" style="cursor:pointer;text-decoration:underline;text-decoration-color:var(--border2);text-underline-offset:2px;">${u.target.name}</span>`
+            :u.target.name;
+          const ageStr=u.target.age?`Age ${u.target.age}`:'';
+          const eliteRankStr=u.eliteRank===1?`Top ${u.pos} in league`:`Top-${u.eliteRank} ${u.pos} in league`;
+          const pkgRows=u.pkg.map(item=>{
+            if(item.type==='player'){
+              const dbP=DATA.find(d=>d.type==='player'&&normName(d.name)===normName(item.item.name));
+              const nm=dbP
+                ?`<span onclick="showPlayerCardModal(${dbP.rank})" style="cursor:pointer;text-decoration:underline;text-decoration-color:var(--border2);">${item.item.name}</span>`
+                :item.item.name;
+              return `<div style="display:flex;justify-content:space-between;align-items:center;font-size:11px;padding:3px 0;">
+                <div><span style="font-family:Oswald,sans-serif;font-size:9px;color:${PC[item.item.pos]};margin-right:6px;">${item.item.pos}</span>${nm}</div>
+                <div style="font-family:Oswald,sans-serif;color:var(--text3);">${item.val.toFixed(1)}</div>
+              </div>`;
+            }
+            const pk=item.item;
+            const rdL=pk.round===1?'1st':pk.round===2?'2nd':pk.round===3?'3rd':'4th';
+            return `<div style="display:flex;justify-content:space-between;align-items:center;font-size:11px;padding:3px 0;">
+              <div><span style="font-family:Oswald,sans-serif;font-size:9px;color:${PC.PICK};margin-right:6px;">PICK</span>${pk.season} ${rdL}</div>
+              <div style="font-family:Oswald,sans-serif;color:var(--text3);">${item.val.toFixed(1)}</div>
+            </div>`;
+          }).join('');
+          const diff=u.pkgVal-u.targetVal;
+          const diffStr=diff>=0?`+${diff.toFixed(1)} overpay`:`${diff.toFixed(1)} discount`;
+          const diffCol=diff>5?'var(--rt)':diff<-2?'var(--gt)':'var(--text3)';
+          // Rationale — why this fit makes sense
+          let why=`You have multiple solid ${u.pos}s but no league-elite asset. Convert a depth piece + a 1st into a true difference-maker.`;
+          if(u.targetAge<=26.0) why+=` ${u.fromOwner}'s core is young — they'd value quantity to build around.`;
+          else if(u.targetHoleCount>=2) why+=` ${u.fromOwner} has multiple positional holes — they need bodies more than stars.`;
+          return `<div style="background:var(--panel);border:1px solid var(--border);padding:12px 14px;margin-bottom:8px;">
+            <div style="display:flex;align-items:start;gap:10px;margin-bottom:6px;flex-wrap:wrap;">
+              <div style="flex:1;min-width:180px;">
+                <div style="font-family:'Russo One',sans-serif;font-size:15px;color:var(--text);">Target: ${targetNm}</div>
+                <div style="font-family:Oswald,sans-serif;font-size:10px;color:var(--text3);margin-top:2px;">
+                  <span style="color:${PC[u.pos]};">${u.pos}</span>
+                  ${ageStr?'· '+ageStr:''}
+                  · Owned by ${u.fromOwner}
+                  · Value ${u.targetVal.toFixed(1)}
+                </div>
+              </div>
+              <span style="font-family:Oswald,sans-serif;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;color:var(--accent);background:rgba(192,122,74,0.12);padding:2px 7px;border-radius:3px;">${eliteRankStr}</span>
+            </div>
+            <div style="font-size:11px;color:var(--text2);line-height:1.5;margin-bottom:8px;">${why}</div>
+            <div style="background:var(--bg2);border:1px solid var(--border);padding:8px 10px;">
+              <div style="display:flex;justify-content:space-between;align-items:center;font-family:Oswald,sans-serif;font-size:9px;letter-spacing:0.12em;text-transform:uppercase;color:var(--text3);margin-bottom:4px;">
+                <span>Your offer (${u.pkg.length} pieces)</span>
+                <span style="color:${diffCol};">${diffStr}</span>
+              </div>
+              ${pkgRows}
+              <div style="display:flex;justify-content:space-between;align-items:center;font-family:'Russo One',sans-serif;font-size:12px;color:var(--accent);border-top:1px solid var(--border);padding-top:5px;margin-top:5px;">
+                <span>Package total</span>
+                <span>${u.pkgVal.toFixed(1)}</span>
+              </div>
+            </div>
+          </div>`;
+        }).join('')}
+      </div>`
+    :'';
+
+  el.innerHTML=profileHtml+recCardsHtml+uptierHtml+downtierHtml;
 }
 
 async function buildAllTimeLineup(rid){
