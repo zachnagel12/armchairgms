@@ -1104,9 +1104,15 @@ tbody tr.sel{background:rgba(192,120,72,0.13);border-left:3px solid var(--accent
       </div>
 
       <!-- Draft Capital -->
-      <div>
+      <div style="margin-bottom:20px;">
         <div style="font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:0.18em;text-transform:uppercase;color:var(--text3);margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--border);">Draft Capital</div>
         <div id="mt-picks" style="display:flex;flex-direction:column;gap:2px;"></div>
+      </div>
+
+      <!-- Trade Recommendations -->
+      <div>
+        <div style="font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:0.18em;text-transform:uppercase;color:var(--text3);margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--border);">🎯 Trade Recommendations</div>
+        <div id="mt-trade-recs" style="display:flex;flex-direction:column;gap:10px;"></div>
       </div>
 
     </div>
@@ -2353,6 +2359,358 @@ async function renderMyTeam(rid){
 
   // All-time starting lineup — fetch matchup history
   await buildAllTimeLineup(rid);
+
+  // Trade recommendations — engine based on the user's hole/surplus/window profile
+  renderTradeRecs(roster);
+}
+
+// ── TRADE RECOMMENDATIONS ────────────────────────────────────────────────
+// Builds a personalized trade rec list for the user's chosen team based on:
+//   1. Positional holes (worst-deficit positions vs league avg)
+//   2. Surplus assets (extra players above league at a position + spare picks)
+//   3. Contention window (avg age of top-9 starters → win-now vs build)
+//   4. Liquid value (target must be within reach via surplus assets)
+//   5. Mutual fit (target's owner has a hole in one of OUR surplus positions)
+function renderTradeRecs(roster){
+  const el=document.getElementById('mt-trade-recs');
+  if(!el) return;
+  if(!MODAL_DATA||!MODAL_DATA.length){
+    el.innerHTML='<div style="font-size:12px;color:var(--text3);padding:12px;">Load league first.</div>';
+    return;
+  }
+  const POSITIONS=['QB','RB','WR','TE'];
+  // League-average BEST player at each position (used by other code as the
+  // hole threshold). Re-compute here for the rec engine.
+  const posAvgTop={};      // avg of each team's BEST player at pos
+  const posAvgDepth={};    // avg of each team's #2 player at pos (depth signal)
+  POSITIONS.forEach(pos=>{
+    const tops=[],seconds=[];
+    MODAL_DATA.forEach(r=>{
+      const pp=r.all.filter(p=>p.pos===pos).sort((a,b)=>getScore(b)-getScore(a));
+      tops.push(pp[0]?getScore(pp[0]):0);
+      seconds.push(pp[1]?getScore(pp[1]):0);
+    });
+    posAvgTop[pos]=tops.reduce((s,v)=>s+v,0)/tops.length;
+    posAvgDepth[pos]=seconds.reduce((s,v)=>s+v,0)/seconds.length;
+  });
+
+  // ── HOLES: positions where this team's best is meaningfully below avg ──
+  const myHoles=[];
+  POSITIONS.forEach(pos=>{
+    const pp=roster.all.filter(p=>p.pos===pos).sort((a,b)=>getScore(b)-getScore(a));
+    const best=pp[0]?getScore(pp[0]):0;
+    const deficit=posAvgTop[pos]-best;
+    // Real hole: best is at least 15% under league avg OR no player at all
+    if(!pp.length||best<posAvgTop[pos]*0.85){
+      myHoles.push({pos, best, deficit, bestPlayer:pp[0]?.name||'None'});
+    }
+  });
+  myHoles.sort((a,b)=>b.deficit-a.deficit);
+
+  // ── SURPLUS: positions with multiple above-avg players + spare picks ──
+  // Player surplus: 3+ players at or above league-avg top
+  const mySurplusPos=[];
+  POSITIONS.forEach(pos=>{
+    const above=roster.all.filter(p=>p.pos===pos&&getScore(p)>=posAvgTop[pos]*0.8);
+    if(above.length>=3){
+      mySurplusPos.push({pos, count:above.length, players:above});
+    }
+  });
+  // Pick surplus: any pick beyond the first in a given year is "movable",
+  // and 2nd-round+ picks are also generally movable.
+  const myPicks=(roster.picks||[]).slice().sort((a,b)=>a.season-b.season||a.round-b.round);
+  const surplusPicks=[];
+  const firstByYear={};
+  myPicks.forEach(pk=>{
+    const yr=pk.season;
+    if(!firstByYear[yr]){firstByYear[yr]=pk;return;}
+    surplusPicks.push(pk); // additional picks in the same year
+  });
+  // Also flag deep picks (3rd+ rounds) as available for sweetener
+  myPicks.forEach(pk=>{if(pk.round>=3&&!surplusPicks.includes(pk)) surplusPicks.push(pk);});
+
+  // ── CONTENTION WINDOW: weighted age of top-9 by score ─────────────────
+  const topNine=roster.all.slice().sort((a,b)=>getScore(b)-getScore(a)).slice(0,9);
+  const weighted=topNine.reduce((acc,p)=>{
+    const pk={QB:30,WR:27,RB:25,TE:28}[p.pos]||27;
+    const age=p.age||pk;
+    const w=getScore(p);
+    return {sum:acc.sum+age*w,w:acc.w+w};
+  },{sum:0,w:0});
+  const coreAge=weighted.w>0?weighted.sum/weighted.w:26;
+  let windowLabel, windowMode;
+  if(coreAge<=25.0){windowLabel='Rebuilding'; windowMode='build';}
+  else if(coreAge<=26.5){windowLabel='Ascending'; windowMode='ascend';}
+  else if(coreAge<=28.0){windowLabel='Contention'; windowMode='contend';}
+  else {windowLabel='Closing Window'; windowMode='closing';}
+
+  // ── Early exit if nothing to work with ────────────────────────────────
+  if(!myHoles.length){
+    el.innerHTML=`<div style="background:var(--panel);border:1px solid var(--border);padding:14px 16px;">
+      <div style="font-family:'Russo One',sans-serif;font-size:14px;color:var(--gt);">No glaring holes detected.</div>
+      <div style="font-size:12px;color:var(--text3);margin-top:6px;line-height:1.5;">Your roster is positionally balanced — every starting position has a top-tier asset. Consider consolidating depth into a single elite acquisition if a contender emerges in your league.</div>
+      <div style="font-size:11px;color:var(--text3);margin-top:8px;">Core age: ${coreAge.toFixed(1)} · ${windowLabel}</div>
+    </div>`;
+    return;
+  }
+
+  // ── BUILD per-team profiles for matchmaking ───────────────────────────
+  // For each rival, identify their holes (what they need) and surplus
+  // (what they have to give). We're looking for mutual fit.
+  const rivals=MODAL_DATA.filter(r=>r.rid!==roster.rid).map(r=>{
+    const rHoles=[]; const rSurplusPos=[];
+    POSITIONS.forEach(pos=>{
+      const pp=r.all.filter(p=>p.pos===pos).sort((a,b)=>getScore(b)-getScore(a));
+      const best=pp[0]?getScore(pp[0]):0;
+      if(!pp.length||best<posAvgTop[pos]*0.85) rHoles.push(pos);
+      const above=r.all.filter(p=>p.pos===pos&&getScore(p)>=posAvgTop[pos]*0.8);
+      if(above.length>=3) rSurplusPos.push({pos, players:above});
+    });
+    return {roster:r, holes:rHoles, surplusPos:rSurplusPos};
+  });
+
+  // ── For each of MY holes, find candidate targets ──────────────────────
+  // A candidate is a player at the hole position, owned by a rival who has
+  // surplus there AND has a hole at one of MY surplus positions (mutual fit).
+  // If no mutual-fit owner exists, fall back to any rival with surplus there.
+  const PEAK={QB:30,WR:27,RB:25,TE:28};
+  const mySurplusPositions=new Set(mySurplusPos.map(s=>s.pos));
+  function ageFitMultiplier(age, pos){
+    // Lower = better target for the window. We want targets whose age sweet
+    // spot aligns with where the team is going.
+    const pk=PEAK[pos]||27;
+    if(windowMode==='build'){
+      if(age<=pk-1) return 1.15;          // young upside is gold
+      if(age<=pk+1) return 0.85;
+      return 0.5;                         // 30+ player on a rebuild is bad
+    }
+    if(windowMode==='contend'){
+      if(age<=pk-3) return 0.75;          // too young to help now
+      if(age<=pk+2) return 1.15;          // prime
+      return 0.85;
+    }
+    if(windowMode==='closing'){
+      if(age<=pk-2) return 0.6;           // unhelpful for a closing window
+      return 1.1;
+    }
+    return 1.0; // ascend mode is neutral
+  }
+
+  function pickValue(pk){
+    return pk.matchedScore||0;
+  }
+
+  // Build a candidate list per hole position
+  const recs=[];
+  for(const hole of myHoles){
+    const pos=hole.pos;
+    // All rivals who have surplus at this position
+    const rivalsWithSurplus=rivals.filter(rv=>rv.surplusPos.some(s=>s.pos===pos));
+    if(!rivalsWithSurplus.length) continue;
+
+    // For each such rival, propose a target player from their surplus
+    for(const rv of rivalsWithSurplus){
+      const theirPool=rv.roster.all.filter(p=>p.pos===pos).sort((a,b)=>getScore(b)-getScore(a));
+      // Don't target their #1 starter at the position — they won't trade it.
+      // Pick from their 2nd or 3rd best at that position.
+      const candidates=theirPool.slice(1,3);
+
+      // Mutual fit bonus if this rival has a hole at one of my surplus pos
+      const mutual=rv.holes.some(h=>mySurplusPositions.has(h));
+      const mutualPos=rv.holes.find(h=>mySurplusPositions.has(h));
+
+      for(const target of candidates){
+        const targetVal=getScore(target);
+        if(targetVal<8) continue; // not worth chasing waiver-level depth
+        const fitMult=ageFitMultiplier(target.age||PEAK[pos], pos);
+        // Effective desirability = raw value × age-fit × mutual-fit bonus
+        const desirability=targetVal*fitMult*(mutual?1.25:1.0);
+
+        // ── Build the package from my surplus ──
+        // Goal: total package value in [targetVal-3, targetVal+8] to be fair.
+        // Strategy: prefer surplus PLAYERS first (esp. from mutual-fit pos),
+        // then top up with PICKS, then accept small overpay if needed.
+        const pkg=[]; let pkgVal=0;
+        const targetMin=targetVal-3;
+        const targetMax=targetVal+8;
+
+        // First: try the rival's hole positions from my surplus
+        const surplusPlayersOrdered=[];
+        if(mutualPos){
+          const fromMutual=roster.all.filter(p=>p.pos===mutualPos)
+            .sort((a,b)=>getScore(b)-getScore(a)).slice(1); // skip my #1 there
+          surplusPlayersOrdered.push(...fromMutual);
+        }
+        // Then other surplus positions
+        mySurplusPos.forEach(s=>{
+          if(s.pos===mutualPos) return;
+          const fromPos=roster.all.filter(p=>p.pos===s.pos)
+            .sort((a,b)=>getScore(b)-getScore(a)).slice(2); // skip top 2 (keep depth)
+          surplusPlayersOrdered.push(...fromPos);
+        });
+        // De-dupe & filter to non-core (not in top-5 of any position by score
+        // for this team — those are too valuable to part with)
+        const myCoreNames=new Set();
+        POSITIONS.forEach(p=>{
+          roster.all.filter(x=>x.pos===p).sort((a,b)=>getScore(b)-getScore(a))
+            .slice(0,2).forEach(x=>myCoreNames.add(x.name));
+        });
+        const seen=new Set();
+        const usable=surplusPlayersOrdered.filter(p=>{
+          if(myCoreNames.has(p.name)) return false;
+          if(seen.has(p.name)) return false;
+          seen.add(p.name);
+          return getScore(p)>=3; // skip benchwarmers
+        });
+
+        // Greedy add largest-first
+        usable.sort((a,b)=>getScore(b)-getScore(a));
+        for(const p of usable){
+          if(pkgVal>=targetMin) break;
+          if(pkgVal+getScore(p)<=targetMax){
+            pkg.push({type:'player',item:p,val:getScore(p)});
+            pkgVal+=getScore(p);
+          }
+        }
+        // Top up with picks if still short
+        if(pkgVal<targetMin){
+          const pickOpts=[...surplusPicks].sort((a,b)=>pickValue(b)-pickValue(a));
+          for(const pk of pickOpts){
+            if(pkgVal>=targetMin) break;
+            const v=pickValue(pk);
+            if(pkgVal+v<=targetMax+5 && !pkg.some(x=>x.type==='pick'&&x.item===pk)){
+              pkg.push({type:'pick',item:pk,val:v});
+              pkgVal+=v;
+            }
+          }
+        }
+        // If we still can't reach the target value, skip — not attainable
+        if(pkgVal<targetMin-2) continue;
+        // If we massively overpay, also skip
+        if(pkgVal>targetVal*1.4) continue;
+        if(!pkg.length) continue;
+
+        recs.push({
+          target, targetVal,
+          fromOwner:rv.roster.owner,
+          mutualPos,
+          pkg, pkgVal,
+          desirability,
+          hole:pos,
+          windowMode, coreAge
+        });
+      }
+    }
+  }
+
+  // Rank recs by desirability and de-dupe (one rec per target player)
+  recs.sort((a,b)=>b.desirability-a.desirability);
+  const seenTargets=new Set();
+  const topRecs=[];
+  for(const r of recs){
+    const key=r.target.name;
+    if(seenTargets.has(key)) continue;
+    seenTargets.add(key);
+    topRecs.push(r);
+    if(topRecs.length>=6) break;
+  }
+
+  // ── RENDER ─────────────────────────────────────────────────────────────
+  const PC={QB:'var(--qb)',WR:'var(--wr)',RB:'var(--rb)',TE:'var(--te)',PICK:'var(--pick)'};
+  const windowColor=windowMode==='build'?'var(--qb)':windowMode==='contend'?'var(--accent)':windowMode==='closing'?'var(--rt)':'var(--gold)';
+
+  const profileHtml=`<div style="background:var(--bg2);border:1px solid var(--border);padding:10px 14px;margin-bottom:10px;">
+    <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:center;">
+      <div><div style="font-family:Oswald,sans-serif;font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:var(--text3);">Window</div>
+        <div style="font-family:'Russo One',sans-serif;font-size:14px;color:${windowColor};">${windowLabel}</div></div>
+      <div><div style="font-family:Oswald,sans-serif;font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:var(--text3);">Core Age</div>
+        <div style="font-family:'Russo One',sans-serif;font-size:14px;color:var(--text);">${coreAge.toFixed(1)}</div></div>
+      <div style="flex:1;min-width:160px;">
+        <div style="font-family:Oswald,sans-serif;font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:var(--text3);">Holes</div>
+        <div>${myHoles.map(h=>`<span style="font-family:Oswald,sans-serif;font-size:11px;color:${PC[h.pos]};margin-right:8px;">${h.pos} <span style="color:var(--text3);font-size:10px;">(−${h.deficit.toFixed(1)})</span></span>`).join('')||'<span style="color:var(--gt);font-size:11px;">None</span>'}</div>
+      </div>
+      <div style="flex:1;min-width:160px;">
+        <div style="font-family:Oswald,sans-serif;font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:var(--text3);">Surplus</div>
+        <div>${mySurplusPos.map(s=>`<span style="font-family:Oswald,sans-serif;font-size:11px;color:${PC[s.pos]};margin-right:8px;">${s.pos} <span style="color:var(--text3);font-size:10px;">(${s.count})</span></span>`).join('')}${surplusPicks.length?`<span style="font-family:Oswald,sans-serif;font-size:11px;color:${PC.PICK};margin-right:8px;">${surplusPicks.length} picks</span>`:''}${!mySurplusPos.length&&!surplusPicks.length?'<span style="color:var(--text3);font-size:11px;">Thin</span>':''}</div>
+      </div>
+    </div>
+  </div>`;
+
+  if(!topRecs.length){
+    el.innerHTML=profileHtml+`<div style="background:var(--panel);border:1px solid var(--border);padding:14px 16px;color:var(--text3);font-size:12px;line-height:1.5;">
+      Couldn't find a clean trade match. ${!mySurplusPos.length&&!surplusPicks.length?'Your roster is too thin to make competitive offers — focus on waiver pickups or wait for value to develop.':'Your league rivals don\'t currently have surplus matching your holes, or values don\'t line up. Try checking back after a few weeks of NFL games.'}
+    </div>`;
+    return;
+  }
+
+  const recCardsHtml=topRecs.map(r=>{
+    const ageStr=r.target.age?`Age ${r.target.age}`:'';
+    const fitTag=r.mutualPos
+      ? `<span style="font-family:Oswald,sans-serif;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;color:var(--gt);background:rgba(118,196,144,0.1);padding:2px 7px;border-radius:3px;">Mutual fit · they need ${r.mutualPos}</span>`
+      : `<span style="font-family:Oswald,sans-serif;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;color:var(--text3);background:var(--bg2);padding:2px 7px;border-radius:3px;">Targeted ask</span>`;
+    const dbPlayer=DATA.find(d=>d.type==='player'&&normName(d.name)===normName(r.target.name));
+    const targetNameHtml=dbPlayer
+      ?`<span onclick="showPlayerCardModal(${dbPlayer.rank})" style="cursor:pointer;text-decoration:underline;text-decoration-color:var(--border2);text-underline-offset:2px;">${r.target.name}</span>`
+      :r.target.name;
+    const pkgRows=r.pkg.map(item=>{
+      if(item.type==='player'){
+        const dbP=DATA.find(d=>d.type==='player'&&normName(d.name)===normName(item.item.name));
+        const nm=dbP
+          ?`<span onclick="showPlayerCardModal(${dbP.rank})" style="cursor:pointer;text-decoration:underline;text-decoration-color:var(--border2);">${item.item.name}</span>`
+          :item.item.name;
+        return `<div style="display:flex;justify-content:space-between;align-items:center;font-size:11px;padding:3px 0;">
+          <div><span style="font-family:Oswald,sans-serif;font-size:9px;color:${PC[item.item.pos]};margin-right:6px;">${item.item.pos}</span>${nm}</div>
+          <div style="font-family:Oswald,sans-serif;color:var(--text3);">${item.val.toFixed(1)}</div>
+        </div>`;
+      }
+      // pick
+      const pk=item.item;
+      const rdLabel=pk.round===1?'1st':pk.round===2?'2nd':pk.round===3?'3rd':'4th';
+      return `<div style="display:flex;justify-content:space-between;align-items:center;font-size:11px;padding:3px 0;">
+        <div><span style="font-family:Oswald,sans-serif;font-size:9px;color:${PC.PICK};margin-right:6px;">PICK</span>${pk.season} ${rdLabel}</div>
+        <div style="font-family:Oswald,sans-serif;color:var(--text3);">${item.val.toFixed(1)}</div>
+      </div>`;
+    }).join('');
+
+    const diff=r.pkgVal-r.targetVal;
+    const diffStr=diff>=0?`+${diff.toFixed(1)} overpay`:`${diff.toFixed(1)} discount`;
+    const diffCol=diff>5?'var(--rt)':diff<-2?'var(--gt)':'var(--text3)';
+
+    // Rationale line — explain why this fits
+    let rationale=`Fills your ${r.hole} hole.`;
+    if(r.mutualPos) rationale+=` ${r.fromOwner} needs ${r.mutualPos}, where you're deep — likely receptive.`;
+    if(r.windowMode==='build'&&(r.target.age||99)<=PEAK[r.target.pos]) rationale+=` Young enough to mature with your core.`;
+    if(r.windowMode==='contend'&&(r.target.age||99)>=PEAK[r.target.pos]-2&&(r.target.age||99)<=PEAK[r.target.pos]+1) rationale+=` Prime-age — moves the needle this year.`;
+
+    return `<div style="background:var(--panel);border:1px solid var(--border);padding:12px 14px;">
+      <div style="display:flex;align-items:start;gap:10px;margin-bottom:8px;flex-wrap:wrap;">
+        <div style="flex:1;min-width:180px;">
+          <div style="font-family:'Russo One',sans-serif;font-size:15px;color:var(--text);">Target: ${targetNameHtml}</div>
+          <div style="font-family:Oswald,sans-serif;font-size:10px;color:var(--text3);margin-top:2px;">
+            <span style="color:${PC[r.target.pos]};">${r.target.pos}</span>
+            ${ageStr?'· '+ageStr:''}
+            · Owned by ${r.fromOwner}
+            · Value ${r.targetVal.toFixed(1)}
+          </div>
+        </div>
+        ${fitTag}
+      </div>
+      <div style="font-size:11px;color:var(--text2);line-height:1.5;margin-bottom:8px;">${rationale}</div>
+      <div style="background:var(--bg2);border:1px solid var(--border);padding:8px 10px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;font-family:Oswald,sans-serif;font-size:9px;letter-spacing:0.12em;text-transform:uppercase;color:var(--text3);margin-bottom:4px;">
+          <span>Your offer</span>
+          <span style="color:${diffCol};">${diffStr}</span>
+        </div>
+        ${pkgRows}
+        <div style="display:flex;justify-content:space-between;align-items:center;font-family:'Russo One',sans-serif;font-size:12px;color:var(--accent);border-top:1px solid var(--border);padding-top:5px;margin-top:5px;">
+          <span>Package total</span>
+          <span>${r.pkgVal.toFixed(1)}</span>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+
+  el.innerHTML=profileHtml+recCardsHtml;
 }
 
 async function buildAllTimeLineup(rid){
