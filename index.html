@@ -202,11 +202,17 @@ tbody tr:active{background:rgba(192,120,72,0.08) !important;}
 .trd:last-child{border-right:none;}
 .trdl{font-family:'Oswald',sans-serif;font-size:9px;letter-spacing:0.16em;text-transform:uppercase;color:var(--text3);margin-bottom:5px;}
 .tre{font-size:10px;color:var(--text3);font-style:italic;}
-.ttag{display:flex;align-items:center;justify-content:space-between;background:var(--bg3);border:1px solid var(--border);padding:4px 7px;margin-bottom:3px;}
+.ttag{display:flex;align-items:center;justify-content:space-between;background:var(--bg3);border:1px solid var(--border);padding:4px 7px;margin-bottom:3px;transition:transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;animation:chipDrop 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);}
+.ttag:hover{transform:translateY(-1px);border-color:var(--accent);box-shadow:0 2px 8px rgba(0,0,0,0.18);}
+@keyframes chipDrop{
+  0%{opacity:0;transform:translateY(-8px) scale(0.96);}
+  60%{opacity:1;transform:translateY(2px) scale(1.02);}
+  100%{opacity:1;transform:translateY(0) scale(1);}
+}
 .ttn{font-family:'Oswald',sans-serif;font-size:11px;color:var(--text);font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:78px;}
 .tts{font-family:'Russo One',sans-serif;font-size:10px;color:var(--accent);flex-shrink:0;}
-.trm{color:var(--text3);font-size:13px;cursor:pointer;margin-left:3px;flex-shrink:0;}
-.trm:hover{color:var(--red);}
+.trm{color:var(--text3);font-size:13px;cursor:pointer;margin-left:3px;flex-shrink:0;transition:color 0.15s, transform 0.15s;}
+.trm:hover{color:var(--red);transform:scale(1.2);}
 .vw{padding:10px 16px;}
 .vt2{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px;}
 .vs{text-align:center;background:var(--bg3);border:1px solid var(--border);padding:6px;}
@@ -218,6 +224,42 @@ tbody tr:active{background:rgba(192,120,72,0.08) !important;}
 .vt{font-family:'Oswald',sans-serif;font-size:12px;text-align:center;color:var(--text2);line-height:1.4;}
 .vwin{color:var(--gt);}.vlose{color:var(--rt);}.veven{color:var(--gold);}
 .nr{padding:20px;text-align:center;color:var(--text3);font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;}
+
+/* Trade side panels — full page calculator */
+.trade-team-col{
+  background:var(--panel);
+  border:1px solid var(--border);
+  padding:14px 14px 12px;
+  border-radius:var(--r8);
+  position:relative;
+  transition:border-color 0.3s ease, box-shadow 0.3s ease;
+}
+.trade-team-col::before{
+  content:'';
+  position:absolute;
+  top:0;left:0;right:0;height:3px;
+  border-radius:var(--r8) var(--r8) 0 0;
+  background:linear-gradient(90deg, transparent, var(--accent), transparent);
+  opacity:0.3;
+  transition:opacity 0.3s ease;
+}
+#trade-col-0::before{background:linear-gradient(90deg, transparent, var(--rt), transparent);}
+#trade-col-1::before{background:linear-gradient(90deg, transparent, var(--gt), transparent);}
+#trade-col-2::before{background:linear-gradient(90deg, transparent, var(--qb), transparent);}
+.trade-team-col:hover::before{opacity:0.7;}
+.trade-empty-drop{
+  border:1.5px dashed var(--border2);
+  border-radius:var(--r6);
+  padding:18px 12px;
+  text-align:center;
+  font-family:Oswald,sans-serif;
+  font-size:11px;
+  letter-spacing:0.12em;
+  text-transform:uppercase;
+  color:var(--text3);
+  transition:border-color 0.25s ease, color 0.25s ease;
+}
+.trade-empty-drop:hover{border-color:var(--accent);color:var(--text2);}
 
 /* SLEEPER */
 .sw2{max-width:880px;margin:0 auto;padding:28px 20px;}
@@ -596,6 +638,7 @@ tbody tr.sel{background:rgba(192,120,72,0.13);border-left:3px solid var(--accent
 
   .bar-row{grid-template-columns:90px 1fr 40px;}
   .trade-sides-row{grid-template-columns:1fr;}
+  #trade-sides-wrap{grid-template-columns:1fr !important;}
   .tsp{display:none;}
   .vt2{grid-template-columns:1fr 1fr;}
   .impact-grid{grid-template-columns:1fr 1fr;}
@@ -785,8 +828,8 @@ tbody tr.sel{background:rgba(192,120,72,0.13);border-left:3px solid var(--accent
       <div class="pb"><span class="pt" id="rc">All assets</span><span style="font-size:9px;color:var(--text3);font-family:'Oswald',sans-serif;letter-spacing:0.1em;">CLICK ROW TO SELECT</span></div>
       <div class="tw">
         <table>
-          <colgroup><col style="width:42px;"><col><col style="width:72px;"><col style="width:60px;"></colgroup>
-          <thead><tr><th style="width:42px;">#</th><th>Player / Pick</th><th style="width:72px;text-align:right;">Tier</th><th style="width:60px;text-align:right;">Strength</th></tr></thead>
+          <colgroup><col style="width:42px;"><col><col style="width:80px;"></colgroup>
+          <thead><tr><th style="width:42px;">#</th><th>Player / Pick</th><th style="width:80px;text-align:right;">Strength</th></tr></thead>
           <tbody id="tbody"></tbody>
         </table>
         <div id="nr" class="nr" style="display:none;">No results found</div>
@@ -832,52 +875,113 @@ tbody tr.sel{background:rgba(192,120,72,0.13);border-left:3px solid var(--accent
     <!-- TRADE SIDES -->
     <div id="trade-sides-wrap" style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px;">
       <div class="trade-team-col" id="trade-col-0">
-        <div style="font-family:Oswald,sans-serif;font-size:10px;letter-spacing:0.16em;text-transform:uppercase;color:var(--text3);margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;">
-          <span>Team A <span id="team-a-name" style="color:var(--text2);"></span></span>
-          <span id="team-a-total" style="font-family:'Russo One',sans-serif;font-size:14px;color:var(--accent);">—</span>
+        <div style="font-family:Oswald,sans-serif;font-size:10px;letter-spacing:0.16em;text-transform:uppercase;color:var(--text3);margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;">
+          <span style="color:var(--rt);">▼ You Give <span id="team-a-name" style="color:var(--text2);"></span></span>
+          <span id="team-a-total" style="font-family:'Russo One',sans-serif;font-size:12px;color:var(--text3);letter-spacing:0.05em;">—</span>
         </div>
         <div id="glf" style="min-height:50px;"></div>
-        <div style="font-size:11px;color:var(--text3);font-style:italic;margin-top:6px;">Search below → +Give</div>
       </div>
       <div class="trade-team-col" id="trade-col-1">
-        <div style="font-family:Oswald,sans-serif;font-size:10px;letter-spacing:0.16em;text-transform:uppercase;color:var(--text3);margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;">
-          <span>Team B <span id="team-b-name" style="color:var(--text2);"></span></span>
-          <span id="team-b-total" style="font-family:'Russo One',sans-serif;font-size:14px;color:var(--accent);">—</span>
+        <div style="font-family:Oswald,sans-serif;font-size:10px;letter-spacing:0.16em;text-transform:uppercase;color:var(--text3);margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;">
+          <span style="color:var(--gt);">▲ You Receive <span id="team-b-name" style="color:var(--text2);"></span></span>
+          <span id="team-b-total" style="font-family:'Russo One',sans-serif;font-size:12px;color:var(--text3);letter-spacing:0.05em;">—</span>
         </div>
         <div id="rlf" style="min-height:50px;"></div>
-        <div style="font-size:11px;color:var(--text3);font-style:italic;margin-top:6px;">Search below → +Recv</div>
       </div>
       <div class="trade-team-col" id="trade-col-2" style="display:none;">
-        <div style="font-family:Oswald,sans-serif;font-size:10px;letter-spacing:0.16em;text-transform:uppercase;color:var(--text3);margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;">
-          <span>Team C <span id="team-c-name" style="color:var(--text2);"></span></span>
-          <span id="team-c-total" style="font-family:'Russo One',sans-serif;font-size:14px;color:var(--accent);">—</span>
+        <div style="font-family:Oswald,sans-serif;font-size:10px;letter-spacing:0.16em;text-transform:uppercase;color:var(--text3);margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;">
+          <span style="color:var(--qb);">▲ Team C <span id="team-c-name" style="color:var(--text2);"></span></span>
+          <span id="team-c-total" style="font-family:'Russo One',sans-serif;font-size:12px;color:var(--text3);letter-spacing:0.05em;">—</span>
         </div>
         <div id="r2lf" style="min-height:50px;"></div>
-        <div style="font-size:11px;color:var(--text3);font-style:italic;margin-top:6px;">Search below → +Recv2</div>
       </div>
     </div>
 
-    <!-- VERDICT -->
-    <div style="background:var(--panel);border:1px solid var(--border);padding:16px 20px;margin-bottom:16px;border-radius:var(--r8);">
-      <div id="trade-totals-row" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
-        <div style="text-align:center;background:var(--bg3);border:1px solid var(--border);padding:10px;border-radius:var(--r6);">
-          <div style="font-family:Oswald,sans-serif;font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--text3);margin-bottom:4px;">You Give</div>
-          <div style="font-family:'Russo One',sans-serif;font-size:18px;color:var(--rt);" id="gtf">—</div>
+    <!-- VERDICT — Balance Scale -->
+    <div id="trade-verdict-wrap" style="position:relative;background:var(--panel);border:1px solid var(--border);padding:18px 20px 22px;margin-bottom:16px;border-radius:var(--r10);overflow:hidden;transition:background 0.5s ease;">
+      <!-- Soft gradient backdrop that shifts hue based on verdict -->
+      <div id="trade-verdict-bg" style="position:absolute;inset:0;opacity:0;transition:opacity 0.5s ease, background 0.5s ease;pointer-events:none;background:radial-gradient(ellipse at 50% 100%, rgba(118,196,144,0.18), transparent 70%);"></div>
+
+      <div style="position:relative;display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+        <div>
+          <div style="font-family:Oswald,sans-serif;font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--text3);">The Scale</div>
+          <div style="font-family:'Russo One',sans-serif;font-size:14px;color:var(--text);letter-spacing:0.04em;margin-top:2px;">Trade Balance</div>
         </div>
-        <div style="text-align:center;background:var(--bg3);border:1px solid var(--border);padding:10px;border-radius:var(--r6);">
-          <div style="font-family:Oswald,sans-serif;font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--text3);margin-bottom:4px;">You Receive</div>
-          <div style="font-family:'Russo One',sans-serif;font-size:18px;color:var(--gt);" id="rtf">—</div>
-        </div>
+        <!-- Verdict pill -->
+        <div id="verdict-pill" style="font-family:'Russo One',sans-serif;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;padding:6px 14px;border-radius:20px;background:var(--bg3);color:var(--text3);border:1px solid var(--border);transition:all 0.4s ease;white-space:nowrap;">Add pieces to both sides</div>
       </div>
-      <div class="vbw" style="height:14px;margin-bottom:14px;border-radius:7px;overflow:hidden;transition:none;"><div class="vbg" id="vgf" style="width:50%;transition:width 0.35s ease-out;"></div><div class="vbr" id="vrf" style="width:50%;transition:width 0.35s ease-out;"></div></div>
-      <div style="font-family:Oswald,sans-serif;font-size:16px;letter-spacing:0.06em;text-align:center;" id="vtf"><span style="color:var(--text3)">Add players to both sides</span></div>
+
+      <!-- The Scale SVG -->
+      <div style="position:relative;display:flex;justify-content:center;align-items:center;padding:8px 0 4px;">
+        <svg id="trade-scale-svg" viewBox="0 0 460 180" style="width:100%;max-width:460px;height:auto;overflow:visible;">
+          <!-- The base post -->
+          <defs>
+            <linearGradient id="postGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="var(--accent)" stop-opacity="0.9"/>
+              <stop offset="100%" stop-color="var(--accent)" stop-opacity="0.5"/>
+            </linearGradient>
+            <linearGradient id="armGrad" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0%" stop-color="var(--accent)" stop-opacity="0.7"/>
+              <stop offset="50%" stop-color="var(--accent)" stop-opacity="1"/>
+              <stop offset="100%" stop-color="var(--accent)" stop-opacity="0.7"/>
+            </linearGradient>
+            <filter id="panGlowLeft" x="-50%" y="-50%" width="200%" height="200%">
+              <feGaussianBlur stdDeviation="3" result="blur"/>
+              <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+            </filter>
+            <filter id="panGlowRight" x="-50%" y="-50%" width="200%" height="200%">
+              <feGaussianBlur stdDeviation="3" result="blur"/>
+              <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+            </filter>
+          </defs>
+
+          <!-- Base / ground -->
+          <ellipse cx="230" cy="170" rx="60" ry="5" fill="var(--text3)" opacity="0.2"/>
+          <!-- Central post -->
+          <rect x="226" y="50" width="8" height="120" fill="url(#postGrad)" rx="2"/>
+          <!-- Pivot fulcrum -->
+          <polygon points="216,50 244,50 230,30" fill="var(--accent)" opacity="0.85"/>
+          <circle cx="230" cy="50" r="5" fill="var(--accent)"/>
+
+          <!-- The arm + pans (rotates as a group) -->
+          <g id="scale-arm-group" style="transform-origin:230px 50px;transition:transform 0.55s cubic-bezier(0.34, 1.56, 0.64, 1);">
+            <!-- The beam -->
+            <line id="scale-beam" x1="60" y1="50" x2="400" y2="50" stroke="url(#armGrad)" stroke-width="4" stroke-linecap="round"/>
+            <!-- Left tip cap -->
+            <circle cx="60" cy="50" r="5" fill="var(--accent)"/>
+            <circle cx="400" cy="50" r="5" fill="var(--accent)"/>
+
+            <!-- Left chains -->
+            <line x1="60" y1="50" x2="42" y2="105" stroke="var(--text3)" stroke-width="1.2" opacity="0.55"/>
+            <line x1="60" y1="50" x2="78" y2="105" stroke="var(--text3)" stroke-width="1.2" opacity="0.55"/>
+            <!-- Left pan -->
+            <g id="scale-pan-left" filter="url(#panGlowLeft)">
+              <path d="M 25,105 Q 60,135 95,105 Z" fill="var(--rt)" fill-opacity="0.18" stroke="var(--rt)" stroke-width="1.5" stroke-linejoin="round"/>
+              <path d="M 25,105 L 95,105" stroke="var(--rt)" stroke-width="1.5" stroke-linecap="round"/>
+              <text id="scale-give-count" x="60" y="124" text-anchor="middle" font-family="'Russo One',sans-serif" font-size="14" fill="var(--rt)" font-weight="600">0</text>
+            </g>
+
+            <!-- Right chains -->
+            <line x1="400" y1="50" x2="382" y2="105" stroke="var(--text3)" stroke-width="1.2" opacity="0.55"/>
+            <line x1="400" y1="50" x2="418" y2="105" stroke="var(--text3)" stroke-width="1.2" opacity="0.55"/>
+            <!-- Right pan -->
+            <g id="scale-pan-right" filter="url(#panGlowRight)">
+              <path d="M 365,105 Q 400,135 435,105 Z" fill="var(--gt)" fill-opacity="0.18" stroke="var(--gt)" stroke-width="1.5" stroke-linejoin="round"/>
+              <path d="M 365,105 L 435,105" stroke="var(--gt)" stroke-width="1.5" stroke-linecap="round"/>
+              <text id="scale-recv-count" x="400" y="124" text-anchor="middle" font-family="'Russo One',sans-serif" font-size="14" fill="var(--gt)" font-weight="600">0</text>
+            </g>
+          </g>
+
+          <!-- Static pan labels (don't rotate) -->
+          <text x="60" y="160" text-anchor="middle" font-family="Oswald,sans-serif" font-size="9" fill="var(--text3)" letter-spacing="1.5">YOU GIVE</text>
+          <text x="400" y="160" text-anchor="middle" font-family="Oswald,sans-serif" font-size="9" fill="var(--text3)" letter-spacing="1.5">YOU RECEIVE</text>
+        </svg>
+      </div>
+
+      <!-- Sub-line: action context -->
+      <div id="trade-verdict-sub" style="text-align:center;font-family:Oswald,sans-serif;font-size:11px;letter-spacing:0.06em;color:var(--text3);margin-top:4px;min-height:16px;"></div>
+
       <div id="dynasty-impact" style="display:none;"></div>
-    </div>
-
-    <!-- FAIR VALUE SUGGESTION -->
-    <div id="fair-value-panel" style="display:none;background:var(--panel);border:1px solid var(--border);padding:14px 18px;margin-bottom:16px;border-radius:var(--r8);">
-      <div style="font-family:Oswald,sans-serif;font-size:10px;letter-spacing:0.16em;text-transform:uppercase;color:var(--accent);margin-bottom:10px;">💡 Fair Value Suggestions</div>
-      <div id="fair-value-content"></div>
     </div>
 
     <!-- SEARCH -->
@@ -2449,10 +2553,13 @@ function renderTradeRecs(roster){
     posAvgDepth[pos]=seconds.reduce((s,v)=>s+v,0)/seconds.length;
   });
 
-  // ── HOLES: positions where this team's best is meaningfully below avg ──
-  // Compute hole score for every position so we can fall back to "relative
-  // weakest" if no absolute hole exists. Even a contender with the league's
-  // best QB/RB/WR has a relatively weakest position they could upgrade.
+  // ── HOLES: combined need-score per position ─────────────────────────
+  // We rank each position by a NEED SCORE that combines (a) how far below
+  // league avg this team is at that position, and (b) where this team
+  // ranks among rivals at that position. This produces a team-specific
+  // priority order — even two teams with similar absolute holes will
+  // have different relative weaknesses, so their rec lists won't converge.
+  const numTeams=MODAL_DATA.length||12;
   const posMeta=POSITIONS.map(pos=>{
     const pp=roster.all.filter(p=>p.pos===pos).sort((a,b)=>getScore(b)-getScore(a));
     const best=pp[0]?getScore(pp[0]):0;
@@ -2463,32 +2570,48 @@ function renderTradeRecs(roster){
       return {rid:r.rid, best:x?getScore(x):0};
     }).sort((a,b)=>b.best-a.best);
     const myLeagueRank=allBests.findIndex(x=>x.rid===roster.rid)+1;
-    return {pos, best, deficit, bestPlayer:pp[0]?.name||'None', leagueRank:myLeagueRank};
+    // Need score: weighted blend of deficit-vs-avg and league rank percentile.
+    // Both normalized to [0,1] roughly; higher = bigger need.
+    const deficitScore=Math.max(0, deficit/(posAvgTop[pos]||1));
+    const rankScore=(myLeagueRank-1)/Math.max(1,numTeams-1);
+    const needScore=deficitScore*0.55+rankScore*0.45;
+    return {pos, best, deficit, bestPlayer:pp[0]?.name||'None', leagueRank:myLeagueRank, needScore};
   });
 
   const myHoles=[];
-  // Absolute holes first (deficit >15% under league avg, or no player at all)
+  // Absolute holes (genuinely weak — best is <85% of league avg)
   posMeta.forEach(m=>{
     const isAbsHole=m.best===0||m.best<posAvgTop[m.pos]*0.85;
     if(isAbsHole) myHoles.push({...m, kind:'absolute'});
   });
-  // Always include at least ONE hole — fall back to the position where this
-  // team ranks worst in the league. Even an elite team has a weakest area.
-  if(!myHoles.length){
-    const weakest=[...posMeta].sort((a,b)=>b.leagueRank-a.leagueRank)[0];
-    if(weakest) myHoles.push({...weakest, kind:'relative'});
+  // Always include the top-2 by need score so we have at least two distinct
+  // priority positions to recommend against. Even a strong team has a
+  // weakest area and a second-weakest area — those become rec targets.
+  const sortedByNeed=[...posMeta].sort((a,b)=>b.needScore-a.needScore);
+  for(const m of sortedByNeed){
+    if(myHoles.length>=2) break;
+    if(myHoles.find(h=>h.pos===m.pos)) continue;
+    myHoles.push({...m, kind:myHoles.length?'relative':(m.best<posAvgTop[m.pos]*0.85?'absolute':'relative')});
   }
-  myHoles.sort((a,b)=>b.deficit-a.deficit);
+  myHoles.sort((a,b)=>b.needScore-a.needScore);
 
-  // ── SURPLUS: positions with multiple above-avg players + spare picks ──
-  // Player surplus: 3+ players at or above league-avg top
+  // ── SURPLUS: positions where this team has REAL depth advantage ────
+  // Surplus requires both depth (3+ above-average players) AND a strong
+  // league rank (top-half at that position). A team with 3 mediocre RBs
+  // isn't really a "surplus seller" — they're hoarding D-tier depth.
   const mySurplusPos=[];
   POSITIONS.forEach(pos=>{
     const above=roster.all.filter(p=>p.pos===pos&&getScore(p)>=posAvgTop[pos]*0.8);
-    if(above.length>=3){
-      mySurplusPos.push({pos, count:above.length, players:above});
+    const meta=posMeta.find(m=>m.pos===pos);
+    const topHalfAtPos=meta&&meta.leagueRank<=Math.ceil(numTeams/2);
+    if(above.length>=3&&topHalfAtPos){
+      // Surplus score: depth bonus + league rank inverse. Higher = more
+      // available to trade away.
+      const surplusScore=above.length*1.0+(numTeams-meta.leagueRank)*0.3;
+      mySurplusPos.push({pos, count:above.length, players:above, leagueRank:meta.leagueRank, surplusScore});
     }
   });
+  mySurplusPos.sort((a,b)=>b.surplusScore-a.surplusScore);
   // Pick surplus: any pick beyond the first in a given year is "movable",
   // and 2nd-round+ picks are also generally movable.
   const myPicks=(roster.picks||[]).slice().sort((a,b)=>a.season-b.season||a.round-b.round);
@@ -2546,15 +2669,41 @@ function renderTradeRecs(roster){
   // For each rival, identify their holes (what they need) and surplus
   // (what they have to give). We're looking for mutual fit.
   const rivals=MODAL_DATA.filter(r=>r.rid!==roster.rid).map(r=>{
-    const rHoles=[]; const rSurplusPos=[];
-    POSITIONS.forEach(pos=>{
+    // Compute each rival's per-position need score (same formula as mine).
+    // Their "holes" = top-2 highest need positions. This gives us much
+    // better mutual-fit matching because we know what each rival ACTUALLY
+    // wants, not just where they have an absolute deficiency.
+    const rPosMeta=POSITIONS.map(pos=>{
       const pp=r.all.filter(p=>p.pos===pos).sort((a,b)=>getScore(b)-getScore(a));
       const best=pp[0]?getScore(pp[0]):0;
-      if(!pp.length||best<posAvgTop[pos]*0.85) rHoles.push(pos);
-      const above=r.all.filter(p=>p.pos===pos&&getScore(p)>=posAvgTop[pos]*0.8);
-      if(above.length>=3) rSurplusPos.push({pos, players:above});
+      const deficit=posAvgTop[pos]-best;
+      // Their rank at this position
+      const allBests=MODAL_DATA.map(rr=>{
+        const x=rr.all.filter(p=>p.pos===pos).sort((a,b)=>getScore(b)-getScore(a))[0];
+        return {rid:rr.rid, best:x?getScore(x):0};
+      }).sort((a,b)=>b.best-a.best);
+      const rRank=allBests.findIndex(x=>x.rid===r.rid)+1;
+      const deficitScore=Math.max(0, deficit/(posAvgTop[pos]||1));
+      const rankScore=(rRank-1)/Math.max(1,numTeams-1);
+      const needScore=deficitScore*0.55+rankScore*0.45;
+      return {pos, best, deficit, leagueRank:rRank, needScore, isAbs:best===0||best<posAvgTop[pos]*0.85};
     });
-    return {roster:r, holes:rHoles, surplusPos:rSurplusPos};
+    // Their priority needs: top-2 by need score. Absolute holes always included.
+    const rPriorityHoles=[];
+    rPosMeta.forEach(m=>{if(m.isAbs) rPriorityHoles.push(m.pos);});
+    [...rPosMeta].sort((a,b)=>b.needScore-a.needScore).forEach(m=>{
+      if(rPriorityHoles.length>=2) return;
+      if(!rPriorityHoles.includes(m.pos)) rPriorityHoles.push(m.pos);
+    });
+    // Their surplus: depth + top-half league rank at the position
+    const rSurplusPos=[];
+    POSITIONS.forEach(pos=>{
+      const above=r.all.filter(p=>p.pos===pos&&getScore(p)>=posAvgTop[pos]*0.8);
+      const meta=rPosMeta.find(m=>m.pos===pos);
+      const topHalf=meta&&meta.leagueRank<=Math.ceil(numTeams/2);
+      if(above.length>=3&&topHalf) rSurplusPos.push({pos, players:above});
+    });
+    return {roster:r, holes:rPriorityHoles, surplusPos:rSurplusPos, posMeta:rPosMeta};
   });
 
   // ── For each of MY holes, find candidate targets ──────────────────────
@@ -2619,8 +2768,17 @@ function renderTradeRecs(roster){
         if(targetVal<8) continue; // not worth chasing waiver-level depth
         if(targetVal<=myBestVal) continue; // must be an upgrade
         const fitMult=ageFitMultiplier(target.age||PEAK[pos], pos);
-        // Effective desirability = raw value × age-fit × mutual-fit bonus
-        const desirability=targetVal*fitMult*(mutual?1.25:1.0);
+        // Effective desirability — multiple factors so different teams
+        // surface different recs:
+        //   * raw target value
+        //   * age fit for my window
+        //   * mutual fit bonus (BIG — drives league-wide differentiation)
+        //   * my hole priority (top hole > second hole)
+        //   * hole need score (severe holes get bigger boosts)
+        const mutualBoost=mutual?1.55:0.85; // mutual fit nearly doubles, non-mutual gets penalty
+        const holePriority=hole===myHoles[0]?1.15:1.0;
+        const needBoost=1.0+hole.needScore*0.5;
+        const desirability=targetVal*fitMult*mutualBoost*holePriority*needBoost;
 
         // ── Build the package from my surplus ──────────────────────────
         // Prefer the most common dynasty trade shapes, in this order:
@@ -2747,14 +2905,20 @@ function renderTradeRecs(roster){
     }
   }
 
-  // Rank recs by desirability and de-dupe (one rec per target player)
+  // Rank recs by desirability with DIVERSITY: cap at 2 per hole position
+  // so the rec list doesn't end up "Get a WR, get a WR, get a WR, get a WR."
+  // Each team gets at most 2 picks per hole, ensuring spread across needs.
   recs.sort((a,b)=>b.desirability-a.desirability);
   const seenTargets=new Set();
+  const recsPerHole={};
   const topRecs=[];
   for(const r of recs){
     const key=r.target.name;
     if(seenTargets.has(key)) continue;
+    recsPerHole[r.hole]=recsPerHole[r.hole]||0;
+    if(recsPerHole[r.hole]>=2) continue;
     seenTargets.add(key);
+    recsPerHole[r.hole]++;
     topRecs.push(r);
     if(topRecs.length>=6) break;
   }
@@ -3016,23 +3180,13 @@ function renderTradeRecs(roster){
       return null;
     }
 
-    // Window-tailored fallback target search
-    // - build/needs-reset: pick up YOUNG players + future picks. Trade old
-    //   vets for younger pieces at any position. Or trade good-enough players
-    //   for cheaper-younger + a pick.
-    // - ascend / stuck-middle: take whatever upgrade is attainable at any
-    //   relative weakness; lateral upgrades OK.
-    // - contend: target proven prime-age players at any soft spot; OK to use
-    //   future picks since you need now-value.
-    // - closing: same as contend but more aggressive on future capital
+    // Window-tailored fallback target search.
+    // Critical: the previous fallback scanned ALL rival players, which made
+    // recs converge across teams (everyone got the same league-best targets).
+    // The new fallback only targets MY actual hole positions, weighted by
+    // rivals who have actual mutual-trade-fit with my surplus.
     const fallbackTargets=[];
-    // Pool of all rival-owned players we could potentially target
-    const allRivalPlayers=rivals.flatMap(rv=>{
-      return rv.roster.all.map(p=>({
-        player:p, owner:rv.roster.owner, rid:rv.roster.rid,
-        val:getScore(p), riv:rv
-      }));
-    });
+    const myHolePositions=new Set(myHoles.map(h=>h.pos));
 
     function isWindowFit(p){
       const age=p.age||PEAK[p.pos]||27;
@@ -3043,55 +3197,72 @@ function renderTradeRecs(roster){
       return true; // ascend = neutral
     }
 
-    // For each candidate target, try to build a fair-ish package. Score by
-    // (target value × age fit) to surface the most upside-rich pieces first.
-    // Don't recommend targets that are core to their owner (top-1 at their pos
-    // for that rival — they likely won't trade them).
+    // Build pool of candidate targets: ONLY players at one of my hole
+    // positions, owned by rivals (skip rival's #1 at that pos — won't trade).
     const rankedTargets=[];
-    for(const c of allRivalPlayers){
-      if(c.val<10) continue; // skip benchwarmers
-      if(!isWindowFit(c.player)) continue;
-      // Skip if already covered by topRecs/uptier
-      const alreadyIn=topRecs.some(r=>r.target.name===c.player.name)
-        ||uptierRecs.some(r=>r.target.name===c.player.name);
-      if(alreadyIn) continue;
-      // Skip rival's #1 at this position (they won't trade)
-      const theirAtPos=c.riv.roster.all.filter(p=>p.pos===c.player.pos)
-        .sort((a,b)=>getScore(b)-getScore(a));
-      if(theirAtPos[0]&&theirAtPos[0].name===c.player.name) continue;
-      // Loose upgrade threshold: target must be at least 80% of our worst
-      // non-core piece at that position. Allows lateral moves with picks.
-      const myAtPos=roster.all.filter(p=>p.pos===c.player.pos)
-        .sort((a,b)=>getScore(b)-getScore(a));
-      const myWorstNonCore=myAtPos[2]?getScore(myAtPos[2]):0;
-      if(c.val<myWorstNonCore*0.8) continue;
-      const fit=ageFitMultiplier(c.player.age||PEAK[c.player.pos], c.player.pos);
-      rankedTargets.push({...c, fit, score:c.val*fit});
+    for(const rv of rivals){
+      for(const pos of myHolePositions){
+        const theirAtPos=rv.roster.all.filter(p=>p.pos===pos)
+          .sort((a,b)=>getScore(b)-getScore(a));
+        // Skip rival's #1 (they won't part with their best at that pos).
+        // Look at #2, #3.
+        for(const player of theirAtPos.slice(1,3)){
+          const v=getScore(player);
+          if(v<10) continue;
+          if(!isWindowFit(player)) continue;
+          // Must be an upgrade over my current best at the pos
+          const myAtPos=roster.all.filter(p=>p.pos===pos)
+            .sort((a,b)=>getScore(b)-getScore(a));
+          const myBestAtPos=myAtPos[0]?getScore(myAtPos[0]):0;
+          if(v<=myBestAtPos) continue;
+          // Skip if already in topRecs/uptier
+          const alreadyIn=topRecs.some(r=>r.target.name===player.name)
+            ||uptierRecs.some(r=>r.target.name===player.name);
+          if(alreadyIn) continue;
+          // Mutual fit: rival has a hole at one of MY surplus positions
+          const mutual=rv.holes.some(h=>mySurplusPositions.has(h));
+          const fit=ageFitMultiplier(player.age||PEAK[pos], pos);
+          // My need at this hole (severe holes weighted higher)
+          const myHole=myHoles.find(h=>h.pos===pos);
+          const needBoost=myHole?1.0+myHole.needScore*0.4:1.0;
+          const mutualBoost=mutual?1.4:1.0;
+          rankedTargets.push({
+            player, owner:rv.roster.owner, rid:rv.roster.rid,
+            val:v, riv:rv, pos, fit, mutual,
+            score:v*fit*mutualBoost*needBoost
+          });
+        }
+      }
     }
     rankedTargets.sort((a,b)=>b.score-a.score);
 
-    // Pull from rankedTargets until we have ≥3 total recs across all types
+    // Pull from rankedTargets until we have ≥3 total recs across all types.
+    // Diversity: max 1 fallback per hole position so recs spread across needs.
+    const fallbacksPerHole={};
     for(const c of rankedTargets){
       if(totalRecsCount()>=3) break;
+      // Count how many topRecs already cover this hole
+      const existingAtHole=topRecs.filter(r=>r.hole===c.pos).length
+        +(fallbacksPerHole[c.pos]||0);
+      if(existingAtHole>=2) continue;
       const pkg=makePkg(c.val);
       if(!pkg) continue;
-      // Don't generate fallbacks that are massive overpays
       if(pkg.val>c.val*1.4) continue;
-      // De-dupe vs existing recs by target name
       const seen=topRecs.some(r=>r.target.name===c.player.name)
         ||uptierRecs.some(r=>r.target.name===c.player.name)
         ||fallbackTargets.some(r=>r.target.name===c.player.name);
       if(seen) continue;
 
+      fallbacksPerHole[c.pos]=(fallbacksPerHole[c.pos]||0)+1;
       fallbackTargets.push({
         target:c.player,
         targetVal:c.val,
         fromOwner:c.owner,
-        mutualPos:null,
+        mutualPos:c.mutual?c.riv.holes.find(h=>mySurplusPositions.has(h)):null,
         pkg:pkg.pkg,
         pkgVal:pkg.val,
         desirability:c.score,
-        hole:c.player.pos, // pretend the rec is "at this position"
+        hole:c.pos,
         kind:'fallback',
         windowMode, coreAge
       });
@@ -3099,6 +3270,59 @@ function renderTradeRecs(roster){
 
     // Append fallbacks to topRecs so they render alongside the strict recs
     topRecs.push(...fallbackTargets);
+  }
+
+  // ── HARD CAP: 4 RECS TOTAL across all kinds ────────────────────────
+  // Across standard upgrade recs + uptier + downtier, surface only the 4
+  // best moves. Prefer diversity: try to include at least one of each kind
+  // if available, then fill with the highest-desirability remaining.
+  const MAX_RECS=4;
+  const allRecs=[];
+  // Tag each rec with its kind so we can interleave
+  topRecs.forEach(r=>allRecs.push({...r, _kind:'standard', _desir:r.desirability||0}));
+  uptierRecs.forEach(r=>allRecs.push({...r, _kind:'uptier', _desir:(r.targetVal||0)*1.3}));
+  downtierRecs.forEach(r=>allRecs.push({...r, _kind:'downtier', _desir:(r.moveVal||0)*1.1}));
+
+  // Sort all by desirability
+  allRecs.sort((a,b)=>b._desir-a._desir);
+
+  // First pass: take top-ranked rec from each kind if available
+  const final=[];
+  const kindsUsed=new Set();
+  for(const r of allRecs){
+    if(final.length>=MAX_RECS) break;
+    if(kindsUsed.has(r._kind)) continue;
+    kindsUsed.add(r._kind);
+    final.push(r);
+  }
+  // Second pass: fill remaining slots with the highest-desirability picks not yet used,
+  // respecting per-hole diversity for standard recs (max 2 per hole).
+  const usedIds=new Set(final.map(r=>r._kind+':'+(r.target?.name||r.movePlayer?.name||'')));
+  const stdHoleCount={};
+  final.forEach(r=>{
+    if(r._kind==='standard'&&r.hole) stdHoleCount[r.hole]=(stdHoleCount[r.hole]||0)+1;
+  });
+  for(const r of allRecs){
+    if(final.length>=MAX_RECS) break;
+    const id=r._kind+':'+(r.target?.name||r.movePlayer?.name||'');
+    if(usedIds.has(id)) continue;
+    if(r._kind==='standard'&&r.hole&&(stdHoleCount[r.hole]||0)>=2) continue;
+    usedIds.add(id);
+    if(r._kind==='standard'&&r.hole) stdHoleCount[r.hole]=(stdHoleCount[r.hole]||0)+1;
+    final.push(r);
+  }
+
+  // Re-split into the three buckets for rendering. The render section below
+  // expects topRecs/uptierRecs/downtierRecs as separate arrays.
+  topRecs.length=0;
+  uptierRecs.length=0;
+  downtierRecs.length=0;
+  for(const r of final){
+    // Strip the temp tagging fields before pushing back
+    const clean={...r}; delete clean._kind; delete clean._desir;
+    if(r._kind==='standard') topRecs.push(clean);
+    else if(r._kind==='uptier') uptierRecs.push(clean);
+    else if(r._kind==='downtier') downtierRecs.push(clean);
   }
 
   // ── RENDER ─────────────────────────────────────────────────────────────
@@ -3546,7 +3770,6 @@ function renderTable(){
     rows.push(`<tr onclick="selItem(${d.rank})" class="${iS?'sel':''} ${iP?'pr':''}">
       <td class="rn">${dr}</td>
       <td style="padding:5px 10px;">${nh}</td>
-      <td class="rs"><span style="font-family:'Russo One',sans-serif;color:${tierColor(tierLetter(sc))};">${tierLetter(sc)}</span></td>
       <td class="rbc"><div class="rbw"><div class="rb" style="width:${bw}%;background:${bc};"></div></div></td>
     </tr>`);
   });
@@ -3798,9 +4021,19 @@ function ttag(d,s){
 
 function tradeTagFull(d,side){
   const owner=window._playerOwner&&d.type==='player'?window._playerOwner[normName(d.name)]:'';
-  const ownerLine=owner?`<div style="font-size:9px;color:var(--accent);font-family:'Oswald',sans-serif;">🏈 ${owner}</div>`:'';
-  const tier=tierLetter(getScore(d));
-  return `<div class="ttag" style="margin-bottom:5px;"><div><div class="ttn" style="max-width:160px;">${d.displayName||d.name}</div><div style="font-size:9px;color:var(--text3);font-family:'Oswald',sans-serif;">${d.pos} · ${d.team}</div>${ownerLine}</div><div style="display:flex;align-items:center;gap:6px;"><span class="tts" style="font-size:14px;color:${tierColor(tier)};font-family:'Russo One',sans-serif;">${tier}</span><span class="trm" onclick="remT(${d.rank},'${side}')">×</span></div></div>`;
+  const ownerLine=owner?`<div style="font-size:9px;color:var(--accent);font-family:'Oswald',sans-serif;margin-top:1px;">🏈 ${owner}</div>`:'';
+  const posCol=d.type==='pick'?'var(--pick)':(POS_COLORS&&POS_COLORS[d.pos])||'var(--accent)';
+  return `<div class="ttag" style="margin-bottom:5px;padding:7px 10px 7px 11px;border-left:3px solid ${posCol};">
+    <div style="flex:1;min-width:0;">
+      <div class="ttn" style="max-width:160px;font-size:12px;">${d.displayName||d.name}</div>
+      <div style="font-size:9px;color:var(--text3);font-family:'Oswald',sans-serif;letter-spacing:0.06em;margin-top:1px;">
+        <span style="color:${posCol};font-weight:600;">${d.pos}</span>
+        ${d.team&&d.team!=='FA'?' · '+d.team:''}
+      </div>
+      ${ownerLine}
+    </div>
+    <span class="trm" onclick="remT(${d.rank},'${side}')">×</span>
+  </div>`;
 }
 
 function renderTA(){
@@ -3817,9 +4050,9 @@ function renderTA(){
 
   // Full trade page
   const gf=document.getElementById('glf'),rf=document.getElementById('rlf'),r2f=document.getElementById('r2lf');
-  if(gf)gf.innerHTML=GP.length?GP.map(d=>tradeTagFull(d,'give')).join(''):'<div style="font-size:12px;color:var(--text3);font-style:italic;">No players added</div>';
-  if(rf)rf.innerHTML=RP.length?RP.map(d=>tradeTagFull(d,'recv')).join(''):'<div style="font-size:12px;color:var(--text3);font-style:italic;">No players added</div>';
-  if(r2f)r2f.innerHTML=RP2.length?RP2.map(d=>tradeTagFull(d,'recv2')).join(''):'<div style="font-size:12px;color:var(--text3);font-style:italic;">No players added</div>';
+  if(gf)gf.innerHTML=GP.length?GP.map(d=>tradeTagFull(d,'give')).join(''):'<div class="trade-empty-drop">Search below to add pieces you\'d send</div>';
+  if(rf)rf.innerHTML=RP.length?RP.map(d=>tradeTagFull(d,'recv')).join(''):'<div class="trade-empty-drop">Search below to add pieces you\'d receive</div>';
+  if(r2f)r2f.innerHTML=RP2.length?RP2.map(d=>tradeTagFull(d,'recv2')).join(''):'<div class="trade-empty-drop">Add Team C\'s pieces</div>';
 
   // Team labels in column headers — show only piece count, no numbers
   const ta=document.getElementById('team-a-total'),tb=document.getElementById('team-b-total'),tc=document.getElementById('team-c-total');
@@ -3830,169 +4063,201 @@ function renderTA(){
   if(TRADE_TYPE===2){
     setV('f',gt,rt,gt+rt,dif2,abs2);
   } else {
-    // 3-way: word-only verdict for each team's balance
-    const gtf=document.getElementById('gtf'),rtf=document.getElementById('rtf');
-    const vtf=document.getElementById('vtf');
-    if(gtf)gtf.textContent='';
-    if(rtf)rtf.textContent='';
-    if(vtf){
-      if(!GP.length||(!RP.length&&!RP2.length)){vtf.innerHTML='<span style="color:var(--text3)">Add players to all sides</span>';}
-      else{
-        const dAB=rt-gt;
-        const dAC=rt2-gt;
-        function verdictWord(diff){
-          const a=Math.abs(diff);
-          if(a<=5) return {txt:'Even',col:'var(--gold)'};
-          if(diff>0) return a>15?{txt:'Heavily favors you',col:'var(--gt)'}:{txt:'Slight edge your way',col:'var(--gt)'};
-          return a>15?{txt:'Bad deal',col:'var(--rt)'}:{txt:'Favors them',col:'var(--rt)'};
-        }
-        const v1=verdictWord(dAB), v2=verdictWord(dAC);
-        vtf.innerHTML=`<div style="display:flex;gap:16px;justify-content:center;flex-wrap:wrap;">
-          <span style="color:${v1.col}">A vs B: ${v1.txt}</span>
-          ${RP2.length?`<span style="color:${v2.col}">A vs C: ${v2.txt}</span>`:''}
-        </div>`;
-      }
-    }
+    // 3-way: combine RP + RP2 as "you receive" for the scale visualization.
+    // The user is on Team A, evaluating fairness vs the combined return.
+    const combinedRecv=rt+rt2;
+    const combinedDif=combinedRecv-gt;
+    const combinedCount=RP.length+RP2.length;
+    renderScale(GP.length, combinedCount, combinedDif);
   }
-
-  // Fair value suggestions (when league is loaded)
-  renderFairValue(gt,rt);
-}
-
-// ── FAIR VALUE SUGGESTIONS ────────────────────────────────────────────
-function renderFairValue(gt,rt){
-  const panel=document.getElementById('fair-value-panel');
-  const content=document.getElementById('fair-value-content');
-  if(!panel||!content) return;
-  if(!GP.length||!MODAL_DATA||!MODAL_DATA.length){panel.style.display='none';return;}
-
-  const diff=rt-gt;
-  const absDiff=Math.abs(diff);
-
-  // Only show if there's a meaningful imbalance or if give side has assets
-  if(!GP.length){panel.style.display='none';return;}
-
-  panel.style.display='block';
-  let html='';
-
-  // Find which roster the given assets most likely belong to
-  const giveNames=new Set(GP.map(d=>d.name.toLowerCase()));
-  let fromRoster=null,fromRosterIdx=-1;
-  MODAL_DATA.forEach((r,i)=>{
-    const matches=r.all.filter(p=>giveNames.has(p.name.toLowerCase())).length;
-    if(matches>0&&(!fromRoster||matches>fromRoster._matchCount)){
-      fromRoster={...r,_matchCount:matches};fromRosterIdx=i;
-    }
-  });
-
-  // Need suggestions: what could make this trade fair?
-  const needed=gt-rt; // positive = receiver needs to add value
-
-  if(Math.abs(diff)<8){
-    html=`<div style="font-size:12px;color:var(--gt);font-family:Oswald,sans-serif;">Trade is fair.</div>`;
-  } else if(diff<-8){
-    // Giver is losing value — suggest what receiver should add
-    html=`<div style="font-size:12px;color:var(--text2);margin-bottom:10px;">Your offer is short. Options to balance the trade:</div>`;
-    // Find assets from other rosters worth ~absDiff
-    const suggestions=DATA.filter(d=>d.type==='player'&&Math.abs(getScore(d)-absDiff)<absDiff*0.35&&!GP.find(g=>g.rank===d.rank)&&!RP.find(r=>r.rank===d.rank))
-      .sort((a,b)=>Math.abs(getScore(a)-absDiff)-Math.abs(getScore(b)-absDiff))
-      .slice(0,5);
-    if(suggestions.length){
-      html+=`<div style="display:flex;flex-wrap:wrap;gap:6px;">`;
-      suggestions.forEach(p=>{
-        const pc=POS_COLORS[p.pos]||'var(--text)';
-        html+=`<div style="background:var(--bg3);border:1px solid var(--border);padding:5px 10px;border-radius:4px;font-family:Oswald,sans-serif;font-size:11px;cursor:pointer;" onclick="addT(${p.rank},'recv')">
-          <span style="color:${pc};">${p.pos}</span> ${p.name}
-        </div>`;
-      });
-      html+=`</div>`;
-      // Multi-player combos (rendered without numeric labels)
-      const combos=DATA.filter(d=>d.type==='player'&&getScore(d)<absDiff*0.7&&!GP.find(g=>g.rank===d.rank)&&!RP.find(r=>r.rank===d.rank))
-        .sort((a,b)=>getScore(b)-getScore(a)).slice(0,20);
-      for(let i=0;i<combos.length;i++){
-        for(let j=i+1;j<combos.length;j++){
-          const combo2=getScore(combos[i])+getScore(combos[j]);
-          if(Math.abs(combo2-absDiff)<absDiff*0.2){
-            html+=`<div style="font-size:11px;color:var(--text3);margin-top:8px;">Or: ${combos[i].name} + ${combos[j].name}</div>`;
-            break;
-          }
-        }
-      }
-    }
-  } else {
-    // Receiver is getting more value — giver overpaying
-    html=`<div style="font-size:12px;color:var(--rt);">You're giving up more than you're getting back.</div>`;
-    if(fromRoster){
-      // Suggest removing a piece from give side
-      const removeSuggestion=GP.slice().sort((a,b)=>getScore(b)-getScore(a))[0];
-      if(removeSuggestion) html+=`<div style="font-size:11px;color:var(--text3);margin-top:6px;">Try dropping ${removeSuggestion.name} from your side.</div>`;
-    }
-  }
-
-  content.innerHTML=html;
 }
 
 
 function setV(id,gt,rt,tot,dif,abs){
-  const gte=document.getElementById('gt'+id),rte=document.getElementById('rt'+id);
-  const vg=document.getElementById('vg'+id),vr=document.getElementById('vr'+id),vt=document.getElementById('vt'+id);
-  // Replace numeric totals with piece counts. Per-piece values stay hidden;
-  // the bar (vg/vr) is the only quantitative signal.
-  if(gte)gte.textContent=GP.length?`${GP.length} ${GP.length===1?'piece':'pieces'}`:'—';
-  if(rte)rte.textContent=RP.length?`${RP.length} ${RP.length===1?'piece':'pieces'}`:'—';
-  if(!GP.length||!RP.length){
-    if(vg){vg.style.width='50%';vr.style.width='50%';}
-    if(vt)vt.innerHTML='<span style="color:var(--text3)">Add pieces to both sides</span>';
+  // The quick-trade sidebar (id='q') uses the old simple bar style
+  if(id==='q'){
+    const gte=document.getElementById('gtq'),rte=document.getElementById('rtq');
+    const vg=document.getElementById('vgq'),vr=document.getElementById('vrq'),vt=document.getElementById('vtq');
+    if(gte)gte.textContent=GP.length?`${GP.length} ${GP.length===1?'piece':'pieces'}`:'—';
+    if(rte)rte.textContent=RP.length?`${RP.length} ${RP.length===1?'piece':'pieces'}`:'—';
+    if(!GP.length||!RP.length){
+      if(vg){vg.style.width='50%';vr.style.width='50%';}
+      if(vt)vt.innerHTML='<span style="color:var(--text3)">Add pieces to both sides</span>';
+      return;
+    }
+    const gp=tot>0?Math.round((gt/tot)*100):50;
+    if(vg){vg.style.width=gp+'%';vr.style.width=(100-gp)+'%';}
+    if(vt){
+      if(dif>15)vt.innerHTML=`<span class="vwin">Heavily favors you.</span>`;
+      else if(dif>5)vt.innerHTML=`<span class="vwin">Slight edge your way.</span>`;
+      else if(dif>=-5)vt.innerHTML=`<span class="veven">Even — fair trade.</span>`;
+      else if(dif>=-15)vt.innerHTML=`<span class="vlose">You're short.</span>`;
+      else vt.innerHTML=`<span class="vlose">Bad deal.</span>`;
+    }
+    return;
+  }
+
+  // Full trade page (id='f') — drives the balance scale visualization
+  renderScale(GP.length, RP.length, dif);
+}
+
+// Render the balance scale. giveLen/recvLen drive the pan counts and empty
+// check; dif drives the tilt and verdict. Decoupled from GP/RP so 3-way
+// trades can combine RP+RP2 and call this directly.
+function renderScale(giveLen, recvLen, dif){
+  const armGroup=document.getElementById('scale-arm-group');
+  const pill=document.getElementById('verdict-pill');
+  const sub=document.getElementById('trade-verdict-sub');
+  const bg=document.getElementById('trade-verdict-bg');
+  const giveCount=document.getElementById('scale-give-count');
+  const recvCount=document.getElementById('scale-recv-count');
+  const panLeft=document.getElementById('scale-pan-left');
+  const panRight=document.getElementById('scale-pan-right');
+
+  // Update piece counts in the pans
+  if(giveCount) giveCount.textContent=giveLen||'0';
+  if(recvCount) recvCount.textContent=recvLen||'0';
+
+  // Empty state — perfectly level
+  if(!giveLen||!recvLen){
+    if(armGroup) armGroup.style.transform='rotate(0deg)';
+    if(pill){
+      pill.textContent='Add pieces to both sides';
+      pill.style.background='var(--bg3)';
+      pill.style.color='var(--text3)';
+      pill.style.borderColor='var(--border)';
+      pill.style.boxShadow='none';
+    }
+    if(sub) sub.textContent='The scale awaits.';
+    if(bg) bg.style.opacity='0';
+    if(panLeft) panLeft.style.filter='none';
+    if(panRight) panRight.style.filter='none';
     const di=document.getElementById('dynasty-impact');
     if(di) di.style.display='none';
     return;
   }
-  const gp=tot>0?Math.round((gt/tot)*100):50;
-  if(vg){vg.style.width=gp+'%';vr.style.width=(100-gp)+'%';}
-  if(vt){
-    // Word-only verdicts. The bar tilt is the precise signal; the words
-    // tell the user how to read it.
-    if(dif>15)vt.innerHTML=`<span class="vwin">Heavily favors you.</span>`;
-    else if(dif>5)vt.innerHTML=`<span class="vwin">Slight edge your way.</span>`;
-    else if(dif>=-5)vt.innerHTML=`<span class="veven">Even — fair trade.</span>`;
-    else if(dif>=-15)vt.innerHTML=`<span class="vlose">You're short. Push back.</span>`;
-    else vt.innerHTML=`<span class="vlose">Bad deal — heavily favors them.</span>`;
+
+  // Compute tilt: dif positive = receiver heavier = right pan drops.
+  // Map dif to angle, capped at ±18°. Use a square-root curve so small diffs
+  // are visible but huge ones don't over-rotate.
+  const cappedAbs=Math.min(50,Math.abs(dif));
+  const rawAngle=Math.sign(dif)*Math.sqrt(cappedAbs)*2.6;
+  const angle=Math.max(-18,Math.min(18,rawAngle));
+  // Negative dif means you give more → left side HEAVIER → drops down → arm rotates
+  // counterclockwise from viewer's POV. SVG positive rotate is clockwise.
+  // We want: negative dif → arm rotates so left drops (negative angle in SVG terms? No —
+  // think of it: arm is horizontal, left tip at x=60. If we rotate by +5deg around
+  // pivot at 230, left tip moves UP. To make it drop, rotate by -5deg. So negative dif
+  // (you give more, left heavy) → negative SVG rotate.
+  // dif<0 → left should drop → SVG rotate negative.
+  // Our computed `angle` has the SIGN of dif. So if dif<0, angle<0. Apply directly:
+  if(armGroup) armGroup.style.transform=`rotate(${angle}deg)`;
+
+  // Verdict word + color
+  let verdictTxt, verdictCol, verdictBg, verdictBorder, glowCol, bgColor, subTxt;
+  if(dif>15){
+    verdictTxt='Heavily favors you';
+    verdictCol='#fff';
+    verdictBg='var(--gt)';
+    verdictBorder='var(--gt)';
+    glowCol='var(--gt)';
+    bgColor='radial-gradient(ellipse at 50% 100%, rgba(118,196,144,0.22), transparent 70%)';
+    subTxt='Lock it in before they change their mind.';
+  } else if(dif>5){
+    verdictTxt='Slight edge your way';
+    verdictCol='var(--gt)';
+    verdictBg='rgba(118,196,144,0.12)';
+    verdictBorder='var(--gt)';
+    glowCol='var(--gt)';
+    bgColor='radial-gradient(ellipse at 50% 100%, rgba(118,196,144,0.14), transparent 70%)';
+    subTxt='A fair trade with a little upside.';
+  } else if(dif>=-5){
+    verdictTxt='Even — fair trade';
+    verdictCol='var(--gold)';
+    verdictBg='rgba(216,176,108,0.12)';
+    verdictBorder='var(--gold)';
+    glowCol='var(--gold)';
+    bgColor='radial-gradient(ellipse at 50% 100%, rgba(216,176,108,0.14), transparent 70%)';
+    subTxt='Balanced. Comes down to roster fit.';
+  } else if(dif>=-15){
+    verdictTxt='You\'re short — push back';
+    verdictCol='var(--rt)';
+    verdictBg='rgba(220,136,136,0.12)';
+    verdictBorder='var(--rt)';
+    glowCol='var(--rt)';
+    bgColor='radial-gradient(ellipse at 50% 100%, rgba(220,136,136,0.14), transparent 70%)';
+    subTxt='Counter-offer recommended.';
+  } else {
+    verdictTxt='Bad deal — heavily favors them';
+    verdictCol='#fff';
+    verdictBg='var(--rt)';
+    verdictBorder='var(--rt)';
+    glowCol='var(--rt)';
+    bgColor='radial-gradient(ellipse at 50% 100%, rgba(220,136,136,0.22), transparent 70%)';
+    subTxt='Walk away. This one\'s a fleecing.';
   }
-  // Dynasty impact (full trade page only)
-  if(id==='f'){
-    const di=document.getElementById('dynasty-impact');
-    if(!di) return;
-    const impact=dynastyImpact(GP,RP);
-    if(!impact){di.style.display='none';return;}
-    const {gAge,rAge,windowMsg,pickMsg,narrative,gPlayers,rPlayers,gPicks,rPicks}=impact;
-    const ageFmt=a=>a!==null?a.toFixed(1)+' yrs':'—';
-    const posColor={QB:'var(--qb)',WR:'var(--wr)',RB:'var(--rb)',TE:'var(--te)',PICK:'var(--pick)'};
-    di.style.display='block';
-    di.innerHTML=`
-      <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border);">
-        <div style="font-family:Oswald,sans-serif;font-size:10px;letter-spacing:0.18em;text-transform:uppercase;color:var(--text3);margin-bottom:10px;">Dynasty Context</div>
-        <div class="impact-grid">
-          <div class="impact-box">
-            <div class="impact-lbl">You Give</div>
-            <div class="impact-row"><span class="impact-key">Avg Age</span><span class="impact-val" style="color:var(--text2);">${ageFmt(gAge)}</span></div>
-            <div class="impact-row"><span class="impact-key">Players</span><span class="impact-val" style="color:var(--text2);">${gPlayers.length}</span></div>
-            <div class="impact-row"><span class="impact-key">Picks</span><span class="impact-val" style="color:var(--pick);">${gPicks.length}</span></div>
-          </div>
-          <div class="impact-box">
-            <div class="impact-lbl">You Receive</div>
-            <div class="impact-row"><span class="impact-key">Avg Age</span><span class="impact-val" style="color:var(--text2);">${ageFmt(rAge)}</span></div>
-            <div class="impact-row"><span class="impact-key">Players</span><span class="impact-val" style="color:var(--text2);">${rPlayers.length}</span></div>
-            <div class="impact-row"><span class="impact-key">Picks</span><span class="impact-val" style="color:var(--pick);">${rPicks.length}</span></div>
-          </div>
-        </div>
-        <div style="display:flex;flex-direction:column;gap:4px;margin-top:8px;">
-          <div style="font-size:11px;color:var(--text3);font-family:Oswald,sans-serif;">Age: ${windowMsg}</div>
-          <div style="font-size:11px;color:var(--text3);font-family:Oswald,sans-serif;">Picks: ${pickMsg}</div>
-        </div>
-        <div class="impact-narrative">${narrative}</div>
-      </div>`;
+
+  if(pill){
+    pill.textContent=verdictTxt;
+    pill.style.background=verdictBg;
+    pill.style.color=verdictCol;
+    pill.style.borderColor=verdictBorder;
+    pill.style.boxShadow=`0 0 14px ${glowCol}40, inset 0 1px 0 rgba(255,255,255,0.1)`;
   }
+  if(sub) sub.textContent=subTxt;
+  if(bg){
+    bg.style.background=bgColor;
+    bg.style.opacity='1';
+  }
+
+  // Pulse glow on the heavier (dropped) pan
+  if(panLeft&&panRight){
+    if(dif<-5){
+      panLeft.style.filter='url(#panGlowLeft) drop-shadow(0 0 8px var(--rt))';
+      panRight.style.filter='none';
+    } else if(dif>5){
+      panRight.style.filter='url(#panGlowRight) drop-shadow(0 0 8px var(--gt))';
+      panLeft.style.filter='none';
+    } else {
+      panLeft.style.filter='none';
+      panRight.style.filter='none';
+    }
+  }
+
+  // Dynasty impact panel (only renders for full trade page)
+  const di=document.getElementById('dynasty-impact');
+  if(!di) return;
+  const impact=dynastyImpact(GP,RP);
+  if(!impact){di.style.display='none';return;}
+  const {gAge,rAge,windowMsg,pickMsg,narrative,gPlayers,rPlayers,gPicks,rPicks}=impact;
+  const ageFmt=a=>a!==null?a.toFixed(1)+' yrs':'—';
+  const posColor={QB:'var(--qb)',WR:'var(--wr)',RB:'var(--rb)',TE:'var(--te)',PICK:'var(--pick)'};
+  di.style.display='block';
+  di.innerHTML=`
+    <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border);">
+      <div style="font-family:Oswald,sans-serif;font-size:10px;letter-spacing:0.18em;text-transform:uppercase;color:var(--text3);margin-bottom:10px;">Dynasty Context</div>
+      <div class="impact-grid">
+        <div class="impact-box">
+          <div class="impact-lbl">You Give</div>
+          <div class="impact-row"><span class="impact-key">Avg Age</span><span class="impact-val" style="color:var(--text2);">${ageFmt(gAge)}</span></div>
+          <div class="impact-row"><span class="impact-key">Players</span><span class="impact-val" style="color:var(--text2);">${gPlayers.length}</span></div>
+          <div class="impact-row"><span class="impact-key">Picks</span><span class="impact-val" style="color:var(--pick);">${gPicks.length}</span></div>
+        </div>
+        <div class="impact-box">
+          <div class="impact-lbl">You Receive</div>
+          <div class="impact-row"><span class="impact-key">Avg Age</span><span class="impact-val" style="color:var(--text2);">${ageFmt(rAge)}</span></div>
+          <div class="impact-row"><span class="impact-key">Players</span><span class="impact-val" style="color:var(--text2);">${rPlayers.length}</span></div>
+          <div class="impact-row"><span class="impact-key">Picks</span><span class="impact-val" style="color:var(--pick);">${rPicks.length}</span></div>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:4px;margin-top:8px;">
+        <div style="font-size:11px;color:var(--text3);font-family:Oswald,sans-serif;">Age: ${windowMsg}</div>
+        <div style="font-size:11px;color:var(--text3);font-family:Oswald,sans-serif;">Picks: ${pickMsg}</div>
+      </div>
+      <div class="impact-narrative">${narrative}</div>
+    </div>`;
 }
+
 // ── ROSTER CONSTRUCTION GRADE ────────────────────────────────────────
 function rosterGrade(r, leagueAvg){
   const all=r.all; const n=all.length;
