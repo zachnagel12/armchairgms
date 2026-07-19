@@ -776,6 +776,26 @@ tbody tr.sel{background:rgba(192,120,72,0.13);border-left:3px solid var(--accent
 .tep-amt{align-items:center;background:var(--bg3);border:1px solid var(--te);border-radius:20px;overflow:hidden;}
 .tep-amt-btn{font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:0.04em;font-weight:600;padding:5px 11px;border:none;background:transparent;color:var(--text3);cursor:pointer;}
 
+
+/* player card projected PPG */
+.pc-ppg{display:flex;align-items:baseline;gap:8px;margin-top:10px;padding:9px 12px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r6);}
+.pc-ppg-v{font-family:'Russo One',sans-serif;font-size:20px;color:var(--accent);}
+.pc-ppg-l{font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:var(--text3);}
+/* team PPG tab */
+.tp-empty{text-align:center;color:var(--text3);padding:50px 20px;font-family:'Barlow Condensed',sans-serif;font-size:15px;}
+.tp-row{display:flex;gap:12px;padding:12px 0;border-bottom:1px solid rgba(120,120,120,0.1);}
+.tp-rank{font-family:'Russo One',sans-serif;font-size:16px;color:var(--text3);width:26px;flex:0 0 auto;text-align:center;}
+.tp-main{flex:1;min-width:0;}
+.tp-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px;}
+.tp-team{font-family:'Oswald',sans-serif;font-size:16px;font-weight:600;color:var(--text);}
+.tp-ppg{font-family:'Russo One',sans-serif;font-size:18px;color:var(--accent);}
+.tp-ppg-l{font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:0.08em;text-transform:uppercase;color:var(--text3);}
+.tp-bar{height:8px;background:var(--border);border-radius:5px;overflow:hidden;margin-bottom:7px;}
+.tp-fill{height:100%;background:var(--accent);border-radius:5px;}
+.tp-starters{display:flex;flex-wrap:wrap;gap:5px 12px;}
+.tp-st{font-family:'Barlow Condensed',sans-serif;font-size:12px;color:var(--text2);white-space:nowrap;}
+.tp-st b{color:var(--text3);font-family:'Russo One',sans-serif;font-size:9px;margin-right:2px;}
+.tp-st-p{color:var(--accent);font-weight:600;}
 </style>
 </head>
 <body class="light">
@@ -892,6 +912,7 @@ tbody tr.sel{background:rgba(192,120,72,0.13);border-left:3px solid var(--accent
   <div class="nav-tabs">
     <div class="nt active" onclick="showPg('rankings',this)">Rankings</div>
     <div class="nt" onclick="showPg('sleeper',this)">League</div>
+    <div class="nt" onclick="showPg('teamppg',this)">Team PPG</div>
     <div class="nt" onclick="showPg('myteam',this)">My Team</div>
     <div class="nt" onclick="showPg('history',this)">History</div>
     <div class="nt" onclick="showPg('trade',this)">Trade</div>
@@ -1230,6 +1251,18 @@ tbody tr.sel{background:rgba(192,120,72,0.13);border-left:3px solid var(--accent
   </div>
 </div>
 
+<!-- TEAM PPG -->
+<div class="page" id="page-teamppg">
+  <div style="max-width:1000px;margin:0 auto;padding:20px;">
+    <div style="margin-bottom:18px;">
+      <div class="hero-ey">Projected Points</div>
+      <div class="hero-title" style="font-size:24px;">Team <em>PPG</em></div>
+      <div style="font-size:13px;color:var(--text2);margin-top:6px;">Each team's best possible starting lineup, scored by Sleeper projections for your league's settings.</div>
+    </div>
+    <div id="teamppg-body"></div>
+  </div>
+</div>
+
 <!-- LEAGUE -->
 <div class="page" id="page-sleeper">
   <div class="sw2">
@@ -1450,14 +1483,17 @@ const DATA=RAW.map(d=>({rank:d.r,name:d.n,pos:d.p,team:d.t,age:d.a,score:d.s,har
 let CU=null;
 
 // ── SUPABASE AUTH ─────────────────────────────────────────────────────────
-const SB_URL='https://gmxxwhghtnjgmdcqkvov.supabase.co';
+const SB_URL='https://uabtlmzytbzwagnyprcx.supabase.co';
 const SITE_URL='https://armchairgms.app';
-const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdteHh3aGdodG5qZ21kY3Frdm92Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg4Njk2NzQsImV4cCI6MjA5NDQ0NTY3NH0.K6RmSIcWZkgccwuRAKbaCGrbFpHxmiv1g7JLH47Ur0I';
+const SB_KEY='sb_publishable_1p5s04w0XpXJkIzFQUz4DQ__5KokUiz';
 
 async function sbFetch(path, opts={}){
+  const _isJwt=SB_KEY.startsWith('eyJ');
+  const _h={'Content-Type':'application/json','apikey':SB_KEY};
+  if(_isJwt) _h['Authorization']=`Bearer ${SB_KEY}`; // legacy anon JWT doubles as default bearer; publishable keys use apikey only
   const res=await fetch(`${SB_URL}${path}`,{
     ...opts,
-    headers:{'Content-Type':'application/json','apikey':SB_KEY,'Authorization':`Bearer ${SB_KEY}`,...(opts.headers||{})}
+    headers:{..._h,...(opts.headers||{})}
   });
   let data={};
   try{data=await res.json();}catch(e){}
@@ -1789,6 +1825,57 @@ function getScore(d){
     __s=Math.min(99.9, Math.round(__s*(1+TE_PREMIUM*0.12)*10)/10);
   }
   return __s;
+}
+// ── PROJECTED PPG (from Sleeper projections + league scoring) ─────────────────
+function playerPPG(sid,pos){
+  const pm=window._projMap||{}, rm=window._projRecMap||{};
+  if(sid==null) return null;
+  const base=pm[String(sid)];
+  if(base==null) return null;
+  let ppg=Number(base);
+  if(TE_PREMIUM>0 && pos==='TE'){ const r=rm[String(sid)]; if(r!=null) ppg+=TE_PREMIUM*Number(r); }
+  return ppg;
+}
+function playerPPGByName(name,pos){
+  const sid=(typeof SLEEPER_PID!=='undefined')?SLEEPER_PID[normName(name)]:null;
+  return playerPPG(sid,pos);
+}
+const _PPG_FLEX={FLEX:['RB','WR','TE'],SUPER_FLEX:['QB','RB','WR','TE'],REC_FLEX:['WR','TE'],WRRB_FLEX:['RB','WR'],WRRB:['RB','WR'],WRRB_TE_FLEX:['RB','WR','TE']};
+function teamProjPPG(team){
+  const slots=window._startSlots||['QB','RB','RB','WR','WR','WR','TE','FLEX'];
+  const byPos={QB:[],RB:[],WR:[],TE:[]};
+  (team.all||[]).forEach(p=>{ if(byPos[p.pos]) byPos[p.pos].push({p,proj:playerPPG(p.sleeper_id,p.pos)||0}); });
+  Object.values(byPos).forEach(a=>a.sort((x,y)=>y.proj-x.proj));
+  const used=new Set(); let total=0; const starters=[];
+  slots.forEach(slot=>{ if(['QB','RB','WR','TE'].includes(slot)){ const e=byPos[slot]&&byPos[slot].find(x=>!used.has(x.p)); if(e){used.add(e.p);total+=e.proj;starters.push({slot,p:e.p,proj:e.proj});} } });
+  slots.forEach(slot=>{ const elig=_PPG_FLEX[slot]; if(!elig)return; let best=null; elig.forEach(pos=>{ const c=byPos[pos]&&byPos[pos].find(x=>!used.has(x.p)); if(c&&(!best||c.proj>best.proj))best=c; }); if(best){used.add(best.p);total+=best.proj;starters.push({slot,p:best.p,proj:best.proj});} });
+  return {total:Math.round(total*10)/10, starters};
+}
+function ppgSlotLabel(s){return s==='SUPER_FLEX'?'SF':((s in _PPG_FLEX)?'FLX':s);}
+function renderTeamPPG(){
+  const root=document.getElementById('teamppg-body'); if(!root) return;
+  if(typeof MODAL_DATA==='undefined' || !MODAL_DATA || !MODAL_DATA.length){
+    root.innerHTML='<div class="tp-empty">Load a league (paste a Sleeper ID and hit Sync / Load League) to see projected PPG by team.</div>'; return;
+  }
+  if(!window._projMap || !Object.keys(window._projMap).length){
+    root.innerHTML='<div class="tp-empty">Projections are not loaded for this league yet — re-sync the league.</div>'; return;
+  }
+  const teams=MODAL_DATA.map(r=>({r,ppg:teamProjPPG(r)})).sort((a,b)=>b.ppg.total-a.ppg.total);
+  const max=teams.length?teams[0].ppg.total:1;
+  const rows=teams.map((t,i)=>{
+    const nm=t.r.owner||('Team '+(i+1));
+    const pct=max?Math.round(t.ppg.total/max*100):0;
+    const starters=t.ppg.starters.map(s=>`<span class="tp-st"><b>${ppgSlotLabel(s.slot)}</b> ${s.p.name} <span class="tp-st-p">${(s.proj||0).toFixed(1)}</span></span>`).join('');
+    return `<div class="tp-row">
+      <div class="tp-rank">${i+1}</div>
+      <div class="tp-main">
+        <div class="tp-head"><span class="tp-team">${nm}</span><span class="tp-ppg">${t.ppg.total.toFixed(1)}<span class="tp-ppg-l"> PPG</span></span></div>
+        <div class="tp-bar"><div class="tp-fill" style="width:${pct}%;"></div></div>
+        <div class="tp-starters">${starters}</div>
+      </div>
+    </div>`;
+  }).join('');
+  root.innerHTML=`<div class="dc-card"><div class="dc-card-t">Best-lineup projected PPG${window._scoringLabel?' · '+window._scoringLabel:''}${TE_PREMIUM>0?' · '+TE_PREMIUM+' TEP':''}</div>${rows}</div>`;
 }
 function _getScoreBase(d){
   if(!d) return 0;
@@ -2699,6 +2786,7 @@ function showPg(id,el){
   if(id==='startsit'){SS_A=null;SS_B=null;document.getElementById('ss-a-search').value='';document.getElementById('ss-b-search').value='';document.getElementById('ss-a-card').innerHTML='';document.getElementById('ss-b-card').innerHTML='';document.getElementById('ss-verdict').style.display='none';}
   if(id==='rookies') renderRookies();
   if(id==='draft'){try{initDraft();}catch(e){}}
+  if(id==='teamppg'){try{renderTeamPPG();}catch(e){}}
   if(id==='rankings'){try{const top=DATA.find(d=>d.rank===1);if(top){SEL=top;renderTable();renderCard();}}catch(e){}}
 }
 
@@ -3232,6 +3320,7 @@ function refreshActivePage(){
     else if(id==='trades'){ if(typeof renderTrades==='function')renderTrades(); }
     else if(id==='targets'){ if(typeof renderTargets==='function')renderTargets(); }
     else if(id==='rookies'){ if(typeof renderRookies==='function')renderRookies(); }
+    else if(id==='teamppg'){ if(typeof renderTeamPPG==='function')renderTeamPPG(); }
     else if(id==='history'){ if(typeof renderHistory==='function')renderHistory(); }
     else if(id==='startsit'){ if(typeof renderSSVerdict==='function'&&typeof SS_A!=='undefined'&&SS_A&&SS_B)renderSSVerdict(); }
     else if(id==='draft'){ if(typeof renderDraft==='function')renderDraft(); }
@@ -3589,6 +3678,7 @@ function renderCard(){
       <div class="pstat"><div class="psv">${d.age||'—'}</div><div class="psl2">Age</div></div>
       <div class="pstat"><div class="psv">${windowStr}</div><div class="psl2">Window</div></div>
     </div>
+    ${(function(){var pg=playerPPGByName(d.name,d.pos);return (pg!=null)?`<div class="pc-ppg"><span class="pc-ppg-v">${pg.toFixed(1)}</span><span class="pc-ppg-l">Proj PPG${window._scoringLabel?' · '+window._scoringLabel:''}${TE_PREMIUM>0&&d.pos==='TE'?' · '+TE_PREMIUM+' TEP':''}</span></div>`:'';})()}
 
     <!-- Age cliff -->
     <div class="pc-section">
@@ -4105,22 +4195,24 @@ async function loadLeague(){
     try{
       const recPts=Number(league.scoring_settings?.rec||0);
       const projField=recPts>=0.9?'pts_ppr':recPts>=0.4?'pts_half_ppr':'pts_std';
+      window._scoringLabel=recPts>=0.9?'PPR':recPts>=0.4?'Half PPR':'Std';
       const weekResults=await Promise.all([1,2,3].map(w=>
         fetch(`https://api.sleeper.com/projections/nfl/2026/${w}?season_type=regular&position[]=QB&position[]=RB&position[]=WR&position[]=TE`)
           .then(r=>r.ok?r.json():[]).catch(()=>[])
       ));
-      const acc={}; // pid -> {sum, count}
+      const acc={}; const racc={}; // pid -> {sum,count}
       weekResults.forEach(week=>{
         week.forEach(e=>{
           const pid=e.player_id;
+          if(!pid) return;
           const v=e.stats?.[projField];
-          if(!pid||v==null||v==='') return;
-          if(!acc[pid]) acc[pid]={sum:0,count:0};
-          acc[pid].sum+=Number(v);
-          acc[pid].count+=1;
+          if(v!=null&&v!==''){ if(!acc[pid]) acc[pid]={sum:0,count:0}; acc[pid].sum+=Number(v); acc[pid].count+=1; }
+          const rc=e.stats?.rec;
+          if(rc!=null&&rc!==''){ if(!racc[pid]) racc[pid]={sum:0,count:0}; racc[pid].sum+=Number(rc); racc[pid].count+=1; }
         });
       });
       Object.entries(acc).forEach(([pid,o])=>{ projMap[String(pid)]=o.sum/o.count; });
+      window._projRecMap={}; Object.entries(racc).forEach(([pid,o])=>{ window._projRecMap[String(pid)]=o.sum/o.count; });
     }catch(e){}
     window._projMap=projMap; // exposed for trade rec engine in myteam.js
 
