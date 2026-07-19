@@ -4178,6 +4178,7 @@ async function loadLeague(){
      TE_PREMIUM=(_savedTep!=null)?_savedTep:Number(league.scoring_settings?.bonus_rec_te||0);
      if(_savedTep==null) saveTepFor(id,TE_PREMIUM);}
     if(typeof updateTepNotice==='function') updateTepNotice();
+    try{if(typeof refreshActivePage==='function')refreshActivePage();}catch(e){} // reflect new league's scoring/TE-premium in the current view
     loadStep(2);
     const wf=[];for(let w=1;w<=17;w++)wf.push(fetch(`https://api.sleeper.app/v1/league/${id}/matchups/${w}`).then(r=>r.json()).catch(()=>[]));
     const allM=await Promise.all(wf);
@@ -6496,6 +6497,7 @@ function applyLeagueRules(league,draft){
    DRAFT.tep=(_savedTep!=null)?_savedTep:Number((league&&league.scoring_settings&&league.scoring_settings.bonus_rec_te)||0);
    if(_savedTep==null&&_lid) saveTepFor(_lid,DRAFT.tep);}
   TE_PREMIUM=DRAFT.tep; if(typeof updateTepNotice==='function') updateTepNotice();
+  try{if(typeof refreshActivePage==='function')refreshActivePage();}catch(e){}
   if(rp.length) DRAFT.needTargets=deriveNeedTargets(rp,isSF);
 }
 
